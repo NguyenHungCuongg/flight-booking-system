@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Flight Booking System (UIT project, MIT license): a multi-airline online ticket agency modelled on Traveloka. Stack: Next.js 16 + TypeScript + Tailwind (frontend), Spring Boot 4 / Java 21 modular monolith (backend), PostgreSQL 18. Backend foundation lives in `backend/` (Plan 01); the frontend is not scaffolded yet. Roadmap and plans: `docs/superpowers/plans/`.
+Flight Booking System (UIT project, MIT license): a multi-airline online ticket agency modelled on Traveloka. Stack: Next.js 16 + TypeScript + Tailwind (frontend), Spring Boot 4 / Java 21 modular monolith (backend), PostgreSQL 18. Backend foundation lives in `backend/` (Plan 01). The frontend lives in `frontend/`: the C-01 landing page is built from the Claude Design mock and the other screens are placeholders; API plumbing (rewrites, `apiFetch`, `proxy.ts`, `gen:api`) is Plan 03 and not done yet. Roadmap and plans: `docs/superpowers/plans/`.
 
 Design docs in `docs/` are the source of truth; read the relevant one before implementing:
 
@@ -21,6 +21,7 @@ Copy `.env.example` to `.env` first (change `DB_PORT`/`DB_URL` if port 5432 is t
 - Backend tests: `cd backend && ./mvnw verify`
 - One test class: `cd backend && ./mvnw test -Dtest=SecurityConfigTest`
 - Run backend (profile `dev`, reads `../.env`): `cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev`, Swagger at http://localhost:8080/swagger-ui.html
+- Frontend (Node 24 in CI): `cd frontend && npm install`, then `npm run dev` (http://localhost:3000), `npm run lint`, `npm run build`. Next.js 16 has breaking changes: read `frontend/node_modules/next/dist/docs/` before writing Next.js code (see `frontend/AGENTS.md`).
 - Full stack: `docker compose up -d --build`
 
 Test conventions: integration tests use `@IntegrationTest` (one shared Spring context and one PostgreSQL 18 container). Send CSRF with `TestCsrf.csrf(mvc)`, never `SecurityMockMvcRequestPostProcessors.csrf()`: it swaps the shared `CsrfFilter`'s token repository and breaks later tests. Tests create their own data and never read `.env`.
@@ -31,6 +32,12 @@ Test conventions: integration tests use `@IntegrationTest` (one shared Spring co
 2. **Simplicity first.** Write the minimum code that solves the problem: no unrequested features, no abstractions for single-use code, no speculative configurability, no error handling for impossible cases.
 3. **Surgical changes.** Touch only what the task requires. Don't reformat or refactor adjacent code; match existing style. Remove only the orphans your own change created; mention unrelated dead code instead of deleting it.
 4. **Goal-driven execution.** Turn tasks into verifiable goals (e.g. "fix bug" → write a failing test, then make it pass). For multi-step work, state a brief plan with a verification check per step, and loop until verified.
+
+## Frontend notes
+
+- Next.js 16 runs with Cache Components: never call `new Date()`, `Date.now()` or `Math.random()` while rendering, Client Components included (prerender fails). Read time-dependent values after hydration, e.g. `useSyncExternalStore` with a `null` server snapshot (`landing/search-context.tsx`).
+- The landing keeps the Claude Design CSS verbatim in `src/components/landing/landing.css` (scoped under `.sk`) so a changed mock can be diffed against it. Images live in `public/assets/images/`.
+- `suppressHydrationWarning` on `<html>` in the root layout is intentional: browser extensions (Dark Reader) inject attributes before hydration.
 
 ## Agent tooling
 
