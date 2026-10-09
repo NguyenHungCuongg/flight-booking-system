@@ -1,6 +1,7 @@
 package vn.edu.uit.flightbooking.identity.domain;
 
 import java.util.Locale;
+import java.util.Optional;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -67,6 +68,11 @@ public class AccountService {
 	}
 
 	@Transactional(readOnly = true)
+	public Optional<User> findByEmail(String email) {
+		return users.findByEmail(normalize(email));
+	}
+
+	@Transactional(readOnly = true)
 	public boolean isActive(long id) {
 		return users.findStatusById(id).filter(status -> status == UserStatus.ACTIVE).isPresent();
 	}
@@ -88,6 +94,12 @@ public class AccountService {
 			throw BusinessException.invalidField("currentPassword", "Mật khẩu hiện tại không đúng");
 		}
 		user.setPasswordHash(encoder.encode(newPassword));
+	}
+
+	/** Dùng sau khi token đặt lại mật khẩu đã được kiểm tra (FR-03). */
+	@Transactional
+	public void setPassword(long id, String newPassword) {
+		get(id).setPasswordHash(encoder.encode(newPassword));
 	}
 
 	/** FR-110. Bỏ sort client gửi lên: truy vấn đã có ORDER BY, sort lạ sẽ làm hỏng câu JPQL. */

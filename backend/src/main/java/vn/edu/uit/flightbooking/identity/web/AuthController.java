@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import vn.edu.uit.flightbooking.common.CurrentUser;
 import vn.edu.uit.flightbooking.identity.domain.AccountService;
+import vn.edu.uit.flightbooking.identity.domain.PasswordResetService;
 import vn.edu.uit.flightbooking.identity.domain.User;
 
 /** Đăng ký, đăng nhập, đăng xuất, quên mật khẩu (FR-01–03, TDD §4.1, §4.4). */
@@ -40,12 +41,21 @@ class AuthController {
 	record LoginRequest(@NotBlank String email, @NotBlank String password) {
 	}
 
+	record ForgotPasswordRequest(@NotBlank @Email String email) {
+	}
+
+	record ResetPasswordRequest(@NotBlank String token, @Password String newPassword) {
+	}
+
 	private final SecurityContextRepository contextRepository = new HttpSessionSecurityContextRepository();
 
 	private final AccountService accounts;
 
-	AuthController(AccountService accounts) {
+	private final PasswordResetService passwordResets;
+
+	AuthController(AccountService accounts, PasswordResetService passwordResets) {
 		this.accounts = accounts;
+		this.passwordResets = passwordResets;
 	}
 
 	/** FR-01: đăng ký xong thì đăng nhập luôn. */
@@ -70,6 +80,18 @@ class AuthController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
 		new SecurityContextLogoutHandler().logout(request, response, authentication);
+	}
+
+	/** FR-03: luôn trả 200, kể cả khi email không tồn tại. */
+	@PostMapping("/forgot-password")
+	void forgotPassword(@Valid @RequestBody ForgotPasswordRequest body) {
+		passwordResets.request(body.email());
+	}
+
+	@PostMapping("/reset-password")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	void resetPassword(@Valid @RequestBody ResetPasswordRequest body) {
+		passwordResets.reset(body.token(), body.newPassword());
 	}
 
 	/** TDD §4.1: đổi session id (chống session fixation) rồi lưu SecurityContext vào HttpSession. */
