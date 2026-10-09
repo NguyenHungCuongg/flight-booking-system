@@ -3,6 +3,9 @@ package vn.edu.uit.flightbooking.identity.domain;
 import java.util.Locale;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -34,6 +37,15 @@ public class AccountService {
 		return create(email, password, fullName, phone, Role.CUSTOMER);
 	}
 
+	/** FR-110, BR-101: Admin chỉ tạo tài khoản vận hành. */
+	@Transactional
+	public User createOperator(String email, String password, String fullName, String phone, Role role) {
+		if (role == Role.CUSTOMER) {
+			throw BusinessException.invalidField("role", "Chỉ tạo được tài khoản STAFF hoặc ADMIN");
+		}
+		return create(email, password, fullName, phone, role);
+	}
+
 	/** FR-02: sai email và sai mật khẩu báo cùng một lỗi; kiểm tra khoá sau khi mật khẩu đúng (BR-102). */
 	@Transactional(readOnly = true)
 	public User authenticate(String email, String password) {
@@ -54,6 +66,11 @@ public class AccountService {
 			.orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy tài khoản"));
 	}
 
+	@Transactional(readOnly = true)
+	public boolean isActive(long id) {
+		return users.findStatusById(id).filter(status -> status == UserStatus.ACTIVE).isPresent();
+	}
+
 	/** FR-04: email không đổi được. */
 	@Transactional
 	public User updateProfile(long id, String fullName, String phone) {
@@ -71,6 +88,24 @@ public class AccountService {
 			throw BusinessException.invalidField("currentPassword", "Mật khẩu hiện tại không đúng");
 		}
 		user.setPasswordHash(encoder.encode(newPassword));
+	}
+
+	/** FR-110. Bỏ sort client gửi lên: truy vấn đã có ORDER BY, sort lạ sẽ làm hỏng câu JPQL. */
+	@Transactional(readOnly = true)
+	public Page<User> search(String query, Role role, Pageable pageable) {
+		String pattern = "%" + query.strip().toLowerCase(Locale.ROOT) + "%";
+		return users.search(pattern, role, PageRequest.of(pageable.getPageNumber(), pageable.getPageSize()));
+	}
+
+	/** FR-110, BR-105: Admin không tự khoá chính mình. Khoá có hiệu lực từ request kế tiếp (BR-102). */
+	@Transactional
+	public User setStatus(long adminId, long userId, UserStatus status) {
+		if (adminId == userId && status == UserStatus.LOCKED) {
+			throw new BusinessException(ErrorCode.INVALID_STATE, "Bạn không thể tự khoá tài khoản của chính mình");
+		}
+		User user = get(userId);
+		user.setStatus(status);
+		return user;
 	}
 
 	private User create(String email, String password, String fullName, String phone, Role role) {
