@@ -12,6 +12,11 @@ Design docs in `docs/` are the source of truth; read the relevant one before imp
 - `TDD.md` — architecture, module boundaries, auth, technical flows, API list, error codes.
 - `APP_FLOW.md` — screens, user flows, state machines, sequence diagrams.
 - `BACKEND_SCHEMA.md` — DDL (used verbatim as Flyway `V1__init.sql`), key queries (`Q-xx`), seed data.
+- `DESIGN.md` (repo root, not `docs/`) — "SkyLine" frontend design system: tokens, typography (Inter with Vietnamese subset), components.
+
+Docs, code comments and user-facing error messages are in Vietnamese; keep new ones in Vietnamese too.
+
+Roadmap workflow (`docs/superpowers/plans/2026-10-09-00-roadmap.md`): the work is split into 21 plans, and each plan's detailed file is written right before it is implemented, using the real class/API names that earlier plans created. When a plan is finished, tick its "Xong" column (§2) and add its APIs to the contract table (§6).
 
 ## Commands
 
@@ -24,6 +29,20 @@ Copy `.env.example` to `.env` first (change `DB_PORT`/`DB_URL` if port 5432 is t
 - Full stack: `docker compose up -d --build`
 
 Test conventions: integration tests use `@IntegrationTest` (one shared Spring context and one PostgreSQL 18 container). Send CSRF with `TestCsrf.csrf(mvc)`, never `SecurityMockMvcRequestPostProcessors.csrf()`: it swaps the shared `CsrfFilter`'s token repository and breaks later tests. Tests create their own data and never read `.env`.
+
+CI (`.github/workflows/ci.yml`) runs `./mvnw -B verify` on JDK 21 on every push and PR.
+
+## Backend architecture
+
+Spring Modulith monolith rooted at `vn.edu.uit.flightbooking`; each direct subpackage is a module (`common`, `identity`, `catalog`, `flight`, `promotion`, `booking`, `payment`, `aftersales`, `report`, `notification`). TDD §3.2 lists each module's owned tables, public API and allowed dependencies.
+
+- Classes in a module's root package (e.g. `booking.BookingApi`) are its public API. The subpackages `web` (controllers, DTOs), `domain` (entities, services) and `infra` (repositories, external clients) are internal. `ModularityTest` enforces this and rejects cycles.
+- `common` is an OPEN module (`package-info.java`), so every module may use it: `ErrorCode`, `BusinessException`, `SettingsApi`, `SecurityConfig`.
+- Only the owning module writes a table. Modules reference each other's data by ID, never by cross-module JPA relations (DB foreign keys still exist). Cross-module side effects go through events (TDD §3.3).
+- Schema changes go only through Flyway migrations in `db/migration` (Hibernate uses `ddl-auto=validate`). Seed data uses `V100`+ (BACKEND_SCHEMA §8).
+- Errors: throw `BusinessException(ErrorCode, vietnameseDetail)`. `GlobalExceptionHandler` renders it as RFC 9457 `ProblemDetail` with a `code` field (codes in TDD §9). 401/403 from Spring Security go through the same path.
+- Auth: server-side session cookie plus SPA CSRF (`GET /api/auth/csrf`). URL-based role rules live in `SecurityConfig`, and `ADMIN` inherits `STAFF`.
+- Conventions (TDD §5): money is `long` VND (`BIGINT`); time is `timestamptz`/`Instant`, and the API uses `OffsetDateTime` in the airport's zone. `@Transactional` goes on services. Seats are held and released only with atomic `UPDATE`s (Q-01–Q-03). Follow the global lock order `flights → payments → bookings → refund_requests/reschedules → flight_cabins → vouchers`.
 
 ## Working rules (Karpathy guidelines)
 
