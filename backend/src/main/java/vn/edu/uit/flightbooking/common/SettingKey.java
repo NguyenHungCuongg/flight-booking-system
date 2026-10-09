@@ -1,5 +1,7 @@
 package vn.edu.uit.flightbooking.common;
 
+import java.util.Arrays;
+
 /** Tham số nghiệp vụ trong bảng system_settings, kèm khoảng hợp lệ (PRD §7). */
 public enum SettingKey {
 
@@ -22,6 +24,14 @@ public enum SettingKey {
 		this.key = key;
 		this.min = min;
 		this.max = max;
+	}
+
+	/** Tìm theo khoá trong DB (VD {@code booking.hold_minutes}); khoá lạ thì báo RESOURCE_NOT_FOUND. */
+	public static SettingKey of(String key) {
+		return Arrays.stream(values())
+			.filter(k -> k.key.equals(key))
+			.findFirst()
+			.orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Không có tham số " + key));
 	}
 
 	public String key() {
