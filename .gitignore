@@ -5,3 +5,21 @@
 .claude/
 .agents/
 
+# Environment — only the contract is committed
+.env
+.env.*
+!.env.example
+
+# Node.js / Next.js
+node_modules/
+.pnpm-store/
+.next/
+next-env.d.ts
+out/
+*.tsbuildinfo
+coverage/
+
+# OS / editors (.vscode/ is shared, see Infra 08)
+.DS_Store
+Thumbs.db
+.idea/

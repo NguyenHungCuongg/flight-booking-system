@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="15.989583015441895" height="15.989583015441895" viewBox="498.59375 1298.489501953125 15.989583015441895 15.989583015441895"><defs/><g/><g/><g/><g/><g/><g/><g/><g id="svg1" mask="url(#mask-for-svg11)"><g/><g/><g/><g/><g/><g/><g/><mask id="mask-for-svg11"><rect width="15.989583015441895" height="15.989583015441895" x="498.59375" y="1298.489501953125" fill="#ffffff"/></mask><g transform="matrix(0.159896 0 0 0.159896 498.594 1298.49)">
+            <circle cx="50" cy="50" r="50" fill="rgb(0, 13, 16)" color="rgb(0, 13, 16)" stroke="none"/>
+            <g transform="matrix(0.721249, 0.721249, -0.721249, 0.721249, 50, -22.1249)" fill="rgb(255, 255, 255)" color="rgb(0, 13, 16)" stroke="none">
+              <rect x="42" y="14" width="16" height="70" rx="8" color="rgb(0, 13, 16)" fill="rgb(255, 255, 255)" stroke="none"/>
+              <path d="M45 40L12 60V67L45 58ZM55 40L88 60V67L55 58ZM45 70L32 80V85L45 81ZM55 70L68 80V85L55 81Z" stroke="rgb(255, 255, 255)" stroke-width="8px" stroke-linejoin="round" color="rgb(0, 13, 16)" fill="rgb(255, 255, 255)"/>
+            </g>
+          </g></g></svg>
