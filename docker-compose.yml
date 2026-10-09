@@ -26,11 +26,14 @@ services:
     env_file: .env
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/flightbooking
+      MAIL_HOST: mailpit
     ports:
       - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
       interval: 10s

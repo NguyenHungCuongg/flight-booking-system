@@ -11,12 +11,12 @@ import org.springframework.context.annotation.Import;
 
 /**
  * Mọi integration test dùng chung annotation này để Spring cache một context
- * và chỉ khởi động một container PostgreSQL cho cả bộ test.
+ * và chỉ khởi động một container PostgreSQL cho cả bộ test. Email gửi đi được giữ trong {@link TestMailSender}.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
+@Import({ TestcontainersConfiguration.class, TestMailSender.class })
 public @interface IntegrationTest {
 }
