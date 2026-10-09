@@ -27,8 +27,9 @@ Copy `.env.example` to `.env` first (change `DB_PORT`/`DB_URL` if port 5432 is t
 - One test class: `cd backend && ./mvnw test -Dtest=SecurityConfigTest`
 - Run backend (profile `dev`, reads `../.env`): `cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev`, Swagger at http://localhost:8080/swagger-ui.html
 - Full stack: `docker compose up -d --build`
+- Demo accounts (profile `dev`, seed `V105`): `admin@demo.local`, `staff@demo.local`, `customer@demo.local`, password `Demo@1234`.
 
-Test conventions: integration tests use `@IntegrationTest` (one shared Spring context and one PostgreSQL 18 container). Send CSRF with `TestCsrf.csrf(mvc)`, never `SecurityMockMvcRequestPostProcessors.csrf()`: it swaps the shared `CsrfFilter`'s token repository and breaks later tests. Tests create their own data and never read `.env`.
+Test conventions: integration tests use `@IntegrationTest` (one shared Spring context and one PostgreSQL 18 container). Send CSRF with `TestCsrf.csrf(mvc)`, never `SecurityMockMvcRequestPostProcessors.csrf()`: it swaps the shared `CsrfFilter`'s token repository and breaks later tests. Log in with `TestUsers.loggedIn(mvc, jdbc, Role.X)` (real `POST /api/auth/login`) and pass `.session(user.session())`. Sent emails are captured by `TestMailSender.sentTo(email)`; they are only sent after commit, so email tests must not be `@Transactional` and clean up after themselves. Tests create their own data and never read `.env`.
 
 CI (`.github/workflows/ci.yml`) runs `./mvnw -B verify` on JDK 21 on every push and PR.
 
