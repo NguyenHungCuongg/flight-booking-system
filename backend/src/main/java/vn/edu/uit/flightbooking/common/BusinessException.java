@@ -1,5 +1,6 @@
 package vn.edu.uit.flightbooking.common;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -20,6 +21,12 @@ public class BusinessException extends RuntimeException {
 		super(detail);
 		this.code = code;
 		this.properties = properties;
+	}
+
+	/** Lỗi của một trường, cùng định dạng {@code errors} với lỗi Bean Validation để form hiện lỗi đúng chỗ. */
+	public static BusinessException invalidField(String field, String message) {
+		return new BusinessException(ErrorCode.VALIDATION_FAILED, "Dữ liệu không hợp lệ",
+				Map.of("errors", List.of(Map.of("field", field, "message", message))));
 	}
 
 	public ErrorCode code() {

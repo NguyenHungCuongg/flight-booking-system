@@ -54,6 +54,25 @@ public class AccountService {
 			.orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy tài khoản"));
 	}
 
+	/** FR-04: email không đổi được. */
+	@Transactional
+	public User updateProfile(long id, String fullName, String phone) {
+		User user = get(id);
+		user.setFullName(fullName);
+		user.setPhone(phone);
+		return user;
+	}
+
+	/** FR-04: phải nhập đúng mật khẩu hiện tại. */
+	@Transactional
+	public void changePassword(long id, String currentPassword, String newPassword) {
+		User user = get(id);
+		if (!encoder.matches(currentPassword, user.getPasswordHash())) {
+			throw BusinessException.invalidField("currentPassword", "Mật khẩu hiện tại không đúng");
+		}
+		user.setPasswordHash(encoder.encode(newPassword));
+	}
+
 	private User create(String email, String password, String fullName, String phone, Role role) {
 		User user = new User();
 		user.setEmail(normalize(email));
