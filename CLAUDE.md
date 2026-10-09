@@ -4,7 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Flight Booking System (UIT project, MIT license). No application code, build system, or tests exist yet — only agent tooling. Update this file with build/test commands and architecture once the stack is chosen.
+Flight Booking System (UIT project, MIT license): a multi-airline online ticket agency modelled on Traveloka. Stack: Next.js 16 + TypeScript + Tailwind (frontend), Spring Boot 4 / Java 21 modular monolith (backend), PostgreSQL 18. No application code, build system, or tests exist yet. Add build/test commands here once the code is scaffolded.
+
+Design docs in `docs/` are the source of truth; read the relevant one before implementing:
+
+- `PRD.md` — scope, requirements (`FR-xx`), business rules (`BR-xx`), system settings.
+- `TDD.md` — architecture, module boundaries, auth, technical flows, API list, error codes.
+- `APP_FLOW.md` — screens, user flows, state machines, sequence diagrams.
+- `BACKEND_SCHEMA.md` — DDL (used verbatim as Flyway `V1__init.sql`), key queries (`Q-xx`), seed data.
 
 ## Working rules (Karpathy guidelines)
 
