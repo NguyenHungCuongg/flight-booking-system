@@ -48,7 +48,6 @@ public class AccountService {
 	}
 
 	/** FR-02: sai email và sai mật khẩu báo cùng một lỗi; kiểm tra khoá sau khi mật khẩu đúng (BR-102). */
-	@Transactional(readOnly = true)
 	public User authenticate(String email, String password) {
 		User user = users.findByEmail(normalize(email)).orElse(null);
 		String hash = user != null ? user.getPasswordHash() : dummyHash;
