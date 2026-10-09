@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="95.98957824707031" height="95.98957824707031" viewBox="277.9947814941406 1218.489501953125 95.98957824707031 95.98957824707031"><defs/><g/><g/><g/><g/><g/><g/><g/><g id="svg1" mask="url(#mask-for-svg11)"><g/><g/><g/><g/><g/><g/><g/><mask id="mask-for-svg11"><rect width="95.98957824707031" height="95.98957824707031" x="277.9947814941406" y="1218.489501953125" fill="#ffffff"/></mask><g transform="matrix(0.959896 0 0 0.959896 277.995 1218.49)">
+            <circle cx="50" cy="50" r="50" fill="rgb(0, 13, 16)" color="rgb(0, 13, 16)" stroke="none"/>
+            <circle cx="78" cy="22" r="7" fill="rgb(188, 113, 85)" color="rgb(0, 13, 16)" stroke="none"/>
+            <g transform="matrix(0.579828, 0.579828, -0.579828, 0.579828, 47, -4.98276)" fill="rgb(255, 255, 255)" color="rgb(0, 13, 16)" stroke="none">
+              <rect x="45" y="14" width="10" height="70" rx="5" color="rgb(0, 13, 16)" fill="rgb(255, 255, 255)" stroke="none"/>
+              <path d="M45 40L12 60V67L45 58ZM55 40L88 60V67L55 58ZM45 70L32 80V85L45 81ZM55 70L68 80V85L55 81Z" stroke="rgb(255, 255, 255)" stroke-width="3px" stroke-linejoin="round" color="rgb(0, 13, 16)" fill="rgb(255, 255, 255)"/>
+            </g>
+          </g></g></svg>
