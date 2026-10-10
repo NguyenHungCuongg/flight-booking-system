@@ -73,9 +73,9 @@ export default function AuthShell({ children }: { children: ReactNode }) {
         {/* Ảnh chụp ban ngày nền sáng: phủ tối ở đầu và chân để chữ trắng đủ tương phản. */}
         <div className="absolute inset-0 bg-linear-to-b from-[#090a14]/60 via-[#090a14]/5 to-[#090a14]/80" />
         <p className="absolute top-68 left-59 text-display font-bold text-pure-white">
-          Cất
+          Sẵn sàng,
           <br />
-          cánh.
+          bay thôi!
         </p>
         <p className="absolute right-59 bottom-53 left-59 max-w-420 text-body text-pure-white/80">
           Vé của nhiều hãng ở một nơi. Giữ chỗ trước, thanh toán sau qua VNPay.
