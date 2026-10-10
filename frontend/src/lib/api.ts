@@ -1,0 +1,108 @@
+/** Gọi API backend qua rewrites /api/* (next.config.ts). Mọi lời gọi ghi phải đi qua apiFetch (lộ trình §5). */
+
+export type Role = "CUSTOMER" | "STAFF" | "ADMIN";
+
+/** UserResponse của backend (identity.web.UserResponse). Viết tay cho tới khi có npm run gen:api (Plan 03). */
+export type User = {
+  id: number;
+  email: string;
+  fullName: string;
+  phone: string;
+  role: Role;
+  status: "ACTIVE" | "LOCKED";
+};
+
+export type FieldError = { field: string; message: string };
+
+/** ProblemDetail (RFC 9457) của backend, có thêm code và errors (TDD §5.3, §9). */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    readonly detail: string,
+    readonly errors: FieldError[] = [],
+  ) {
+    super(detail);
+  }
+}
+
+function readCookie(name: string) {
+  const prefix = name + "=";
+  const hit = document.cookie.split("; ").find((c) => c.startsWith(prefix));
+  return hit ? decodeURIComponent(hit.slice(prefix.length)) : undefined;
+}
+
+/** csrf.spa() của Spring Security: header phải mang giá trị trong cookie XSRF-TOKEN (TDD §4.2). */
+async function csrfToken() {
+  let token = readCookie("XSRF-TOKEN");
+  if (!token) {
+    await fetch("/api/auth/csrf", { credentials: "same-origin" });
+    token = readCookie("XSRF-TOKEN");
+  }
+  return token;
+}
+
+export async function apiFetch<T>(
+  path: string,
+  init: Omit<RequestInit, "body"> & { body?: unknown } = {},
+): Promise<T> {
+  const method = (init.method ?? "GET").toUpperCase();
+  const headers = new Headers(init.headers);
+  if (init.body !== undefined) headers.set("Content-Type", "application/json");
+  if (method !== "GET" && method !== "HEAD") {
+    const token = await csrfToken();
+    if (token) headers.set("X-XSRF-TOKEN", token);
+  }
+
+  let res: Response;
+  try {
+    res = await fetch("/api" + path, {
+      ...init,
+      method,
+      headers,
+      credentials: "same-origin",
+      body: init.body === undefined ? undefined : JSON.stringify(init.body),
+    });
+  } catch {
+    throw new ApiError(
+      0,
+      "NETWORK",
+      "Không kết nối được máy chủ. Hãy thử lại.",
+    );
+  }
+
+  if (res.ok) {
+    return (res.status === 204 ? undefined : await res.json()) as T;
+  }
+  const problem = await res.json().catch(() => ({}));
+  throw new ApiError(
+    res.status,
+    problem.code ?? "INTERNAL_ERROR",
+    problem.detail ?? "Đã có lỗi xảy ra. Hãy thử lại.",
+    problem.errors ?? [],
+  );
+}
+
+const HOME: Record<Role, string> = {
+  CUSTOMER: "/bookings",
+  STAFF: "/staff/bookings",
+  ADMIN: "/admin/flights",
+};
+
+/** Trang mặc định sau đăng nhập (APP_FLOW §1). */
+export function homeOf(role: Role) {
+  return HOME[role];
+}
+
+/** Chỉ nhận đường dẫn trong site cho tham số next, chặn open redirect (//evil.com, /\evil.com, https://...). */
+export function safeNext(next: string | null, role: Role) {
+  if (
+    next &&
+    next.startsWith("/") &&
+    !next.startsWith("//") &&
+    !next.startsWith("/\\")
+  ) {
+    return next;
+  }
+  return homeOf(role);
+}
