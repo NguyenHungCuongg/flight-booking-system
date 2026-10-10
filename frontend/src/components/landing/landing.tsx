@@ -15,7 +15,9 @@ export default function Landing() {
   return (
     <SearchProvider>
       <div className="sk t-auto m-full" id="top">
-        <a className="skip" href="#tim-chuyen">Bỏ qua tới ô tìm chuyến bay</a>
+        <a className="skip" href="#tim-chuyen">
+          Bỏ qua tới ô tìm chuyến bay
+        </a>
         <Nav />
         <main>
           <Hero />

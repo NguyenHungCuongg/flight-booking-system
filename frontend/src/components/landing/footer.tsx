@@ -6,12 +6,20 @@ export default function Footer() {
     <footer className="foot on-dark">
       <div className="wrap">
         <p className="foot-wm" aria-hidden="true">
-          {[..."SkyLine"].map((c, i) => <span key={i} className="fch">{c}</span>)}
+          {[..."SkyLine"].map((c, i) => (
+            <span key={i} className="fch">
+              {c}
+            </span>
+          ))}
         </p>
         <div className="foot-grid">
           <div className="foot-brand">
-            <a className="logo" href="#top" aria-label="SkyLine, về đầu trang"><Logo /></a>
-            <p className="body foot-blurb">Vé máy bay của nhiều hãng, tìm và đặt ở một nơi.</p>
+            <a className="logo" href="#top" aria-label="SkyLine, về đầu trang">
+              <Logo />
+            </a>
+            <p className="body foot-blurb">
+              Vé máy bay của nhiều hãng, tìm và đặt ở một nơi.
+            </p>
           </div>
           <nav className="foot-col" aria-label="Đặt vé">
             <h3>Đặt vé</h3>
@@ -33,7 +41,10 @@ export default function Footer() {
         </div>
         <div className="foot-legal">
           <p>© 2026 SkyLine</p>
-          <p>Đồ án môn học. Lịch bay và giá vé là dữ liệu mô phỏng, không phải chính sách của hãng bay.</p>
+          <p>
+            Đồ án môn học. Lịch bay và giá vé là dữ liệu mô phỏng, không phải
+            chính sách của hãng bay.
+          </p>
         </div>
       </div>
     </footer>

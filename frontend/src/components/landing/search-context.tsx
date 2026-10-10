@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState, useSyncExternalStore } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { ROUTES, type CabinId } from "./data";
 
 export type Trip = "oneway" | "round";
@@ -22,26 +29,39 @@ export interface SearchForm {
 }
 
 export const pad = (n: number) => (n < 10 ? "0" : "") + n;
-export const iso = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+export const iso = (d: Date) =>
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 export const parseIso = (s: string | null) => {
   if (!s) return null;
   const [y, m, d] = s.split("-").map(Number);
   return new Date(y, m - 1, d);
 };
-export const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+export const addDays = (d: Date, n: number) =>
+  new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 
 const subscribeNone = () => () => {};
-const WD = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+const WD = [
+  "Chủ Nhật",
+  "Thứ Hai",
+  "Thứ Ba",
+  "Thứ Tư",
+  "Thứ Năm",
+  "Thứ Sáu",
+  "Thứ Bảy",
+];
 export const weekday = (d: Date) => WD[d.getDay()];
 export const ddmm = (d: Date) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
 
-const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const reducedMotion = () =>
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 interface SearchCtx {
   form: SearchForm;
   /** Ngày hôm nay (yyyy-mm-dd), null khi render ở server để không đọc giờ lúc prerender. */
   today: string | null;
-  update: (patch: Partial<SearchForm> | ((f: SearchForm) => Partial<SearchForm>)) => void;
+  update: (
+    patch: Partial<SearchForm> | ((f: SearchForm) => Partial<SearchForm>),
+  ) => void;
   /** Tăng mỗi lần cần nháy viền ô tìm. */
   flash: number;
   focusSearch: () => void;
@@ -58,16 +78,32 @@ export function useSearch() {
 
 export function SearchProvider({ children }: { children: React.ReactNode }) {
   // getServerSnapshot trả null nên prerender không gọi new Date() (Cache Components cấm).
-  const today = useSyncExternalStore(subscribeNone, () => iso(new Date()), () => null);
+  const today = useSyncExternalStore(
+    subscribeNone,
+    () => iso(new Date()),
+    () => null,
+  );
   const [raw, setRaw] = useState<SearchForm>({
-    trip: "oneway", from: "HAN", to: "SGN", dep: null, ret: null,
-    adults: 1, children: 0, infants: 0, cabin: "ECONOMY", fromPar: 0, toPar: 0,
+    trip: "oneway",
+    from: "HAN",
+    to: "SGN",
+    dep: null,
+    ret: null,
+    adults: 1,
+    children: 0,
+    infants: 0,
+    cabin: "ECONOMY",
+    fromPar: 0,
+    toPar: 0,
   });
   const [flash, setFlash] = useState(0);
 
   // Ngày đi mặc định: 14 ngày sau hôm nay, cho tới khi người dùng chọn.
   const form = useMemo(
-    () => ({ ...raw, dep: raw.dep ?? (today ? iso(addDays(parseIso(today)!, 14)) : null) }),
+    () => ({
+      ...raw,
+      dep: raw.dep ?? (today ? iso(addDays(parseIso(today)!, 14)) : null),
+    }),
     [raw, today],
   );
 
@@ -87,7 +123,12 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
   const pickRoute = useCallback(
     (i: number) => {
       const r = ROUTES[i];
-      update((f) => ({ from: r.from, to: r.to, fromPar: f.fromPar + 1, toPar: f.toPar + 1 }));
+      update((f) => ({
+        from: r.from,
+        to: r.to,
+        fromPar: f.fromPar + 1,
+        toPar: f.toPar + 1,
+      }));
       focusSearch();
     },
     [update, focusSearch],

@@ -35,6 +35,7 @@ Test conventions: integration tests use `@IntegrationTest` (one shared Spring co
 
 ## Frontend notes
 
+- UI design follows `DESIGN.md` (tokens, components, do's and don'ts); read it before building any screen. Known conflicts, resolved in roadmap §7.2–7.3: primary buttons are `#000d10` (ignore the Agent Prompt Guide's `#bc7155`), clay is for one featured card per page only; write line-heights in px; `--spacing: 1px` so `p-N` = N px.
 - Next.js 16 runs with Cache Components: never call `new Date()`, `Date.now()` or `Math.random()` while rendering, Client Components included (prerender fails). Read time-dependent values after hydration, e.g. `useSyncExternalStore` with a `null` server snapshot (`landing/search-context.tsx`).
 - The landing keeps the Claude Design CSS verbatim in `src/components/landing/landing.css` (scoped under `.sk`) so a changed mock can be diffed against it. Images live in `public/assets/images/`.
 - `suppressHydrationWarning` on `<html>` in the root layout is intentional: browser extensions (Dark Reader) inject attributes before hydration.
