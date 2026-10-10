@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Flight Booking System (UIT project, MIT license): a multi-airline online ticket agency modelled on Traveloka. Stack: Next.js 16 + TypeScript + Tailwind (frontend), Spring Boot 4 / Java 21 modular monolith (backend), PostgreSQL 18. Backend foundation lives in `backend/` (Plan 01). The frontend lives in `frontend/`: the C-01 landing page is built from the Claude Design mock and the other screens are placeholders; API plumbing (rewrites, `apiFetch`, `proxy.ts`, `gen:api`) is Plan 03 and not done yet. Roadmap and plans: `docs/superpowers/plans/`.
+Flight Booking System (UIT project, MIT license): a multi-airline online ticket agency modelled on Traveloka. Stack: Next.js 16 + TypeScript + Tailwind (frontend), Spring Boot 4 / Java 21 modular monolith (backend), PostgreSQL 18. Backend foundation lives in `backend/` (Plan 01). The frontend lives in `frontend/`: the C-01 landing page is built from the Claude Design mock, the account screens C-03–C-06 and C-12 are done (Plan 04), and the other screens are placeholders. API plumbing (DESIGN.md tokens in `@theme`, rewrites, `apiFetch`, `proxy.ts`) exists; `gen:api` (Plan 03) does not yet, so API types are hand-written in `src/lib/api.ts`. Roadmap and plans: `docs/superpowers/plans/`.
 
 Design docs in `docs/` are the source of truth; read the relevant one before implementing:
 
@@ -26,7 +26,7 @@ Copy `.env.example` to `.env` first (change `DB_PORT`/`DB_URL` if port 5432 is t
 - Backend tests: `cd backend && ./mvnw verify`
 - One test class: `cd backend && ./mvnw test -Dtest=SecurityConfigTest`
 - Run backend (profile `dev`, reads `../.env`): `cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev`, Swagger at http://localhost:8080/swagger-ui.html
-- Frontend (Node 24 in CI): `cd frontend && npm install`, then `npm run dev` (http://localhost:3000), `npm run lint`, `npm run build`. Next.js 16 has breaking changes: read `frontend/node_modules/next/dist/docs/` before writing Next.js code (see `frontend/AGENTS.md`).
+- Frontend (Node 24 in CI): `cd frontend && npm install`, then `npm run dev` (http://localhost:3000), `npm run lint`, `npm run build`. E2E: `npm run e2e` needs the backend running (profile `dev`) and reuses or starts `npm run dev` on port 3000; set `E2E_BASE_URL` to test another server (first run: `npx playwright install chromium`). Next.js 16 has breaking changes: read `frontend/node_modules/next/dist/docs/` before writing Next.js code (see `frontend/AGENTS.md`).
 - Full stack: `docker compose up -d --build`
 - Demo accounts (profile `dev`, seed `V105`): `admin@demo.local`, `staff@demo.local`, `customer@demo.local`, password `Demo@1234`.
 
