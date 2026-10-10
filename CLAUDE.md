@@ -32,7 +32,7 @@ Copy `.env.example` to `.env` first (change `DB_PORT`/`DB_URL` if port 5432 is t
 
 Test conventions: integration tests use `@IntegrationTest` (one shared Spring context and one PostgreSQL 18 container). Send CSRF with `TestCsrf.csrf(mvc)`, never `SecurityMockMvcRequestPostProcessors.csrf()`: it swaps the shared `CsrfFilter`'s token repository and breaks later tests. Log in with `TestUsers.loggedIn(mvc, jdbc, Role.X)` (real `POST /api/auth/login`) and pass `.session(user.session())`. Sent emails are captured by `TestMailSender.sentTo(email)`; they are only sent after commit, so email tests must not be `@Transactional` and clean up after themselves. Tests create their own data and never read `.env`.
 
-CI (`.github/workflows/ci.yml`) runs on every push and PR: `./mvnw -B verify` on JDK 21, and `npm ci`, lint, `tsc --noEmit` and `npm run build` on Node 24. E2E does not run in CI because it needs the backend.
+CI (`.github/workflows/ci.yml`) runs on every push and PR: `./mvnw -B verify` on JDK 21, and `npm ci`, lint and `npm run build` (which also type-checks) on Node 24. E2E does not run in CI because it needs the backend.
 
 ## Backend architecture
 
