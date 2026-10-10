@@ -106,6 +106,13 @@ class AirportControllerTest {
 				""")
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.errors[0].field").value("timezone"));
+		// Tên IANA nhưng là offset cố định, dấu ngược (Etc/GMT+7 là UTC−7): nhập nhầm sẽ lệch giờ 14 tiếng.
+		create("""
+				{"code": "QHC", "name": "Múi Giờ Etc", "city": "Hà Nội", "countryCode": "VN",
+				 "timezone": "Etc/GMT+7", "active": true}
+				""")
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.errors[0].field").value("timezone"));
 	}
 
 	@Test

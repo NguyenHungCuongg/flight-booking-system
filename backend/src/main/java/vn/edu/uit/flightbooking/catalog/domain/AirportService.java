@@ -84,13 +84,17 @@ public class AirportService {
 			.orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy sân bay"));
 	}
 
-	/** BR-90: quốc gia theo ISO 3166-1 alpha-2, múi giờ là tên IANA (từ chối dạng offset như "GMT+7"). */
+	/**
+	 * BR-90: quốc gia theo ISO 3166-1 alpha-2, múi giờ là tên IANA theo vùng. Từ chối dạng offset ("GMT+7") và các
+	 * tên IANA cố định như "UTC", "EST", "Etc/GMT+7" (dấu ngược: Etc/GMT+7 là UTC−7).
+	 */
 	private static void apply(Airport airport, String name, String city, String countryCode, String timezone,
 			boolean active) {
 		if (!COUNTRIES.contains(countryCode)) {
 			throw BusinessException.invalidField("countryCode", "Mã quốc gia không có trong ISO 3166-1, VD VN");
 		}
-		if (!ZoneId.getAvailableZoneIds().contains(timezone)) {
+		if (!ZoneId.getAvailableZoneIds().contains(timezone) || !timezone.contains("/")
+				|| timezone.startsWith("Etc/")) {
 			throw BusinessException.invalidField("timezone", "Múi giờ phải là tên IANA, VD Asia/Ho_Chi_Minh");
 		}
 		airport.setName(name);
