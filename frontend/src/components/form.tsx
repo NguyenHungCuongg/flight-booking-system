@@ -169,7 +169,7 @@ export function useSubmit() {
 
   const submit =
     (
-      fn: (data: FormData) => Promise<unknown>,
+      fn: (data: FormData, form: HTMLFormElement) => Promise<unknown>,
       onError?: (e: ApiError) => boolean,
     ) =>
     async (e: FormEvent<HTMLFormElement>) => {
@@ -178,7 +178,8 @@ export function useSubmit() {
       setErrors({});
       setFormError(undefined);
       try {
-        await fn(new FormData(e.currentTarget));
+        const form = e.currentTarget;
+        await fn(new FormData(form), form);
       } catch (err) {
         if (!(err instanceof ApiError)) throw err;
         if (onError?.(err)) return;
