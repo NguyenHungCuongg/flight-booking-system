@@ -36,7 +36,7 @@ export function AuthHeading({
 }
 
 /**
- * Khung của C-03 đến C-06: form bên trái, bầu trời đêm và máy bay bên phải (cùng ảnh với hero của landing).
+ * Khung của C-03 đến C-06: form bên trái, ảnh cột cờ (viet-nam-flag.jpg) bên phải.
  * Dưới 1024px chỉ còn cột form.
  */
 export default function AuthShell({ children }: { children: ReactNode }) {
@@ -62,27 +62,21 @@ export default function AuthShell({ children }: { children: ReactNode }) {
         className="relative hidden overflow-hidden bg-[#090a14] lg:block"
       >
         <Image
-          src="/assets/images/night-sky.jpg"
+          src="/assets/images/viet-nam-flag.jpg"
           alt=""
           fill
           // Không preload (priority): cột này ẩn dưới 1024px, ảnh lazy trong display:none không bị tải.
           sizes="50vw"
-          className="object-cover"
+          // Ảnh dọc bị cắt trên dưới; lệch lên trên để giữ lá cờ và đỉnh cột cờ trong khung.
+          className="object-cover object-[50%_30%]"
         />
-        <div className="absolute inset-0 bg-linear-to-b from-[#090a14]/50 via-[#090a14]/10 to-[#090a14]/70" />
+        {/* Ảnh chụp ban ngày nền sáng: phủ tối ở đầu và chân để chữ trắng đủ tương phản. */}
+        <div className="absolute inset-0 bg-linear-to-b from-[#090a14]/60 via-[#090a14]/5 to-[#090a14]/80" />
         <p className="absolute top-68 left-59 text-display font-bold text-pure-white">
           Cất
           <br />
           cánh.
         </p>
-        <Image
-          src="/assets/images/skyline-climb-jet.webp"
-          alt=""
-          width={1600}
-          height={505}
-          sizes="60vw"
-          className="absolute right-[-5%] bottom-[16%] w-[108%] max-w-none motion-safe:animate-[jet-in_1.2s_var(--ease-out)_both]"
-        />
         <p className="absolute right-59 bottom-53 left-59 max-w-420 text-body text-pure-white/80">
           Vé của nhiều hãng ở một nơi. Giữ chỗ trước, thanh toán sau qua VNPay.
         </p>
