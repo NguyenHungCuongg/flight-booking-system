@@ -1,0 +1,498 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html,body{margin:0;background:transparent}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'three';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+
+const q = new URLSearchParams(location.search);
+const VIEW = q.get('view') || 'hero';
+const W = +(q.get('w') || 2400), H = +(q.get('h') || 1400);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(W, H);
+renderer.setClearColor(0x000000, 0);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = { aces: THREE.ACESFilmicToneMapping, agx: THREE.AgXToneMapping }[q.get('tm')] || THREE.NeutralToneMapping;
+renderer.toneMappingExposure = +(q.get('exp') || 1.0);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const D = Math.PI / 180;
+const clamp01 = (t) => Math.min(Math.max(t, 0), 1);
+const ell = (t, p) => Math.pow(1 - Math.pow(1 - clamp01(t), p), 1 / p);
+const smooth = (t) => { t = clamp01(t); return t * t * (3 - 2 * t); };
+
+/* ---------- Sky environment (reflections only) ---------- */
+function makeEnvironment() {
+  const envScene = new THREE.Scene();
+  const geo = new THREE.SphereGeometry(100, 64, 32);
+  const mat = new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    uniforms: {
+      zenith: { value: new THREE.Color(0x6f98b8) },
+      horizon: { value: new THREE.Color(0xeee4d6) },
+      ground: { value: new THREE.Color(0x5d5852) },
+      sunDir: { value: new THREE.Vector3(-0.45, 0.62, 0.64).normalize() },
+    },
+    vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    fragmentShader: `uniform vec3 zenith; uniform vec3 horizon; uniform vec3 ground; uniform vec3 sunDir; varying vec3 vDir;
+      void main(){ float y = vDir.y; vec3 c;
+        if (y > 0.0) { c = mix(horizon, zenith, pow(y, 0.55)); } else { c = mix(horizon, ground, pow(-y, 0.4)); }
+        float s = max(dot(normalize(vDir), sunDir), 0.0);
+        c += vec3(1.0, 0.96, 0.88) * (pow(s, 600.0) * 40.0 + pow(s, 12.0) * 0.35);
+        gl_FragColor = vec4(c * 1.05, 1.0); }`,
+  });
+  envScene.add(new THREE.Mesh(geo, mat));
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const rt = pmrem.fromScene(envScene, 0.02);
+  return rt.texture;
+}
+scene.environment = makeEnvironment();
+
+/* ---------- Lights ---------- */
+const hemi = new THREE.HemisphereLight(0xdfe9f2, 0x7d766e, +(q.get('hemi') || 0.35));
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff4e6, +(q.get('sunI') || 2.9));
+sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);
+sun.shadow.camera.left = -40; sun.shadow.camera.right = 40;
+sun.shadow.camera.top = 40; sun.shadow.camera.bottom = -40;
+sun.shadow.camera.near = 1; sun.shadow.camera.far = 220;
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.035;
+sun.shadow.radius = 3;
+scene.add(sun); scene.add(sun.target);
+
+/* ---------- Materials ---------- */
+const ENV = +(q.get('env') || 0.55);
+const paint = (color = 0xf3f5f7, rough = 0.3) => new THREE.MeshPhysicalMaterial({
+  color, roughness: rough, metalness: 0, clearcoat: 0.8, clearcoatRoughness: 0.14, envMapIntensity: ENV,
+});
+
+/* ---------- Fuselage ---------- */
+const L = 62, R = 2.95, XN = 31, ZN = -0.75;
+function prof(s) {
+  let top = R, bot = -R, w = R;
+  if (s < 9) top = ZN + (R - ZN) * ell(s / 9, 1.85);
+  if (s > 47) top = R - (R - 1.55) * Math.pow(smooth((s - 47) / 15), 1.5);
+  if (s < 6.2) bot = ZN - (R + ZN) * ell(s / 6.2, 2.3);
+  if (s > 38) bot = -R + (R + 0.95) * Math.pow(smooth((s - 38) / 24), 1.25);
+  if (s < 7.4) w = R * ell(s / 7.4, 2.1);
+  if (s > 44) w = R - (R - 0.32) * Math.pow(smooth((s - 44) / 18), 1.15);
+  return { zc: (top + bot) / 2, b: (top - bot) / 2, w, top, bot };
+}
+function fusPoint(s, v) { // v in [0,1], seam at belly
+  const th = -Math.PI / 2 + v * Math.PI * 2;
+  const p = prof(s);
+  // wing-to-body fairing: smooth bulge on the lower half around the wing root
+  const k = smooth((s - 15) / 8) * (1 - smooth((s - 37) / 9));
+  const down = Math.max(0, -Math.sin(th));
+  const bulge = 0.62 * k * Math.pow(down, 1.5);
+  return new THREE.Vector3(XN - s, p.zc + (p.b + bulge * 0.42) * Math.sin(th), (p.w + bulge) * Math.cos(th));
+}
+function fuselageGeometry() {
+  const ns = 300, nv = 160;
+  const pos = [], nor = [], uv = [], idx = [];
+  const e = 1e-3;
+  for (let i = 0; i <= ns; i++) {
+    const t = i / ns;
+    const s = L * 0.5 * (1 - Math.cos(Math.PI * t));
+    for (let j = 0; j <= nv; j++) {
+      const v = j / nv;
+      const P = fusPoint(s, v);
+      pos.push(P.x, P.y, P.z);
+      uv.push(s / L, v);
+      let n;
+      if (s < 1e-4) n = new THREE.Vector3(1, 0, 0);
+      else {
+        const ds = fusPoint(Math.min(s + e, L), v).sub(fusPoint(Math.max(s - e, 0), v));
+        const dv = fusPoint(s, v + e).sub(fusPoint(s, v - e));
+        n = new THREE.Vector3().crossVectors(dv, ds).normalize();
+        // orient outward
+        const p = prof(s);
+        const c = new THREE.Vector3(XN - s, p.zc, 0);
+        if (n.dot(P.clone().sub(c)) < 0) n.negate();
+        if (s > L - 0.05) n = new THREE.Vector3(-1, 0, 0);
+      }
+      nor.push(n.x, n.y, n.z);
+    }
+  }
+  for (let i = 0; i < ns; i++) for (let j = 0; j < nv; j++) {
+    const a = i * (nv + 1) + j, b = a + nv + 1;
+    idx.push(a, a + 1, b, b, a + 1, b + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  return g;
+}
+
+/* window / door / cockpit texture painted in (s, theta) space */
+function fuselageTexture() {
+  const TW = 8192, TH = 2048;
+  const cv = document.createElement('canvas'); cv.width = TW; cv.height = TH;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, TW, TH);
+  // theta measured from +Z (right side) toward +Y (top); v = (theta + 90deg)/360
+  const px = (s, thDeg) => [s / L * TW, (1 - ((thDeg + 90) / 360)) * TH];
+  const vOf = (s, y) => { const p = prof(s); const st = Math.max(-1, Math.min(1, (y - p.zc) / p.b)); return Math.asin(st) / D; };
+  const rr = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+  const sides = [1, -1]; // +1 right side (theta ~ 0), -1 left side (theta ~ 180)
+  const doors = [8.7, 18.4, 36.2, 50.6];
+  const winY = 0.62; // window centre height (m) relative to fuselage axis
+  // cabin windows
+  for (const side of sides) {
+    for (let s = 10.4; s < 49.5; s += 0.94) {
+      if (doors.some((d) => Math.abs(d - s) < 1.05)) continue;
+      const p = prof(s);
+      const th = vOf(s, winY);
+      const thS = side > 0 ? th : 180 - th;
+      const [x, y] = px(s, thS);
+      const wpx = 0.26 / L * TW, hpx = (0.42 / p.b) / D / 360 * TH;
+      g.fillStyle = '#1b232c';
+      rr(x - wpx / 2, y - hpx / 2, wpx, hpx, wpx * 0.45); g.fill();
+    }
+    // doors
+    for (const d of doors) {
+      const p = prof(d);
+      const th = vOf(d, 0.05);
+      const thS = side > 0 ? th : 180 - th;
+      const [x, y] = px(d, thS);
+      const wpx = 1.05 / L * TW, hpx = (1.92 / p.b) / D / 360 * TH;
+      g.strokeStyle = '#c3c8cd'; g.lineWidth = 4;
+      rr(x - wpx / 2, y - hpx / 2, wpx, hpx, wpx * 0.22); g.stroke();
+      const [wx, wy] = px(d, side > 0 ? vOf(d, winY) : 180 - vOf(d, winY));
+      g.fillStyle = '#1b232c';
+      rr(wx - 0.11 / L * TW, wy - hpx * 0.1, 0.22 / L * TW, hpx * 0.2, 6); g.fill();
+    }
+  }
+  // cockpit glazing: rasterised by testing each texel's 3D position (2x2 supersampled)
+  const x1 = Math.ceil(6.4 / L * TW);
+  const img = g.getImageData(0, 0, x1, TH);
+  const dd = img.data;
+  const yLow = (s) => 1.16 + 0.05 * (s - 1.6);
+  const yUp = (s) => (s < 4.4 ? 1.80 + 0.03 * (s - 1.6) : 1.884 - (s - 4.4) * 0.35);
+  const sRear = (y) => 5.35 - (y - 1.16) * 0.9;
+  const post1 = (y) => 2.80 + (y - 1.16) * 0.42;
+  const post2 = (y) => 4.10 + (y - 1.16) * 0.32;
+  const inGlass = (s, th) => {
+    const p = prof(s); const st = Math.sin(th);
+    if (st < 0.05) return false;
+    const y = p.zc + p.b * st; const z = p.w * Math.cos(th);
+    if (y < yLow(s) || y > yUp(s) || s > sRear(y)) return false;
+    if (Math.abs(z) < 0.05) return false;
+    if (Math.abs(s - post1(y)) < 0.045 || Math.abs(s - post2(y)) < 0.045) return false;
+    return true;
+  };
+  for (let py = 0; py < TH; py++) {
+    for (let pxi = 0; pxi < x1; pxi++) {
+      let hit = 0;
+      for (let a = 0; a < 2; a++) for (let b2 = 0; b2 < 2; b2++) {
+        const s = (pxi + 0.25 + a * 0.5) / TW * L;
+        const v = 1 - (py + 0.25 + b2 * 0.5) / TH;
+        if (inGlass(s, -Math.PI / 2 + v * Math.PI * 2)) hit++;
+      }
+      if (hit) {
+        const k = (py * x1 + pxi) * 4; const f = hit / 4;
+        dd[k] = dd[k] * (1 - f) + 0x13 * f; dd[k + 1] = dd[k + 1] * (1 - f) + 0x1b * f; dd[k + 2] = dd[k + 2] * (1 - f) + 0x24 * f;
+      }
+    }
+  }
+  g.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return tex;
+}
+
+/* ---------- Lofted surfaces ---------- */
+function naca(m, p, t, n) {
+  const xs = []; for (let i = 0; i <= n; i++) xs.push(0.5 * (1 - Math.cos(Math.PI * i / n)));
+  const yt = (x) => 5 * t * (0.2969 * Math.sqrt(x) - 0.126 * x - 0.3516 * x * x + 0.2843 * x ** 3 - 0.1036 * x ** 4);
+  const yc = (x) => (m === 0 ? 0 : x < p ? m / (p * p) * (2 * p * x - x * x) : m / ((1 - p) ** 2) * ((1 - 2 * p) + 2 * p * x - x * x));
+  const dyc = (x) => (m === 0 ? 0 : x < p ? 2 * m / (p * p) * (p - x) : 2 * m / ((1 - p) ** 2) * (p - x));
+  const up = [], lo = [];
+  for (const x of xs) { const th = Math.atan(dyc(x)); const a = yt(x), c = yc(x); up.push([x - a * Math.sin(th), c + a * Math.cos(th)]); lo.push([x + a * Math.sin(th), c - a * Math.cos(th)]); }
+  const loop = [];
+  for (let i = n; i >= 0; i--) loop.push(up[i]);
+  for (let i = 1; i < n; i++) loop.push(lo[i]);
+  return loop;
+}
+// stations: [{P: Vector3 LE point, C: chord dir, T: thickness dir, c, t, m}]
+function loft(stations, opts = {}) {
+  const n = opts.n || 36;
+  const pos = [], col = [], idx = [];
+  const leCol = new THREE.Color(opts.leColor || 0xc4c9ce), baseCol = new THREE.Color(0xffffff);
+  let M = 0;
+  stations.forEach((st) => {
+    const loop = naca(st.m ?? 0, 0.4, st.t, n);
+    M = loop.length;
+    loop.forEach(([xa, ya]) => {
+      const P = st.P.clone().addScaledVector(st.C, xa * st.c).addScaledVector(st.T, ya * st.c);
+      pos.push(P.x, P.y, P.z);
+      const c = xa < (opts.leBand ?? 0.025) && opts.leColor !== null ? leCol : baseCol;
+      col.push(c.r, c.g, c.b);
+    });
+  });
+  const K = stations.length;
+  for (let k = 0; k < K - 1; k++) for (let j = 0; j < M; j++) {
+    const j2 = (j + 1) % M; const a = k * M + j, b = (k + 1) * M + j, c = (k + 1) * M + j2, d = k * M + j2;
+    idx.push(a, b, d, b, c, d);
+  }
+  // tip cap
+  const base = (K - 1) * M; const cen = new THREE.Vector3();
+  for (let j = 0; j < M; j++) cen.add(new THREE.Vector3(pos[(base + j) * 3], pos[(base + j) * 3 + 1], pos[(base + j) * 3 + 2]));
+  cen.multiplyScalar(1 / M);
+  const ci = pos.length / 3; pos.push(cen.x, cen.y, cen.z); col.push(1, 1, 1);
+  for (let j = 0; j < M; j++) idx.push(base + j, ci, base + (j + 1) % M);
+  let g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  // orientation check: a mid upper-surface vertex normal should agree with T
+  const kMid = Math.floor(K / 2), jMid = Math.floor(n / 2);
+  const nn = g.attributes.normal; const vi = kMid * M + jMid;
+  const nv = new THREE.Vector3(nn.getX(vi), nn.getY(vi), nn.getZ(vi));
+  if (nv.dot(stations[kMid].T) < 0) {
+    const ix = g.index.array; for (let i = 0; i < ix.length; i += 3) { const t = ix[i + 1]; ix[i + 1] = ix[i + 2]; ix[i + 2] = t; }
+    g.index.needsUpdate = true; g.computeVertexNormals();
+  }
+  return g;
+}
+function mirrorZ(g) {
+  const m = g.clone();
+  const p = m.attributes.position; for (let i = 0; i < p.count; i++) p.setZ(i, -p.getZ(i));
+  const ix = m.index.array; for (let i = 0; i < ix.length; i += 3) { const t = ix[i + 1]; ix[i + 1] = ix[i + 2]; ix[i + 2] = t; }
+  m.index.needsUpdate = true; m.computeVertexNormals();
+  return m;
+}
+const lerp = (a, b, t) => a + (b - a) * t;
+function interpTable(table, z) {
+  for (let i = 0; i < table.length - 1; i++) {
+    const A = table[i], B = table[i + 1];
+    if (z <= B.z) { const t = (z - A.z) / (B.z - A.z); const o = {}; for (const k in A) o[k] = lerp(A[k], B[k], t); return o; }
+  }
+  return { ...table[table.length - 1] };
+}
+function rotChord(alpha) { // incidence in XY plane
+  return { C: new THREE.Vector3(-Math.cos(alpha), -Math.sin(alpha), 0), T: new THREE.Vector3(-Math.sin(alpha), Math.cos(alpha), 0) };
+}
+
+/* wing */
+const wingTable = [
+  { z: 0, x: 7.4, c: 13.2, t: 0.145, tw: 2.6 },
+  { z: 3.0, x: 5.45, c: 11.7, t: 0.135, tw: 2.3 },
+  { z: 10.0, x: 0.75, c: 7.3, t: 0.118, tw: 1.4 },
+  { z: 20.0, x: -5.75, c: 4.1, t: 0.104, tw: 0.2 },
+  { z: 27.0, x: -10.35, c: 2.55, t: 0.098, tw: -0.6 },
+  { z: 29.4, x: -13.0, c: 1.25, t: 0.094, tw: -0.8 },
+  { z: 30.2, x: -14.15, c: 0.45, t: 0.09, tw: -0.8 },
+];
+const wingY = (z) => -1.55 + z * Math.tan(5.5 * D) + 0.0017 * z * z;
+function wingStations() {
+  const st = [];
+  const N = 70;
+  for (let i = 0; i <= N; i++) {
+    const z = 30.2 * (i / N);
+    const r = interpTable(wingTable, z);
+    const { C, T } = rotChord(r.tw * D);
+    st.push({ P: new THREE.Vector3(r.x, wingY(z), z), C, T, c: r.c, t: r.t, m: 0.02 });
+  }
+  return st;
+}
+/* horizontal stabiliser */
+const hTable = [
+  { z: 0, x: -22.6, c: 6.4, t: 0.11, tw: 0 },
+  { z: 9.7, x: -28.9, c: 1.75, t: 0.09, tw: 0 },
+  { z: 10.05, x: -29.35, c: 0.9, t: 0.08, tw: 0 },
+];
+function hStations() {
+  const st = []; const N = 30;
+  for (let i = 0; i <= N; i++) {
+    const z = 10.05 * i / N; const r = interpTable(hTable, z);
+    st.push({ P: new THREE.Vector3(r.x, 0.95 + z * Math.tan(7 * D), z), C: new THREE.Vector3(-1, 0, 0), T: new THREE.Vector3(0, 1, 0), c: r.c, t: r.t, m: 0 });
+  }
+  return st;
+}
+/* vertical fin (span along +Y, thickness along Z) */
+const vTable = [
+  { z: 1.4, x: -17.2, c: 11.2, t: 0.1 },
+  { z: 2.9, x: -18.4, c: 9.9, t: 0.1 },
+  { z: 11.6, x: -25.7, c: 3.6, t: 0.09 },
+  { z: 12.1, x: -26.4, c: 2.6, t: 0.085 },
+];
+function vStations() {
+  const st = []; const N = 34;
+  for (let i = 0; i <= N; i++) {
+    const h = 1.4 + (12.1 - 1.4) * i / N; const r = interpTable(vTable, h);
+    st.push({ P: new THREE.Vector3(r.x, h, 0), C: new THREE.Vector3(-1, 0, 0), T: new THREE.Vector3(0, 0, 1), c: r.c, t: r.t, m: 0 });
+  }
+  return st;
+}
+
+/* ---------- Engine ---------- */
+function lathe(points, segs = 128) {
+  const g = new THREE.LatheGeometry(points.map(([r, h]) => new THREE.Vector2(r, h)), segs);
+  g.rotateZ(-Math.PI / 2); // lathe axis (Y) -> +X
+  return g;
+}
+function engine() {
+  const grp = new THREE.Group();
+  const white = paint(0xf2f4f6, 0.3);
+  const lipMat = new THREE.MeshPhysicalMaterial({ color: 0xd9dee3, metalness: 1, roughness: 0.22, envMapIntensity: 1.0 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x23282e, roughness: 0.6, metalness: 0.2, side: THREE.DoubleSide });
+  const fanMat = new THREE.MeshStandardMaterial({ color: 0x2f353b, roughness: 0.42, metalness: 0.6 });
+  const bladeMat = new THREE.MeshStandardMaterial({ color: 0x272c31, roughness: 0.7, metalness: 0.3 });
+  const coreMat = new THREE.MeshStandardMaterial({ color: 0xaab0b6, roughness: 0.38, metalness: 0.8 });
+  const plugMat = new THREE.MeshStandardMaterial({ color: 0x6a6f75, roughness: 0.45, metalness: 0.7 });
+  // inlet interior (reverse order so normals face inward)
+  const inner = lathe([[1.73, 0.0], [1.68, -0.18], [1.62, -0.6], [1.57, -1.25]]);
+  grp.add(new THREE.Mesh(inner, dark));
+  const lip = lathe([[2.06, -0.3], [2.03, -0.12], [1.97, 0.03], [1.88, 0.085], [1.79, 0.075], [1.73, 0.0]]);
+  grp.add(new THREE.Mesh(lip, lipMat));
+  const cowl = lathe([[1.55, -5.42], [1.6, -5.35], [1.79, -4.7], [1.95, -3.8], [2.05, -2.8], [2.09, -1.7], [2.085, -0.8], [2.06, -0.3]]);
+  grp.add(new THREE.Mesh(cowl, white));
+  const fan = new THREE.Mesh(new THREE.CircleGeometry(1.57, 96).rotateY(Math.PI / 2).translate(-1.25, 0, 0), fanMat);
+  grp.add(fan);
+  for (let i = 0; i < 22; i++) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.02, 0.26), bladeMat);
+    const a = (i / 22) * Math.PI * 2;
+    b.position.set(-1.1, Math.cos(a) * 1.02, Math.sin(a) * 1.02);
+    b.rotation.x = -a; b.rotateY(0.6);
+    grp.add(b);
+  }
+  const spinner = lathe([[0.56, -1.2], [0.5, -0.85], [0.36, -0.5], [0.18, -0.2], [0.001, -0.05]]);
+  grp.add(new THREE.Mesh(spinner, new THREE.MeshStandardMaterial({ color: 0x2b3036, roughness: 0.25, metalness: 0.6 })));
+  const core = lathe([[0.74, -6.85], [0.82, -6.75], [1.04, -6.2], [1.2, -5.5], [1.26, -4.9]]);
+  grp.add(new THREE.Mesh(core, coreMat));
+  const plug = lathe([[0.001, -8.05], [0.28, -7.75], [0.5, -7.25], [0.62, -6.75]]);
+  grp.add(new THREE.Mesh(plug, plugMat));
+  // inner bypass duct darkness (seen in nozzle)
+  const duct = lathe([[1.55, -5.42], [1.45, -5.1], [1.3, -4.9], [1.26, -4.9]]);
+  grp.add(new THREE.Mesh(duct, dark));
+  // pylon (side profile extruded)
+  const sh = new THREE.Shape();
+  sh.moveTo(-0.6, 1.95); sh.quadraticCurveTo(-2.4, 2.22, -4.7, 2.5); sh.lineTo(-8.6, 1.78);
+  sh.quadraticCurveTo(-8.7, 1.3, -7.6, 1.2); sh.lineTo(-6.0, 1.14); sh.lineTo(-4.9, 1.5); sh.lineTo(-0.6, 1.85); sh.closePath();
+  const pg = new THREE.ExtrudeGeometry(sh, { depth: 0.34, bevelEnabled: true, bevelThickness: 0.09, bevelSize: 0.07, bevelSegments: 5, curveSegments: 16 });
+  pg.translate(0, 0, -0.17);
+  grp.add(new THREE.Mesh(pg, white));
+  grp.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  return grp;
+}
+
+/* ---------- Assemble aircraft ---------- */
+function aircraft() {
+  const ac = new THREE.Group();
+  const fusMat = paint(0xf4f6f8, 0.28); fusMat.map = fuselageTexture();
+  const fus = new THREE.Mesh(fuselageGeometry(), fusMat);
+  ac.add(fus);
+  const wingMat = paint(0xe9ecef, 0.36); wingMat.vertexColors = true;
+  const wg = loft(wingStations(), { n: 44, leBand: 0.03 });
+  ac.add(new THREE.Mesh(wg, wingMat));
+  ac.add(new THREE.Mesh(mirrorZ(wg), wingMat));
+  const tailMat = paint(0xf2f4f6, 0.3); tailMat.vertexColors = true;
+  const hg = loft(hStations(), { n: 32, leBand: 0.03 });
+  ac.add(new THREE.Mesh(hg, tailMat));
+  ac.add(new THREE.Mesh(mirrorZ(hg), tailMat));
+  const finMat = paint(0xf4f6f8, 0.28); finMat.vertexColors = true;
+  ac.add(new THREE.Mesh(loft(vStations(), { n: 32, leBand: 0.025 }), finMat));
+  // belly fairing
+
+  // engines
+  for (const side of [1, -1]) {
+    const e = engine();
+    const z = 9.6 * side;
+    e.position.set(5.5, -2.5, z);
+    e.rotation.z = 2.2 * D;
+    ac.add(e);
+  }
+  // flap track fairings
+  const ftfMat = paint(0xe9ecef, 0.36);
+  for (const side of [1, -1]) for (const z of [4.6, 13.6, 18.4, 23.2]) {
+    const r = interpTable(wingTable, z);
+    const f = new THREE.Mesh(new THREE.SphereGeometry(1, 40, 20), ftfMat);
+    const len = r.c * 0.3 + 0.9;
+    f.scale.set(len, 0.27, 0.24);
+    f.position.set(r.x - r.c * 0.8, wingY(z) - 0.26, z * side);
+    f.rotation.z = 3 * D;
+    ac.add(f);
+  }
+  ac.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  return ac;
+}
+
+const plane = aircraft();
+const pivot = new THREE.Group();
+pivot.add(plane);
+scene.add(pivot);
+
+/* ---------- Views ---------- */
+const views = {
+  hero:   { yaw: -38, pitch: 7, roll: 13, cam: [0, 26, 150], target: [0, 1.0, 0], fov: 30, sun: [-60, 90, 70] },
+  tail:   { yaw: 24, pitch: 2, roll: 0, cam: [-62, 16, 70], target: [-21, 6, 0], fov: 15, sun: [-20, 80, 90], frame: 'tail' },
+  engine: { yaw: -58, pitch: 4, roll: 6, cam: [0, -3, 60], target: [2.0, -1.5, 9.2], fov: 26, sun: [-50, 70, 80], frame: 'engine' },
+  depart: { yaw: 152, pitch: 14, roll: -10, cam: [0, -10, 150], target: [0, 1.5, 0], fov: 28, sun: [-40, 90, -30] },
+  side:   { yaw: 0, pitch: 0, roll: 0, cam: [0, 4, 160], target: [0, 1, 0], fov: 28, sun: [-40, 80, 80] },
+  top:    { yaw: 0, pitch: 0, roll: 0, cam: [0, 170, 0.01], target: [0, 0, 0], fov: 28, sun: [-40, 120, 40] },
+};
+const V = views[VIEW] || views.hero;
+const num = (k, d) => (q.has(k) ? +q.get(k) : d);
+pivot.rotation.order = 'YZX';
+pivot.rotation.set(num('roll', V.roll) * D, num('yaw', V.yaw) * D, num('pitch', V.pitch) * D);
+const cam = new THREE.PerspectiveCamera(num('fov', V.fov), W / H, 0.5, 3000);
+const cp = q.has('cam') ? q.get('cam').split(',').map(Number) : V.cam;
+const tp = q.has('tgt') ? q.get('tgt').split(',').map(Number) : V.target;
+cam.position.set(...cp);
+// target is given in aircraft-local coordinates for close-ups
+pivot.updateMatrixWorld(true);
+const tgt = new THREE.Vector3(...tp);
+if (V.frame) plane.localToWorld(tgt);
+cam.lookAt(tgt);
+const sp = q.has('sun') ? q.get('sun').split(',').map(Number) : V.sun;
+sun.position.set(...sp); sun.target.position.set(0, 0, 0);
+
+// auto-fit full-aircraft views: keep camera direction, centre the silhouette and fill a fraction of the frame
+const FILL = num('fill', V.frame ? 0 : 0.9);
+if (FILL > 0) {
+  const pts = [];
+  plane.traverse((o) => {
+    if (!o.isMesh) return;
+    const p = o.geometry.attributes.position; const step = Math.max(1, Math.floor(p.count / 1500));
+    for (let i = 0; i < p.count; i += step) pts.push(new THREE.Vector3(p.getX(i), p.getY(i), p.getZ(i)).applyMatrix4(o.matrixWorld));
+  });
+  const dir = new THREE.Vector3().subVectors(cam.position, tgt).normalize();
+  let dist = cam.position.distanceTo(tgt);
+  const center = tgt.clone();
+  for (let it = 0; it < 6; it++) {
+    cam.position.copy(center).addScaledVector(dir, dist); cam.lookAt(center); cam.updateMatrixWorld(true);
+    let minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+    for (const v of pts) { const s = v.clone().project(cam); minX = Math.min(minX, s.x); maxX = Math.max(maxX, s.x); minY = Math.min(minY, s.y); maxY = Math.max(maxY, s.y); }
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    // shift centre in camera plane
+    const right = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 0);
+    const up = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 1);
+    const h = Math.tan(cam.fov * D / 2) * dist;
+    center.addScaledVector(right, cx * h * cam.aspect).addScaledVector(up, cy * h);
+    const ext = Math.max((maxX - minX) / 2, (maxY - minY) / 2);
+    dist *= ext / FILL;
+  }
+  cam.position.copy(center).addScaledVector(dir, dist); cam.lookAt(center);
+}
+
+renderer.render(scene, cam);
+window.__done = true;
+</script>
+</body>
+</html>

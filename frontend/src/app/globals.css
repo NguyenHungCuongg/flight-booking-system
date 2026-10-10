@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* Nền tối để vùng kéo quá đáy trang liền với footer (#000d10 theo DESIGN.md). */
+html {
+  background: #000d10;
+}
