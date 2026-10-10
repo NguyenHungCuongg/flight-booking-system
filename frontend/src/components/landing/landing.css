@@ -191,6 +191,10 @@
   letter-spacing: -0.02em;
   font-weight: 700;
 }
+/* Điểm nhấn cam: dấu chấm của wordmark và tiêu đề. */
+.sk .dot {
+  color: var(--clay);
+}
 .sk .h-sec {
   font-size: clamp(34px, 3.6vw, 52px);
   line-height: 1.06;
@@ -394,8 +398,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 1px;
-  background: currentColor;
+  height: 2px;
+  background: var(--clay);
   transform: scaleX(0);
   transform-origin: right center;
   transition: transform 0.5s var(--ease-out);
@@ -1364,7 +1368,7 @@
   right: 0;
   width: 22px;
   height: 22px;
-  color: var(--ink);
+  color: var(--clay);
 }
 .sk .route:focus-visible .r-run {
   transform: translateX(0);
@@ -1508,7 +1512,7 @@
   top: 0;
   bottom: 0;
   width: 1px;
-  background: var(--ink);
+  background: var(--clay);
   transform: scaleY(0);
   transform-origin: top center;
   transition: transform 0.7s var(--ease-out);
@@ -1563,14 +1567,15 @@
   width: 8px;
   height: 8px;
   border-radius: 100%;
-  background: var(--btn-fg);
+  background: currentColor;
   opacity: 0;
   transition: opacity 0.3s;
 }
 .sk .st.is-done .step-mark,
 .sk .st.is-active .step-mark {
-  background: var(--btn-bg);
-  border-color: var(--btn-bg);
+  background: var(--clay);
+  border-color: var(--clay);
+  color: #ffffff;
 }
 .sk .st.is-done .step-mark .ic {
   opacity: 1;
@@ -1715,7 +1720,7 @@
 .sk .hold-line {
   display: block;
   height: 2px;
-  background: var(--ink);
+  background: var(--clay);
   transform-origin: left center;
   transition: transform 1s linear;
 }
@@ -1990,8 +1995,9 @@
 }
 .sk .faq-item.is-open .faq-ic {
   transform: rotate(45deg);
-  background: #ffffff;
-  color: #151623;
+  background: var(--clay);
+  border-color: var(--clay);
+  color: #ffffff;
 }
 .sk .faq-a {
   padding: 0 64px 26px 0;
@@ -2011,6 +2017,9 @@
 
 /* ---------- final call ---------- */
 .sk .final {
+  --btn-bg: #f2f3f6;
+  --btn-fg: #000d10;
+  --btn-hover: #ffffff;
   position: relative;
   background: linear-gradient(
     180deg,
@@ -2058,10 +2067,10 @@
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(21, 22, 35, 0.75) 0%,
-    rgba(21, 22, 35, 0.2) 28%,
-    rgba(21, 22, 35, 0.25) 65%,
-    rgba(0, 13, 16, 0.85) 100%
+    rgba(21, 22, 35, 1) 0%,
+    rgba(21, 22, 35, 0.2) 48%,
+    rgba(0, 13, 16, 1) 100%,
+    rgba(0, 13, 16, 1) 200%
   );
 }
 .sk .final-h {
@@ -2074,8 +2083,8 @@
   font-weight: 700;
   text-wrap: balance;
   text-shadow:
-    0 2px 6px rgba(26, 20, 36, 0.55),
-    0 4px 32px rgba(26, 20, 36, 0.7);
+    0 2px 6px rgba(26, 20, 36, 0.25),
+    0 2px 32px rgba(26, 20, 36, 0.27);
 }
 .sk .final-h span {
   display: block;
@@ -2090,7 +2099,16 @@
   margin-top: clamp(28px, 4vw, 48px);
 }
 .sk .final .pill-line {
-  background: var(--paper);
+  background: rgba(15, 15, 28, 0.6);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.sk .final .pill-line:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border-color: #ffffff;
 }
 @media (max-width: 767px) {
   .sk .final-in {
@@ -2431,6 +2449,9 @@
   .sk.m-full .wm-ch:nth-child(7) {
     animation-delay: 0.38s;
   }
+  .sk.m-full .wm-ch:nth-child(8) {
+    animation-delay: 0.43s;
+  }
   .sk.m-full .hl-line {
     animation: sk-rise 0.95s var(--ease-out) 0.32s both;
   }
@@ -2574,6 +2595,9 @@
     }
     .sk.m-full .fch:nth-child(7) {
       animation-range: entry 36% entry 100%;
+    }
+    .sk.m-full .fch:nth-child(8) {
+      animation-range: entry 42% entry 100%;
     }
   }
 }

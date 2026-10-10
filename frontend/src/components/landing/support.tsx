@@ -8,7 +8,7 @@ export default function Support() {
       <div className="wrap sup sec">
         <div className="sup-l">
           <h2 id="sup-h" className="h-sec rv">
-            Hỗ trợ.
+            Hỗ trợ<span className="dot">.</span>
           </h2>
           <p className="body sup-p rv rv-2">
             Không nhận được email vé? Nhân viên SkyLine tra theo mã đặt chỗ,

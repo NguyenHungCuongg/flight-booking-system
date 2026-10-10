@@ -35,7 +35,7 @@ export default function Airlines() {
         </div>
         <div className="air-copy">
           <h2 id="air-h" className="h-sec rv">
-            Đủ thông tin để chọn đúng vé.
+            Đủ thông tin để chọn đúng vé<span className="dot">.</span>
           </h2>
           <div className="feat-grid">
             {FEATURES.map(([title, desc], i) => (

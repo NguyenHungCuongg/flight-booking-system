@@ -12,7 +12,7 @@ export default function FinalCta() {
     <section className="final" aria-labelledby="final-h">
       <div className="final-bg" aria-hidden="true">
         <Image
-          src="/assets/images/night-sky-2.jpg"
+          src="/assets/images/red-sky-2.jpg"
           alt=""
           fill
           sizes="100vw"

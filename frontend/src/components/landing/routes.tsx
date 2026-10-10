@@ -24,7 +24,7 @@ export default function Routes() {
       <div className="wrap routes-head">
         <div className="rv">
           <h2 id="routes-h" className="h-sec">
-            Chọn nhanh một đường bay.
+            Chọn nhanh một đường bay<span className="dot">.</span>
           </h2>
           <p className="body muted lead">
             Bấm vào một tuyến để điền sẵn điểm đi, điểm đến, rồi chọn ngày bay.

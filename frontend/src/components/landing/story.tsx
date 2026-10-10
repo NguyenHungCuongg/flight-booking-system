@@ -88,7 +88,7 @@ export default function Story() {
       <div className="wrap story">
         <div className="story-head rv">
           <h2 id="story-h" className="h-sec">
-            Giữ chỗ trước, thanh toán sau.
+            Giữ chỗ trước, thanh toán sau<span className="dot">.</span>
           </h2>
           <p className="body muted lead">
             Từ lúc tìm chuyến tới khi nhận vé điện tử, mọi bước đều diễn ra trên

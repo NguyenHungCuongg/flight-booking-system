@@ -63,6 +63,7 @@ export default function Hero() {
                     {c}
                   </span>
                 ))}
+                <span className="wm-ch dot">.</span>
               </p>
             </div>
           </div>
@@ -71,8 +72,8 @@ export default function Hero() {
         <div className="hero-copy">
           <h1 id="hero-h" className="h-hero">
             <span className="sr-only">SkyLine. </span>
-            <span className="hl-line">Mọi hãng bay.</span>
-            <span className="hl-line">Một lần tìm.</span>
+            <span className="hl-line">Tìm một giây.</span>
+            <span className="hl-line">Bay vạn dặm.</span>
           </h1>
           <p className="hero-sub">
             Bay thẳng hoặc nối chuyến, giá đã gồm thuế phí. Giữ chỗ trước, thanh

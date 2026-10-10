@@ -11,6 +11,7 @@ export default function Footer() {
               {c}
             </span>
           ))}
+          <span className="fch dot">.</span>
         </p>
         <div className="foot-grid">
           <div className="foot-brand">
