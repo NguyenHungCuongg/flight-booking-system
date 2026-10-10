@@ -35,6 +35,17 @@ export default function Hero() {
 
   return (
     <section className="hero" ref={heroRef} onMouseMove={onMove} onMouseLeave={onLeave} aria-labelledby="hero-h">
+      <div className="hero-bg" aria-hidden="true">
+        <Image
+          src="/assets/images/night-sky.jpg"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="hero-bg-img"
+        />
+        <div className="hero-bg-overlay" />
+      </div>
       <div className="wrap hero-in">
         <div className="wm" aria-hidden="true">
           <div className="wm-exit">
