@@ -114,3 +114,11 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Máy bay ở khung màn tài khoản lướt vào khi mở trang (chỉ khi người dùng không tắt chuyển động). */
+@keyframes jet-in {
+  from {
+    opacity: 0;
+    transform: translate3d(-6%, 5%, 0);
+  }
+}
