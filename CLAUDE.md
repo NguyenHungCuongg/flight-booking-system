@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Flight Booking System (UIT project, MIT license): a multi-airline online ticket agency modelled on Traveloka. Stack: Next.js 16 + TypeScript + Tailwind (frontend), Spring Boot 4 / Java 21 modular monolith (backend), PostgreSQL 18. Backend foundation lives in `backend/` (Plan 01). The frontend lives in `frontend/`: the C-01 landing page is built from the Claude Design mock, the account screens C-03–C-06 and C-12 are done (Plan 04), and the other screens are placeholders. API plumbing (DESIGN.md tokens in `@theme`, rewrites, `apiFetch`, `proxy.ts`) exists; `gen:api` (Plan 03) does not yet, so API types are hand-written in `src/lib/api.ts`. Roadmap and plans: `docs/superpowers/plans/`.
+Flight Booking System (UIT project, MIT license): a multi-airline online ticket agency modelled on Traveloka. Stack: Next.js 16 + TypeScript + Tailwind (frontend), Spring Boot 4 / Java 21 modular monolith (backend), PostgreSQL 18. Backend foundation lives in `backend/` (Plan 01). The frontend lives in `frontend/`: the C-01 landing page is built from the Claude Design mock, the account screens C-03–C-06 and C-12 are done (Plan 04), and the other screens are placeholders. The frontend foundation (Plan 03) is done: DESIGN.md tokens in `@theme`, rewrites, `apiFetch`, `proxy.ts`, generated API types (`src/lib/api-types.ts`) and a Playwright smoke test of every route (`e2e/smoke.spec.ts`). Roadmap and plans: `docs/superpowers/plans/`.
 
 Design docs in `docs/` are the source of truth; read the relevant one before implementing:
 
@@ -26,13 +26,13 @@ Copy `.env.example` to `.env` first (change `DB_PORT`/`DB_URL` if port 5432 is t
 - Backend tests: `cd backend && ./mvnw verify`
 - One test class: `cd backend && ./mvnw test -Dtest=SecurityConfigTest`
 - Run backend (profile `dev`, reads `../.env`): `cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev`, Swagger at http://localhost:8080/swagger-ui.html
-- Frontend (Node 24 in CI): `cd frontend && npm install`, then `npm run dev` (http://localhost:3000), `npm run lint`, `npm run build`. E2E: `npm run e2e` needs the backend running (profile `dev`) and reuses or starts `npm run dev` on port 3000; set `E2E_BASE_URL` to test another server (first run: `npx playwright install chromium`). Next.js 16 has breaking changes: read `frontend/node_modules/next/dist/docs/` before writing Next.js code (see `frontend/AGENTS.md`).
+- Frontend (Node 24 in CI): `cd frontend && npm install`, then `npm run dev` (http://localhost:3000), `npm run lint`, `npm run build`. After adding or changing a backend API, run `npm run gen:api` with the backend running on port 8080 and commit the regenerated `src/lib/api-types.ts` (never edit it by hand); use its types via `Schemas["XxxResponse"]` from `src/lib/api.ts`. New routes go into the `PUBLIC`/`PROTECTED` lists of `e2e/smoke.spec.ts`. E2E: `npm run e2e` needs the backend running (profile `dev`) and reuses or starts `npm run dev` on port 3000; set `E2E_BASE_URL` to test another server (first run: `npx playwright install chromium`). Next.js 16 has breaking changes: read `frontend/node_modules/next/dist/docs/` before writing Next.js code (see `frontend/AGENTS.md`).
 - Full stack: `docker compose up -d --build`
 - Demo accounts (profile `dev`, seed `V105`): `admin@demo.local`, `staff@demo.local`, `customer@demo.local`, password `Demo@1234`.
 
 Test conventions: integration tests use `@IntegrationTest` (one shared Spring context and one PostgreSQL 18 container). Send CSRF with `TestCsrf.csrf(mvc)`, never `SecurityMockMvcRequestPostProcessors.csrf()`: it swaps the shared `CsrfFilter`'s token repository and breaks later tests. Log in with `TestUsers.loggedIn(mvc, jdbc, Role.X)` (real `POST /api/auth/login`) and pass `.session(user.session())`. Sent emails are captured by `TestMailSender.sentTo(email)`; they are only sent after commit, so email tests must not be `@Transactional` and clean up after themselves. Tests create their own data and never read `.env`.
 
-CI (`.github/workflows/ci.yml`) runs `./mvnw -B verify` on JDK 21 on every push and PR.
+CI (`.github/workflows/ci.yml`) runs on every push and PR: `./mvnw -B verify` on JDK 21, and `npm ci`, lint, `tsc --noEmit` and `npm run build` on Node 24. E2E does not run in CI because it needs the backend.
 
 ## Backend architecture
 

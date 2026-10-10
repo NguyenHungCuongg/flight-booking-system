@@ -1,16 +1,12 @@
 /** Gọi API backend qua rewrites /api/* (next.config.ts). Mọi lời gọi ghi phải đi qua apiFetch (lộ trình §5). */
 
-export type Role = "CUSTOMER" | "STAFF" | "ADMIN";
+import type { components } from "./api-types";
 
-/** UserResponse của backend (identity.web.UserResponse). Viết tay cho tới khi có npm run gen:api (Plan 03). */
-export type User = {
-  id: number;
-  email: string;
-  fullName: string;
-  phone: string;
-  role: Role;
-  status: "ACTIVE" | "LOCKED";
-};
+/** Kiểu schema của backend, sinh bằng `npm run gen:api` vào api-types.ts (không sửa tay file đó). */
+export type Schemas = components["schemas"];
+
+export type User = Schemas["UserResponse"];
+export type Role = User["role"];
 
 export type FieldError = { field: string; message: string };
 
