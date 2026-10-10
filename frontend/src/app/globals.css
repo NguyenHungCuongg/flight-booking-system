@@ -1,6 +1,116 @@
 @import "tailwindcss";
 
+/*
+ * Token của DESIGN.md (SkyLine). Landing (C-01) không dùng các token này mà giữ CSS riêng trong landing.css.
+ * Lệch có chủ đích so với DESIGN.md (lộ trình §7.3, §7.4):
+ * - --spacing: 1px nên p-22 = 22px, khớp mọi bước của thang spacing (11, 13, 22, 53, 119...).
+ * - line-height viết bằng px (DESIGN.md ghi số không đơn vị, CSS sẽ hiểu là bội số cỡ chữ).
+ * - chữ phụ dùng muted (#64646c); cool-ash (#8e8e95) chỉ đạt 3.3:1 trên nền trắng, dưới mức WCAG AA.
+ */
+@theme {
+  /* Màu gốc của DESIGN.md */
+  --color-deep-ink: #000d10;
+  --color-pure-white: #ffffff;
+  --color-cool-ash: #8e8e95;
+  --color-pebble: #d5d3d4;
+  --color-midnight-hull: #0f0f1c;
+  --color-charcoal-deck: #151623;
+  --color-clay-ember: #bc7155;
+
+  /* Màu theo vai trò, đổi giá trị ở chế độ tối (bên dưới). Cùng bảng màu với landing.css. */
+  --color-ink: #000d10;
+  --color-ink-2: #3b444b;
+  --color-paper: #ffffff;
+  --color-muted: #64646c;
+  --color-line: #d5d3d4;
+  --color-line-strong: #b4b2b4;
+  --color-tint: #eef3f6;
+  --color-btn: #000d10;
+  --color-btn-fg: #ffffff;
+  --color-btn-hover: #1d2b30;
+  --color-sky-1: #c4d6e2;
+  --color-sky-2: #d9e4eb;
+  --color-sky-3: #e9ecec;
+  --color-sky-4: #f3eee6;
+
+  /*
+   * --font-sans không khai báo ở đây: next/font (layout.tsx) gắn Inter vào biến này trên <html>, và CSS không
+   * nằm trong layer của next/font thắng giá trị mặc định trong @layer theme của Tailwind.
+   */
+  --font-weight-regular: 400;
+  --font-weight-bold: 700;
+
+  /* Thang chữ */
+  --text-caption: 17px;
+  --text-caption--line-height: 22px;
+  --text-body: 18px;
+  --text-body--line-height: 29px;
+  --text-nav: 20px;
+  --text-nav--line-height: 24px;
+  --text-subheading: 23px;
+  --text-subheading--line-height: 28px;
+  --text-subheading--letter-spacing: -0.23px;
+  --text-heading-sm: 30px;
+  --text-heading-sm--line-height: 34px;
+  --text-heading: 37px;
+  --text-heading--line-height: 40px;
+  --text-heading--letter-spacing: -0.37px;
+  --text-heading-lg: 52px;
+  --text-heading-lg--line-height: 54px;
+  --text-heading-lg--letter-spacing: -0.52px;
+  --text-display: 63px;
+  --text-display--line-height: 63px;
+  --text-display--letter-spacing: -1.26px;
+  --text-display-xl: 131px;
+  --text-display-xl--line-height: 131px;
+  --text-display-xl--letter-spacing: -2.62px;
+  --text-hero: 187px;
+  --text-hero--line-height: 150px;
+  --text-hero--letter-spacing: -3.74px;
+
+  /* Khoảng cách: p-N = N px */
+  --spacing: 1px;
+
+  /* Bo góc: nút là pill, còn lại vuông */
+  --radius-pill: 1000px;
+  --radius-decorative: 45px;
+
+  /* Bố cục */
+  --container-page: 1200px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-ink: #f2f3f6;
+    --color-ink-2: #c9cad3;
+    --color-paper: #0f0f1c;
+    --color-muted: #a3a4b0;
+    --color-line: #2c2d3d;
+    --color-line-strong: #4a4c60;
+    --color-tint: #141523;
+    --color-btn: #f2f3f6;
+    --color-btn-fg: #000d10;
+    --color-btn-hover: #ffffff;
+    --color-sky-1: #090a14;
+    --color-sky-2: #10111e;
+    --color-sky-3: #1a1824;
+    --color-sky-4: #2a2027;
+  }
+}
+
 /* Nền tối để vùng kéo quá đáy trang liền với footer (#000d10 theo DESIGN.md). */
 html {
   background: #000d10;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
