@@ -65,7 +65,7 @@ export default function AuthShell({ children }: { children: ReactNode }) {
           src="/assets/images/night-sky.jpg"
           alt=""
           fill
-          priority
+          // Không preload (priority): cột này ẩn dưới 1024px, ảnh lazy trong display:none không bị tải.
           sizes="50vw"
           className="object-cover"
         />

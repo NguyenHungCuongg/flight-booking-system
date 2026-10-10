@@ -72,7 +72,9 @@ export async function apiFetch<T>(
   }
 
   if (res.ok) {
-    return (res.status === 204 ? undefined : await res.json()) as T;
+    // Có API trả 200 không có body (VD forgot-password), nên chỉ parse khi có nội dung.
+    const body = await res.text();
+    return (body ? JSON.parse(body) : undefined) as T;
   }
   const problem = await res.json().catch(() => ({}));
   throw new ApiError(

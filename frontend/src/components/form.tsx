@@ -160,7 +160,7 @@ export function FormSkeleton({ rows }: { rows: number }) {
 
 /**
  * Trạng thái gửi form: đang gửi, lỗi theo trường (errors của ProblemDetail) và lỗi chung.
- * `submit(fn)` trả handler cho onSubmit; fn trả false thì coi như chưa xong (VD đã tự đặt lỗi).
+ * `submit(fn, onError)` trả handler cho onSubmit; onError trả true nghĩa là đã tự xử lý lỗi đó.
  */
 export function useSubmit() {
   const [pending, setPending] = useState(false);
