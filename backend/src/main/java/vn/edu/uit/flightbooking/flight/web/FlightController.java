@@ -4,6 +4,7 @@ import java.time.LocalDate;
 
 import jakarta.validation.Valid;
 
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedModel;
@@ -20,6 +21,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import vn.edu.uit.flightbooking.flight.FlightSearch;
+import vn.edu.uit.flightbooking.flight.FlightSearch.SearchQuery;
+import vn.edu.uit.flightbooking.flight.FlightSearch.SearchResult;
 import vn.edu.uit.flightbooking.flight.domain.FlightQueries;
 import vn.edu.uit.flightbooking.flight.domain.FlightQueries.FlightDetail;
 import vn.edu.uit.flightbooking.flight.domain.FlightQueries.FlightView;
@@ -29,7 +33,10 @@ import vn.edu.uit.flightbooking.flight.domain.FlightService.FlightChanges;
 import vn.edu.uit.flightbooking.flight.domain.FlightService.NewFlights;
 import vn.edu.uit.flightbooking.flight.domain.FlightStatus;
 
-/** Quản trị chuyến bay (FR-90–92, FR-94): màn hình S-05, A-04–A-06. Quyền theo đường dẫn ở SecurityConfig. */
+/**
+ * Tìm chuyến (FR-11, FR-12: màn hình C-02) và quản trị chuyến bay (FR-90–92, FR-94: S-05, A-04–A-06). Quyền theo đường
+ * dẫn ở SecurityConfig.
+ */
 @RestController
 @RequestMapping("/api")
 class FlightController {
@@ -38,9 +45,18 @@ class FlightController {
 
 	private final FlightQueries queries;
 
-	FlightController(FlightService flights, FlightQueries queries) {
+	private final FlightSearch search;
+
+	FlightController(FlightService flights, FlightQueries queries, FlightSearch search) {
 		this.flights = flights;
 		this.queries = queries;
+		this.search = search;
+	}
+
+	/** Công khai, không phân trang (TDD §6.1). */
+	@GetMapping("/flights/search")
+	SearchResult searchFlights(@Valid @ParameterObject SearchQuery query) {
+		return search.search(query);
 	}
 
 	/** Staff và Admin dùng chung (TDD §8.6). */
