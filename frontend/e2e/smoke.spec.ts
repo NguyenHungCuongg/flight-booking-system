@@ -10,7 +10,7 @@ const PUBLIC = [
   "/forgot-password",
   "/reset-password",
 ];
-const PROTECTED = ["/account", "/bookings"];
+const PROTECTED = ["/account", "/bookings", "/checkout"];
 
 async function expectRenders(page: Page, path: string) {
   const errors: Error[] = [];
