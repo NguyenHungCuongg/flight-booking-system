@@ -10,6 +10,9 @@ const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
+  // npm run dev dịch route theo yêu cầu: 8 luồng (mặc định trên máy 16 nhân) làm trang hydrate chậm, click rơi vào
+  // form chưa hydrate. 4 luồng chạy ổn định.
+  workers: 4,
   retries: process.env.CI ? 1 : 0,
   reporter: "list",
   use: { baseURL, trace: "retain-on-failure" },

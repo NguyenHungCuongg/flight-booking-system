@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { HOLD_MINUTES, airportByCode } from "./data";
+import { HOLD_MINUTES } from "./data";
 import { Icon } from "./icons";
 import { ddmm, pad, parseIso, useSearch, weekday } from "./search-context";
 
@@ -76,7 +76,7 @@ export default function Story() {
 
   const depD = parseIso(form.dep);
   const paxText = `${form.adults} người lớn${form.children ? `, ${form.children} trẻ em` : ""}${form.infants ? `, ${form.infants} em bé` : ""}`;
-  const route = `${airportByCode(form.from)?.code ?? "HAN"} → ${airportByCode(form.to)?.code ?? "SGN"}`;
+  const route = `${form.from || "HAN"} → ${form.to || "SGN"}`;
   const meta = `${depD ? `${weekday(depD)}, ${ddmm(depD)}, ` : ""}${paxText}${form.trip === "oneway" ? "" : ", khứ hồi"}`;
 
   return (

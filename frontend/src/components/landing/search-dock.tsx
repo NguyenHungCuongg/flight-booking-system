@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
-import { AIRPORTS, CABINS, airportByCode, type Airport } from "./data";
+import { countryName, useAirports, type Airport } from "@/lib/airports";
+import { CABINS } from "./data";
 import { Icon, Jet } from "./icons";
 import {
   addDays,
@@ -43,9 +44,13 @@ const norm = (s: string) =>
     .replace(/đ/g, "d")
     .trim();
 
-function filterAirports(query: string, other: string): Airport[] {
+function filterAirports(
+  airports: Airport[],
+  query: string,
+  other: string,
+): Airport[] {
   const q = norm(query);
-  let list = AIRPORTS.filter((a) => a.code !== other);
+  let list = airports.filter((a) => a.code !== other);
   if (q) {
     const Q = q.toUpperCase();
     list = list
@@ -57,7 +62,7 @@ function filterAirports(query: string, other: string): Airport[] {
         else if (a.code.startsWith(Q)) score = 1;
         else if (city.startsWith(q)) score = 2;
         else if (city.includes(q) || name.includes(q)) score = 3;
-        else if (norm(a.country).includes(q)) score = 4;
+        else if (norm(countryName(a.countryCode)).includes(q)) score = 4;
         return { a, score };
       })
       .filter((x) => x.score > -1)
@@ -74,6 +79,7 @@ export default function SearchDock() {
   const router = useRouter();
   const [pending, startNav] = useTransition();
   const { form, today: todayIso, update, flash } = useSearch();
+  const { airports, failed } = useAirports();
   const [s, setS] = useState<Local>({
     panel: null,
     popUp: false,
@@ -96,17 +102,29 @@ export default function SearchDock() {
   );
 
   const today = todayIso ? parseIso(todayIso) : null;
-  const F = airportByCode(form.from);
-  const T = airportByCode(form.to);
+  const byCode = (code: string) =>
+    airports?.find((a) => a.code === code) ?? null;
+  const F = byCode(form.from);
+  const T = byCode(form.to);
   const depD = parseIso(form.dep);
   const retD = parseIso(form.ret);
   const oneway = form.trip === "oneway";
   const err = s.errors;
   const isAp = s.panel === "from" || s.panel === "to";
   const isCal = s.panel === "dep" || s.panel === "ret";
-  const list = isAp
-    ? filterAirports(s.query, s.panel === "from" ? form.to : form.from)
-    : [];
+  const list =
+    isAp && airports
+      ? filterAirports(
+          airports,
+          s.query,
+          s.panel === "from" ? form.to : form.from,
+        )
+      : [];
+  const empty = failed
+    ? "Không tải được danh sách sân bay. Hãy tải lại trang."
+    : !airports
+      ? "Đang tải danh sách sân bay..."
+      : "Không tìm thấy sân bay phù hợp. Thử gõ tên thành phố hoặc mã 3 chữ cái, ví dụ DAD.";
   const hi = Math.min(s.hi, Math.max(0, list.length - 1));
   const cabin = CABINS.find((c) => c.id === form.cabin) ?? CABINS[0];
   const seated = form.adults + form.children;
@@ -461,7 +479,7 @@ export default function SearchDock() {
           )}
         </div>
 
-        {F && T && F.cc !== T.cc && (
+        {F && T && F.countryCode !== T.countryCode && (
           <p className="intl">
             <Icon name="info" />
             <span>
@@ -480,9 +498,9 @@ export default function SearchDock() {
               open={s.panel === "from"}
               onClick={() => open("from")}
               error={err.from}
-              main={F ? F.code : "Chọn sân bay"}
-              sub={F ? F.city : "Điểm đi"}
-              mainCls={F ? tick(form.fromPar) : "is-empty"}
+              main={form.from || "Chọn sân bay"}
+              sub={F?.city ?? (form.from ? "\u00a0" : "Điểm đi")}
+              mainCls={form.from ? tick(form.fromPar) : "is-empty"}
             />
             {s.panel === "from" && (
               <AirportPop
@@ -490,6 +508,7 @@ export default function SearchDock() {
                 aria="Chọn sân bay đi"
                 query={s.query}
                 list={list}
+                empty={empty}
                 hi={hi}
                 onQuery={(q) => patch({ query: q, hi: 0 })}
                 onKey={onQueryKey}
@@ -518,9 +537,9 @@ export default function SearchDock() {
               open={s.panel === "to"}
               onClick={() => open("to")}
               error={err.to}
-              main={T ? T.code : "Chọn sân bay"}
-              sub={T ? T.city : "Điểm đến"}
-              mainCls={T ? tick(form.toPar) : "is-empty"}
+              main={form.to || "Chọn sân bay"}
+              sub={T?.city ?? (form.to ? "\u00a0" : "Điểm đến")}
+              mainCls={form.to ? tick(form.toPar) : "is-empty"}
             />
             {s.panel === "to" && (
               <AirportPop
@@ -528,6 +547,7 @@ export default function SearchDock() {
                 aria="Chọn sân bay đến"
                 query={s.query}
                 list={list}
+                empty={empty}
                 hi={hi}
                 onQuery={(q) => patch({ query: q, hi: 0 })}
                 onKey={onQueryKey}
@@ -687,6 +707,8 @@ function AirportPop(p: {
   aria: string;
   query: string;
   list: Airport[];
+  /** Câu hiện khi list rỗng: đang tải, lỗi tải hoặc không có sân bay khớp. */
+  empty: string;
   hi: number;
   onQuery: (q: string) => void;
   onKey: (e: React.KeyboardEvent) => void;
@@ -748,15 +770,12 @@ function AirportPop(p: {
               <span className="ap-city">{a.city}</span>
               <span className="ap-name">{a.name}</span>
             </span>
-            <span className="ap-tag">{a.cc === "VN" ? "" : a.country}</span>
+            <span className="ap-tag">
+              {a.countryCode === "VN" ? "" : countryName(a.countryCode)}
+            </span>
           </button>
         ))}
-        {p.list.length === 0 && (
-          <p className="ap-empty">
-            Không tìm thấy sân bay phù hợp. Thử gõ tên thành phố hoặc mã 3 chữ
-            cái, ví dụ DAD.
-          </p>
-        )}
+        {p.list.length === 0 && <p className="ap-empty">{p.empty}</p>}
       </div>
     </div>
   );
