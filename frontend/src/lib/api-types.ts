@@ -340,6 +340,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/flights/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["searchFlights"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/csrf": {
         parameters: {
             query?: never;
@@ -684,6 +700,64 @@ export interface components {
         PagedModelFlightView: {
             content: components["schemas"]["FlightView"][];
             page: components["schemas"]["PageMetadata"];
+        };
+        AirlineRef: {
+            code: string;
+            name: string;
+        };
+        AirportTime: {
+            airport: string;
+            city: string;
+            /** Format: date-time */
+            time: string;
+            timezone: string;
+        };
+        FareOption: {
+            /** Format: int64 */
+            fareFamilyId: number;
+            name: string;
+            /** @enum {string} */
+            cabinClass: "ECONOMY" | "PREMIUM_ECONOMY" | "BUSINESS" | "FIRST";
+            /** Format: int32 */
+            carryOnKg: number;
+            /** Format: int32 */
+            checkedBaggageKg: number;
+            refundable: boolean;
+            /** Format: int64 */
+            refundFee: number;
+            changeable: boolean;
+            /** Format: int64 */
+            changeFee: number;
+            /** Format: int64 */
+            adultPrice: number;
+            /** Format: int64 */
+            totalPrice: number;
+            /** Format: int32 */
+            seatsLeft: number;
+        };
+        Itinerary: {
+            /** Format: int32 */
+            stops: number;
+            /** Format: int64 */
+            totalDurationMinutes: number;
+            segments: components["schemas"]["Segment"][];
+            fareOptions: components["schemas"]["FareOption"][];
+        };
+        SearchResult: {
+            itineraries: components["schemas"]["Itinerary"][];
+        };
+        Segment: {
+            /** Format: int64 */
+            flightId: number;
+            flightNumber: string;
+            airline: components["schemas"]["AirlineRef"];
+            departure: components["schemas"]["AirportTime"];
+            arrival: components["schemas"]["AirportTime"];
+            /** Format: int64 */
+            durationMinutes: number;
+            aircraftModel: string;
+            /** Format: int64 */
+            layoverMinutesAfter: number;
         };
         PagedModelUserResponse: {
             content: components["schemas"]["UserResponse"][];
@@ -1468,6 +1542,34 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PagedModelFlightView"];
+                };
+            };
+        };
+    };
+    searchFlights: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                date: string;
+                adults: number;
+                children?: number;
+                infants?: number;
+                cabin: "ECONOMY" | "PREMIUM_ECONOMY" | "BUSINESS" | "FIRST";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SearchResult"];
                 };
             };
         };
