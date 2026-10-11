@@ -9,9 +9,11 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedModel;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -23,6 +25,7 @@ import vn.edu.uit.flightbooking.flight.domain.FlightQueries.FlightDetail;
 import vn.edu.uit.flightbooking.flight.domain.FlightQueries.FlightView;
 import vn.edu.uit.flightbooking.flight.domain.FlightService;
 import vn.edu.uit.flightbooking.flight.domain.FlightService.CreatedFlights;
+import vn.edu.uit.flightbooking.flight.domain.FlightService.FlightChanges;
 import vn.edu.uit.flightbooking.flight.domain.FlightService.NewFlights;
 import vn.edu.uit.flightbooking.flight.domain.FlightStatus;
 
@@ -59,6 +62,18 @@ class FlightController {
 	@GetMapping("/admin/flights/{id}")
 	FlightDetail detail(@PathVariable long id) {
 		return queries.detail(id);
+	}
+
+	@PutMapping("/admin/flights/{id}")
+	FlightDetail update(@PathVariable long id, @Valid @RequestBody FlightChanges body) {
+		flights.update(id, body);
+		return queries.detail(id);
+	}
+
+	@DeleteMapping("/admin/flights/{id}")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	void delete(@PathVariable long id) {
+		flights.delete(id);
 	}
 
 }
