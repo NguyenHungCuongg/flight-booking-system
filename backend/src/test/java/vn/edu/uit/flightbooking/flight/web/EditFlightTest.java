@@ -175,6 +175,17 @@ class EditFlightTest {
 			.andExpect(jsonPath("$.errors[0].field").value("fares[1].fareFamilyId"));
 	}
 
+	/** BR-81: giờ trong PUT là giờ địa phương. Chuỗi có "Z" hay offset bị từ chối, không bị bỏ offset âm thầm làm lệch giờ. */
+	@Test
+	void timesWithOffsetAreRejectedInsteadOfShifted() throws Exception {
+		update(flightId, changes(Map.of("departureTime", DAY + "T10:00:00.000Z", "arrivalTime", DAY + "T13:30"))).andExpect(status().isBadRequest());
+		update(flightId, changes(Map.of("arrivalTime", DAY + "T13:30:00+08:00"))).andExpect(status().isBadRequest());
+
+		mvc.perform(get("/api/admin/flights/{id}", flightId).session(admin))
+			.andExpect(jsonPath("$.flight.departureTime").value(DAY + "T06:00:00+07:00"));
+		assertThat(events.stream(FlightTimeChanged.class)).isEmpty();
+	}
+
 	/** BR-87: chỉ sửa được chuyến chưa cất cánh; chuyến đã huỷ cũng không sửa được. */
 	@Test
 	void departedOrCancelledFlightCannotBeEdited() throws Exception {

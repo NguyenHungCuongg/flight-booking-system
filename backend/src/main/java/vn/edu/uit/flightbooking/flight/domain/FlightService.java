@@ -18,6 +18,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -75,7 +79,9 @@ public class FlightService {
 	 * Body của PUT /admin/flights/{id} (FR-92). Giờ là giờ địa phương của sân bay tương ứng (BR-81). Hãng, số hiệu và
 	 * tuyến không đổi được.
 	 */
-	public record FlightChanges(@NotNull LocalDateTime departureTime, @NotNull LocalDateTime arrivalTime,
+	public record FlightChanges(
+			@NotNull @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm[:ss]") @Schema(type = "string", example = "2026-12-01T06:00", description = "Giờ địa phương của sân bay, không kèm múi giờ") LocalDateTime departureTime,
+			@NotNull @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm[:ss]") @Schema(type = "string", example = "2026-12-01T08:10", description = "Giờ địa phương của sân bay, không kèm múi giờ") LocalDateTime arrivalTime,
 			@NotBlank @Size(max = 50) String aircraftModel, @NotEmpty List<@Valid CabinSeats> cabins,
 			@NotEmpty List<@Valid FarePrice> fares) {
 	}

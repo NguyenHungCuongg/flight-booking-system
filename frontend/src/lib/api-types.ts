@@ -460,9 +460,15 @@ export interface components {
             price: number;
         };
         FlightChanges: {
-            /** Format: date-time */
+            /**
+             * @description Giờ địa phương của sân bay, không kèm múi giờ
+             * @example 2026-12-01T06:00
+             */
             departureTime: string;
-            /** Format: date-time */
+            /**
+             * @description Giờ địa phương của sân bay, không kèm múi giờ
+             * @example 2026-12-01T08:10
+             */
             arrivalTime: string;
             aircraftModel: string;
             cabins: components["schemas"]["CabinSeats"][];
