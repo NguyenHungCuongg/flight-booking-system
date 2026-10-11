@@ -52,14 +52,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/fare-families/{id}": {
+    "/api/admin/flights/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["detail"];
         put: operations["update_1"];
         post?: never;
         delete: operations["delete"];
@@ -68,7 +68,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/baggage-options/{id}": {
+    "/api/admin/fare-families/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -84,7 +84,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/airports/{code}": {
+    "/api/admin/baggage-options/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -100,7 +100,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/airlines/{code}": {
+    "/api/admin/airports/{code}": {
         parameters: {
             query?: never;
             header?: never;
@@ -111,6 +111,22 @@ export interface paths {
         put: operations["update_4"];
         post?: never;
         delete: operations["delete_3"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/airlines/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["update_5"];
+        post?: never;
+        delete: operations["delete_4"];
         options?: never;
         head?: never;
         patch?: never;
@@ -212,6 +228,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/flights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["create_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/airports": {
         parameters: {
             query?: never;
@@ -221,7 +253,7 @@ export interface paths {
         };
         get: operations["list"];
         put?: never;
-        post: operations["create_1"];
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -237,7 +269,7 @@ export interface paths {
         };
         get: operations["list_1"];
         put?: never;
-        post: operations["create_2"];
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -253,7 +285,7 @@ export interface paths {
         };
         get: operations["list_2"];
         put?: never;
-        post: operations["create_3"];
+        post: operations["create_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -269,7 +301,7 @@ export interface paths {
         };
         get: operations["list_3"];
         put?: never;
-        post: operations["create_4"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -290,6 +322,22 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["updateStatus"];
+        trace?: never;
+    };
+    "/api/staff/flights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_4"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/auth/csrf": {
@@ -363,7 +411,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -398,6 +446,68 @@ export interface components {
         UpdateSettingRequest: {
             /** Format: int32 */
             value: number;
+        };
+        CabinSeats: {
+            /** @enum {string} */
+            cabinClass: "ECONOMY" | "PREMIUM_ECONOMY" | "BUSINESS" | "FIRST";
+            /** Format: int32 */
+            totalSeats: number;
+        };
+        FarePrice: {
+            /** Format: int64 */
+            fareFamilyId: number;
+            /** Format: int64 */
+            price: number;
+        };
+        FlightChanges: {
+            /** Format: date-time */
+            departureTime: string;
+            /** Format: date-time */
+            arrivalTime: string;
+            aircraftModel: string;
+            cabins: components["schemas"]["CabinSeats"][];
+            fares: components["schemas"]["FarePrice"][];
+        };
+        CabinView: {
+            /** @enum {string} */
+            cabinClass: "ECONOMY" | "PREMIUM_ECONOMY" | "BUSINESS" | "FIRST";
+            /** Format: int32 */
+            totalSeats: number;
+            /** Format: int32 */
+            availableSeats: number;
+        };
+        FareView: {
+            /** Format: int64 */
+            fareFamilyId: number;
+            fareFamilyName: string;
+            /** @enum {string} */
+            cabinClass: "ECONOMY" | "PREMIUM_ECONOMY" | "BUSINESS" | "FIRST";
+            /** Format: int64 */
+            price: number;
+        };
+        FlightDetail: {
+            flight: components["schemas"]["FlightView"];
+            fares: components["schemas"]["FareView"][];
+            /** Format: int64 */
+            bookingCount: number;
+        };
+        FlightView: {
+            /** Format: int64 */
+            id: number;
+            airlineCode: string;
+            flightNumber: string;
+            departureAirport: string;
+            arrivalAirport: string;
+            /** Format: date-time */
+            departureTime: string;
+            departureTimezone: string;
+            /** Format: date-time */
+            arrivalTime: string;
+            arrivalTimezone: string;
+            aircraftModel: string;
+            /** @enum {string} */
+            status: "SCHEDULED" | "CANCELLED";
+            cabins: components["schemas"]["CabinView"][];
         };
         FareFamilyFields: {
             /** @enum {string} */
@@ -505,6 +615,31 @@ export interface components {
             /** @enum {string} */
             role: "CUSTOMER" | "STAFF" | "ADMIN";
         };
+        NewFlights: {
+            airlineCode: string;
+            flightNumber: string;
+            departureAirport: string;
+            arrivalAirport: string;
+            /** Format: time-local */
+            departureTime: string;
+            /** Format: int32 */
+            durationMinutes: number;
+            /** Format: date */
+            fromDate: string;
+            /** Format: date */
+            toDate: string;
+            daysOfWeek: ("MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY")[];
+            aircraftModel: string;
+            cabins: components["schemas"]["CabinSeats"][];
+            fares: components["schemas"]["FarePrice"][];
+        };
+        CreatedFlights: {
+            /** Format: int32 */
+            created: number;
+            /** Format: int32 */
+            skipped: number;
+            flightIds: number[];
+        };
         CreateAirportRequest: {
             code: string;
             name: string;
@@ -539,6 +674,10 @@ export interface components {
             totalElements: number;
             /** Format: int64 */
             totalPages: number;
+        };
+        PagedModelFlightView: {
+            content: components["schemas"]["FlightView"][];
+            page: components["schemas"]["PageMetadata"];
         };
         PagedModelUserResponse: {
             content: components["schemas"]["UserResponse"][];
@@ -656,6 +795,28 @@ export interface operations {
             };
         };
     };
+    detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FlightDetail"];
+                };
+            };
+        };
+    };
     update_1: {
         parameters: {
             query?: never;
@@ -667,7 +828,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["FareFamilyFields"];
+                "application/json": components["schemas"]["FlightChanges"];
             };
         };
         responses: {
@@ -677,7 +838,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["FareFamilyResponse"];
+                    "*/*": components["schemas"]["FlightDetail"];
                 };
             };
         };
@@ -713,7 +874,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["BaggageOptionRequest"];
+                "application/json": components["schemas"]["FareFamilyFields"];
             };
         };
         responses: {
@@ -723,7 +884,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["BaggageOptionResponse"];
+                    "*/*": components["schemas"]["FareFamilyResponse"];
                 };
             };
         };
@@ -753,13 +914,13 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                code: string;
+                id: number;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateAirportRequest"];
+                "application/json": components["schemas"]["BaggageOptionRequest"];
             };
         };
         responses: {
@@ -769,7 +930,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["AirportResponse"];
+                    "*/*": components["schemas"]["BaggageOptionResponse"];
                 };
             };
         };
@@ -779,7 +940,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                code: string;
+                id: number;
             };
             cookie?: never;
         };
@@ -805,6 +966,52 @@ export interface operations {
         };
         requestBody: {
             content: {
+                "application/json": components["schemas"]["UpdateAirportRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AirportResponse"];
+                };
+            };
+        };
+    };
+    delete_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
                 "application/json": components["schemas"]["UpdateAirlineRequest"];
             };
         };
@@ -820,7 +1027,7 @@ export interface operations {
             };
         };
     };
-    delete_3: {
+    delete_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -998,6 +1205,30 @@ export interface operations {
             };
         };
     };
+    create_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewFlights"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CreatedFlights"];
+                };
+            };
+        };
+    };
     list: {
         parameters: {
             query?: never;
@@ -1018,7 +1249,7 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    create_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -1062,7 +1293,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1108,7 +1339,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -1156,7 +1387,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -1204,6 +1435,33 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    list_4: {
+        parameters: {
+            query: {
+                from?: string;
+                to?: string;
+                date?: string;
+                airline?: string;
+                status?: "SCHEDULED" | "CANCELLED";
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelFlightView"];
                 };
             };
         };
@@ -1290,7 +1548,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query?: never;
             header?: never;
