@@ -2,14 +2,19 @@ package vn.edu.uit.flightbooking.flight.domain;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,6 +58,46 @@ public class FlightQueries {
 
 	FlightQueries(JdbcClient jdbc) {
 		this.jdbc = jdbc;
+	}
+
+	/**
+	 * Màn hình S-05, A-04. Mọi bộ lọc đều không bắt buộc; {@code date} là ngày cất cánh theo giờ sân bay đi. Sắp theo
+	 * giờ cất cánh.
+	 */
+	@Transactional(readOnly = true)
+	public Page<FlightView> list(String from, String to, LocalDate date, String airline, FlightStatus status,
+			Pageable pageable) {
+		StringBuilder where = new StringBuilder(" WHERE TRUE");
+		Map<String, Object> params = new HashMap<>();
+		if (from != null) {
+			where.append(" AND f.departure_airport = :from");
+			params.put("from", from);
+		}
+		if (to != null) {
+			where.append(" AND f.arrival_airport = :to");
+			params.put("to", to);
+		}
+		if (date != null) {
+			where.append(" AND (f.departure_time AT TIME ZONE dep.timezone)::date = :date");
+			params.put("date", date);
+		}
+		if (airline != null) {
+			where.append(" AND f.airline_code = :airline");
+			params.put("airline", airline);
+		}
+		if (status != null) {
+			where.append(" AND f.status = :status");
+			params.put("status", status.name());
+		}
+		long total = jdbc.sql("SELECT count(*) FROM flights f JOIN airports dep ON dep.code = f.departure_airport" + where)
+			.params(params)
+			.query(Long.class)
+			.single();
+		params.put("limit", pageable.getPageSize());
+		params.put("offset", pageable.getOffset());
+		List<FlightView> content = views(
+				SELECT_FLIGHT + where + " ORDER BY f.departure_time, f.id LIMIT :limit OFFSET :offset", params);
+		return new PageImpl<>(content, pageable, total);
 	}
 
 	@Transactional(readOnly = true)
