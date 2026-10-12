@@ -56,7 +56,7 @@ Emails sent in development show up in the Mailpit UI at http://localhost:8025.
 
 ```bash
 cd backend
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+./mvnw spring-boot:run "-Dspring-boot.run.profiles=dev"
 ```
 
 The API runs at http://localhost:8080, with Swagger UI at http://localhost:8080/swagger-ui.html. The `dev` profile reads `../.env` and loads the seed data.
