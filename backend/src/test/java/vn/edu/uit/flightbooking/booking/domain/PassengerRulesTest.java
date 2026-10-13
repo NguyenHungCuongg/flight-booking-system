@@ -32,6 +32,13 @@ class PassengerRulesTest {
 		return new PassengerRequest(ADULT, "NGUYEN", "VAN AN", Gender.MALE, ADULT_BORN, "VN", "C1234567", expiry);
 	}
 
+	/** Gọi {@link PassengerRules#checkDetails} rồi ném lỗi như báo giá làm khi chỉ có lỗi hành khách. */
+	static void details(List<PassengerRequest> passengers, LocalDate first, LocalDate last, boolean international) {
+		FieldErrors errors = new FieldErrors();
+		PassengerRules.checkDetails(passengers, first, last, international, errors);
+		errors.throwIfAny(ErrorCode.PASSENGER_RULES_VIOLATED, PassengerRules.DETAIL);
+	}
+
 	/** Các trường trong {@code errors} của PASSENGER_RULES_VIOLATED; test hỏng nếu không có lỗi hoặc sai mã. */
 	@SuppressWarnings("unchecked")
 	static List<String> fieldsOf(ThrowingCallable call) {
@@ -55,10 +62,10 @@ class PassengerRulesTest {
 	/** BR-10: loại khách khớp tuổi, ngày sinh không sau ngày bay; mọi lỗi trả một lần, đúng vị trí khách. */
 	@Test
 	void declaredTypeMustMatchAgeAndBirthCannotFollowFlight() {
-		PassengerRules.checkDetails(List.of(passenger(ADULT, ADULT_BORN), passenger(INFANT, FLIGHT)), FLIGHT, FLIGHT,
+		details(List.of(passenger(ADULT, ADULT_BORN), passenger(INFANT, FLIGHT)), FLIGHT, FLIGHT,
 				false);
 
-		assertThat(fieldsOf(() -> PassengerRules.checkDetails(List.of(passenger(ADULT, ADULT_BORN),
+		assertThat(fieldsOf(() -> details(List.of(passenger(ADULT, ADULT_BORN),
 				passenger(CHILD, LocalDate.of(2024, 12, 2)), passenger(INFANT, FLIGHT.plusDays(1))), FLIGHT, FLIGHT,
 				false)))
 			.containsExactly("passengers[1].dateOfBirth", "passengers[2].dateOfBirth");
@@ -84,15 +91,15 @@ class PassengerRulesTest {
 	void internationalTripNeedsPassportValidSixMonthsAfterLastDeparture() {
 		LocalDate last = FLIGHT.plusDays(5);
 
-		PassengerRules.checkDetails(List.of(withPassport(last.plusMonths(6))), FLIGHT, last, true);
-		assertThat(fieldsOf(() -> PassengerRules.checkDetails(List.of(withPassport(last.plusMonths(6).minusDays(1))),
+		details(List.of(withPassport(last.plusMonths(6))), FLIGHT, last, true);
+		assertThat(fieldsOf(() -> details(List.of(withPassport(last.plusMonths(6).minusDays(1))),
 				FLIGHT, last, true)))
 			.containsExactly("passengers[0].passportExpiry");
 		assertThat(fieldsOf(
-				() -> PassengerRules.checkDetails(List.of(passenger(ADULT, ADULT_BORN)), FLIGHT, last, true)))
+				() -> details(List.of(passenger(ADULT, ADULT_BORN)), FLIGHT, last, true)))
 			.containsExactly("passengers[0].nationality", "passengers[0].passportNumber",
 					"passengers[0].passportExpiry");
-		PassengerRules.checkDetails(List.of(passenger(ADULT, ADULT_BORN)), FLIGHT, last, false);
+		details(List.of(passenger(ADULT, ADULT_BORN)), FLIGHT, last, false);
 	}
 
 }

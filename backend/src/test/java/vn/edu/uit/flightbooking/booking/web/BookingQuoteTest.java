@@ -341,4 +341,42 @@ class BookingQuoteTest {
 			.andExpect(jsonPath("$.totalAmount").value(0));
 	}
 
+	/** Lỗi nhỏ 1 của Plan 10: lỗi hành khách và lỗi hành lý trả về trong cùng một lần. */
+	@Test
+	void passengerAndBaggageErrorsComeTogether() throws Exception {
+		long bag20 = baggageOption("Q1", 20, 350_000, true);
+
+		quote(Map.of("passengers", List.of(passenger("ADULT", ADULT_BORN), passenger("CHILD", INFANT_BORN)),
+				"baggage", List.of(bag(0, "RETURN", bag20))))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("PASSENGER_RULES_VIOLATED"))
+			.andExpect(jsonPath("$.errors[*].field", contains("passengers[1].dateOfBirth", "baggage[0].direction")));
+	}
+
+	/** Lỗi nhỏ 6 của Plan 10: một dòng hành lý sai nhiều chỗ thì báo đủ mọi chỗ. */
+	@Test
+	void baggageLineReportsEveryProblem() throws Exception {
+		long retired = baggageOption("Q1", 30, 550_000, false);
+
+		quote(Map.of("baggage", List.of(bag(0, "RETURN", retired)))).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+			.andExpect(jsonPath("$.errors[*].field", contains("baggage[0].direction", "baggage[0].baggageOptionId")));
+	}
+
+	/** Lỗi nhỏ 2 của Plan 10: ô hộ chiếu để trống gửi chuỗi rỗng; nội địa thì bỏ qua, quốc tế thì báo thiếu. */
+	@Test
+	void blankPassportFieldsCountAsMissing() throws Exception {
+		Map<String, Object> blank = passenger("ADULT", ADULT_BORN);
+		blank.put("nationality", "");
+		blank.put("passportNumber", "  ");
+		blank.put("passportExpiry", null);
+
+		quote(Map.of("passengers", List.of(blank))).andExpect(status().isOk());
+		quote(Map.of("journeys", List.of(journey("OUTBOUND", international)), "passengers", List.of(blank)))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("PASSENGER_RULES_VIOLATED"))
+			.andExpect(jsonPath("$.errors[*].field", contains("passengers[0].nationality",
+					"passengers[0].passportNumber", "passengers[0].passportExpiry")));
+	}
+
 }

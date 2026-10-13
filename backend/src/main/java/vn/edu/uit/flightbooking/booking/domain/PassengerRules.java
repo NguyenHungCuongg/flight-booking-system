@@ -9,7 +9,7 @@ import vn.edu.uit.flightbooking.common.ErrorCode;
 
 /**
  * BR-10, BR-11, BR-13 (TDD §6.2 bước 3). Định dạng tên và hộ chiếu (BR-12, BR-13) do Bean Validation ở
- * {@link BookingRequest} kiểm tra. Mọi vi phạm báo một lần: PASSENGER_RULES_VIOLATED kèm {@code errors}.
+ * {@link BookingRequest} kiểm tra. Vi phạm báo PASSENGER_RULES_VIOLATED kèm {@code errors}.
  */
 final class PassengerRules {
 
@@ -38,11 +38,11 @@ final class PassengerRules {
 
 	/**
 	 * BR-10 tại {@code firstDeparture} (ngày cất cánh chặng đầu chiều đi, giờ địa phương). BR-13 khi có chặng quốc tế:
-	 * hộ chiếu còn hạn tới ít nhất {@code lastDeparture} (ngày cất cánh chặng cuối của booking) cộng 6 tháng.
+	 * hộ chiếu còn hạn tới ít nhất {@code lastDeparture} (ngày cất cánh chặng cuối của booking) cộng 6 tháng. Thêm vi
+	 * phạm vào {@code errors} để báo giá trả cùng lỗi hành lý trong một lần; bên gọi tự ném.
 	 */
 	static void checkDetails(List<PassengerRequest> passengers, LocalDate firstDeparture, LocalDate lastDeparture,
-			boolean international) {
-		FieldErrors errors = new FieldErrors();
+			boolean international, FieldErrors errors) {
 		for (int i = 0; i < passengers.size(); i++) {
 			PassengerRequest p = passengers.get(i);
 			String field = "passengers[%d].".formatted(i);
@@ -69,7 +69,6 @@ final class PassengerRules {
 				}
 			}
 		}
-		errors.throwIfAny(ErrorCode.PASSENGER_RULES_VIOLATED, DETAIL);
 	}
 
 	/** BR-10: loại khách theo tuổi tròn năm tại {@code day}. */

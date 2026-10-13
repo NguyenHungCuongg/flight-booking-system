@@ -70,7 +70,7 @@ public class QuoteService {
 
 	/**
 	 * Chỉ đọc: không giữ ghế, không giữ lượt voucher, không ghi DB (FR-20). {@code userId}: người đặt, để kiểm tra BR-30
-	 * điều kiện 5.
+	 * điều kiện 5. Lỗi hành khách (BR-10, BR-13) và lỗi hành lý (BR-22) trả về trong cùng một lần.
 	 */
 	@Transactional(readOnly = true)
 	public Quote quote(long userId, BookingRequest request) {
@@ -83,10 +83,17 @@ public class QuoteService {
 		List<PricedJourney> itineraries = flights
 			.price(requested.stream().map(j -> new JourneyChoice(j.flightIds(), j.fareFamilyId())).toList(), seated);
 		List<PricedSegment> segments = itineraries.stream().flatMap(j -> j.segments().stream()).toList();
+
+		FieldErrors errors = new FieldErrors();
 		PassengerRules.checkDetails(passengers, segments.getFirst().departureTime().toLocalDate(),
 				segments.getLast().departureTime().toLocalDate(),
-				segments.stream().anyMatch(PricedSegment::international));
-		List<List<BaggageLine>> baggage = baggage(request.baggage(), passengers, directions, itineraries);
+				segments.stream().anyMatch(PricedSegment::international), errors);
+		boolean passengerRulesBroken = !errors.isEmpty();
+		List<List<BaggageLine>> baggage = baggage(request.baggage(), passengers, directions, itineraries, errors);
+		if (passengerRulesBroken) {
+			errors.throwIfAny(ErrorCode.PASSENGER_RULES_VIOLATED, PassengerRules.DETAIL);
+		}
+		errors.throwIfAny(ErrorCode.VALIDATION_FAILED, "Dữ liệu không hợp lệ");
 
 		int childPercent = settings.getInt(SettingKey.PRICING_CHILD_PERCENT);
 		int infantPercent = settings.getInt(SettingKey.PRICING_INFANT_PERCENT);
@@ -139,43 +146,48 @@ public class QuoteService {
 
 	/**
 	 * BR-22: mỗi khách (trừ em bé) chọn tối đa một mức mỗi chiều, trong bảng giá đang bán của hãng khai thác chiều đó.
-	 * Trả các mức đã chọn của từng chiều, cùng thứ tự với {@code directions}. Mọi mục sai báo một lần.
+	 * Mỗi dòng kiểm tra độc lập ba nhóm (khách, chiều, mức hành lý) và thêm mọi lỗi vào {@code errors}. Trả các mức
+	 * hợp lệ của từng chiều, cùng thứ tự với {@code directions}.
 	 */
 	private List<List<BaggageLine>> baggage(List<BaggageRequest> requests, List<PassengerRequest> passengers,
-			List<Direction> directions, List<PricedJourney> itineraries) {
+			List<Direction> directions, List<PricedJourney> itineraries, FieldErrors errors) {
 		Map<Long, CatalogApi.BaggageRef> options = catalog
 			.baggageOptions(requests.stream().map(BaggageRequest::baggageOptionId).toList());
 		List<List<BaggageLine>> lines = new ArrayList<>();
 		directions.forEach(d -> lines.add(new ArrayList<>()));
 		Set<String> chosen = new HashSet<>();
-		FieldErrors errors = new FieldErrors();
 		for (int i = 0; i < requests.size(); i++) {
 			BaggageRequest b = requests.get(i);
 			String field = "baggage[%d].".formatted(i);
 			int journey = directions.indexOf(b.direction());
 			CatalogApi.BaggageRef option = options.get(b.baggageOptionId());
+			boolean valid = true;
 			if (b.passengerIndex() >= passengers.size()) {
 				errors.add(field + "passengerIndex", "Không có hành khách này");
+				valid = false;
 			}
 			else if (passengers.get(b.passengerIndex()).type() == PassengerType.INFANT) {
 				errors.add(field + "passengerIndex", "Em bé không được mua thêm hành lý");
+				valid = false;
 			}
-			else if (journey < 0) {
+			if (journey < 0) {
 				errors.add(field + "direction", "Hành trình không có chiều này");
+				valid = false;
 			}
 			else if (!chosen.add(b.passengerIndex() + ":" + b.direction())) {
 				errors.add(field + "direction", "Mỗi hành khách chỉ chọn một mức hành lý cho mỗi chiều");
+				valid = false;
 			}
-			else if (option == null || !option.active()
-					|| !option.airlineCode().equals(itineraries.get(journey).airlineCode())) {
+			if (option == null || !option.active()
+					|| (journey >= 0 && !option.airlineCode().equals(itineraries.get(journey).airlineCode()))) {
 				errors.add(field + "baggageOptionId", "Mức hành lý không có trong bảng giá đang bán của hãng");
+				valid = false;
 			}
-			else {
+			if (valid) {
 				lines.get(journey)
 					.add(new BaggageLine(b.passengerIndex(), b.baggageOptionId(), option.weightKg(), option.price()));
 			}
 		}
-		errors.throwIfAny(ErrorCode.VALIDATION_FAILED, "Dữ liệu không hợp lệ");
 		return lines;
 	}
 

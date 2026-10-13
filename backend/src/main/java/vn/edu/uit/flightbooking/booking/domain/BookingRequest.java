@@ -13,8 +13,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * Body chung của POST /bookings/quote (FR-20) và POST /bookings (FR-24, Plan 11), theo ví dụ TDD §8.8. Bean
- * Validation kiểm tra định dạng (BR-12, BR-14, định dạng hộ chiếu của BR-13); quy tắc cần dữ liệu chuyến bay nằm ở
+ * Body chung của POST /bookings/quote (FR-20) và POST /bookings (FR-24), theo ví dụ TDD §8.8. Bean Validation kiểm
+ * tra định dạng (BR-12, BR-14, định dạng hộ chiếu của BR-13); quy tắc cần dữ liệu chuyến bay nằm ở
  * {@link PassengerRules} và {@code QuoteService}. {@code voucherCode} rỗng là không dùng voucher.
  */
 public record BookingRequest(@NotNull List<@NotNull @Valid JourneyRequest> journeys,
@@ -36,7 +36,10 @@ public record BookingRequest(@NotNull List<@NotNull @Valid JourneyRequest> journ
 			@NotNull Long fareFamilyId) {
 	}
 
-	/** Quốc tịch và hộ chiếu chỉ bắt buộc khi hành trình có chặng quốc tế (BR-13). */
+	/**
+	 * Quốc tịch và hộ chiếu chỉ bắt buộc khi hành trình có chặng quốc tế (BR-13). Ô để trống trên form gửi chuỗi rỗng,
+	 * nên chuỗi trống được coi là không khai.
+	 */
 	public record PassengerRequest(@NotNull PassengerType type,
 			@NotNull @Size(max = 50) @Pattern(regexp = NAME, message = NAME_MESSAGE) String lastName,
 			@NotNull @Size(max = 50) @Pattern(regexp = NAME, message = NAME_MESSAGE) String firstName,
@@ -45,6 +48,12 @@ public record BookingRequest(@NotNull List<@NotNull @Valid JourneyRequest> journ
 			@Pattern(regexp = "[A-Z0-9]{6,20}",
 					message = "Số hộ chiếu gồm 6–20 chữ in hoa hoặc chữ số") String passportNumber,
 			LocalDate passportExpiry) {
+
+		public PassengerRequest {
+			nationality = blankToNull(nationality);
+			passportNumber = blankToNull(passportNumber);
+		}
+
 	}
 
 	/** {@code passengerIndex}: vị trí trong {@code passengers}, tính từ 0 (TDD §8.8). */
@@ -57,6 +66,10 @@ public record BookingRequest(@NotNull List<@NotNull @Valid JourneyRequest> journ
 			@NotBlank @Email @Size(max = 255) String email,
 			@NotNull @Pattern(regexp = "\\+?[0-9]{9,15}",
 					message = "Số điện thoại gồm 9–15 chữ số, có thể có dấu + ở đầu") String phone) {
+	}
+
+	private static String blankToNull(String value) {
+		return value == null || value.isBlank() ? null : value;
 	}
 
 }

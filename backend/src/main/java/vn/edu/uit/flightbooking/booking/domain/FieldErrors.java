@@ -19,6 +19,10 @@ final class FieldErrors {
 		errors.add(Map.of("field", field, "message", message));
 	}
 
+	boolean isEmpty() {
+		return errors.isEmpty();
+	}
+
 	void throwIfAny(ErrorCode code, String detail) {
 		if (!errors.isEmpty()) {
 			throw new BusinessException(code, detail, Map.of("errors", List.copyOf(errors)));
