@@ -1,5 +1,6 @@
 package vn.edu.uit.flightbooking.booking.web;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -30,6 +31,7 @@ import vn.edu.uit.flightbooking.IntegrationTest;
 import vn.edu.uit.flightbooking.TestUsers;
 import vn.edu.uit.flightbooking.common.Role;
 import vn.edu.uit.flightbooking.flight.TestFlights;
+import vn.edu.uit.flightbooking.promotion.TestVouchers;
 
 /**
  * FR-20–FR-23 qua POST /api/bookings/quote. Dữ liệu theo ví dụ TDD §8.8: chiều đi Q1100 QHA→QHB 06:00–08:10
@@ -225,6 +227,118 @@ class BookingQuoteTest {
 			.session(staff)
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(body(Map.of()))).andExpect(status().isForbidden());
+	}
+
+	long baggageOption(String airline, int weightKg, long price, boolean active) {
+		return jdbc.sql("""
+				INSERT INTO baggage_options (airline_code, weight_kg, price, active)
+				VALUES (?, ?, ?, ?)
+				RETURNING id
+				""").params(airline, weightKg, price, active).query(Long.class).single();
+	}
+
+	static Map<String, Object> bag(int passengerIndex, String direction, long baggageOptionId) {
+		return Map.of("passengerIndex", passengerIndex, "direction", direction, "baggageOptionId", baggageOptionId);
+	}
+
+	/** Booking cũ dùng voucher; chỉ các cột bắt buộc, số tiền thoả CHECK của bảng. */
+	void booking(String code, long userId, long voucherId, String status) {
+		jdbc.sql("""
+				INSERT INTO bookings (code, user_id, status, contact_name, contact_email, contact_phone, voucher_id,
+				                      fare_total, baggage_total, discount_total, total_amount, hold_expires_at)
+				VALUES (?, ?, ?, 'KHACH TEST', 'khach@test.local', '0900000000', ?, 1000000, 0, 100000, 900000, now())
+				""").params(code, userId, status, voucherId).update();
+	}
+
+	/** Kết quả chính của Plan 10: đúng từng con số của ví dụ giữ chỗ TDD §8.8; báo giá không giữ ghế, không giữ lượt. */
+	@Test
+	void matchesTddBookingExample() throws Exception {
+		long bag20 = baggageOption("Q1", 20, 350_000, true);
+		long welcome = TestVouchers.insert(jdbc, "QVWELCOME", Map.of("max_discount", 200_000));
+
+		quote(Map.of("journeys", List.of(journey("OUTBOUND", firstLeg, secondLeg), journey("RETURN", back)),
+				"passengers", List.of(passenger("ADULT", ADULT_BORN), passenger("INFANT", INFANT_BORN)), "baggage",
+				List.of(bag(0, "OUTBOUND", bag20)), "voucherCode", "QVWELCOME"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.journeys[*].direction", contains("OUTBOUND", "RETURN")))
+			.andExpect(jsonPath("$.journeys[*].fareTotal", contains(3_322_000, 2_376_000)))
+			.andExpect(jsonPath("$.journeys[*].baggageTotal", contains(350_000, 0)))
+			.andExpect(jsonPath("$.journeys[*].discount", contains(121_428, 78_572)))
+			.andExpect(jsonPath("$.fareTotal").value(5_698_000))
+			.andExpect(jsonPath("$.baggageTotal").value(350_000))
+			.andExpect(jsonPath("$.discountTotal").value(200_000))
+			.andExpect(jsonPath("$.totalAmount").value(5_848_000));
+
+		assertThat(TestVouchers.usedCount(jdbc, welcome)).isZero();
+		assertThat(jdbc.sql("""
+				SELECT min(available_seats) FROM flight_cabins
+				WHERE flight_id IN (?, ?, ?) AND cabin_class = 'ECONOMY'
+				""").params(firstLeg, secondLeg, back).query(Integer.class).single()).isEqualTo(100);
+	}
+
+	/** BR-22: một mức mỗi khách mỗi chiều, không cho em bé, chỉ trong bảng giá đang bán của hãng khai thác chiều đó. */
+	@Test
+	void baggageRulesReportEveryWrongItem() throws Exception {
+		long bag20 = baggageOption("Q1", 20, 350_000, true);
+		long retired = baggageOption("Q1", 30, 550_000, false);
+		long otherAirline = baggageOption("Q2", 20, 350_000, true);
+
+		quote(Map.of("journeys", List.of(journey("OUTBOUND", firstLeg, secondLeg), journey("RETURN", back)),
+				"passengers",
+				List.of(passenger("ADULT", ADULT_BORN), passenger("ADULT", ADULT_BORN),
+						passenger("INFANT", INFANT_BORN)),
+				"baggage",
+				List.of(bag(0, "OUTBOUND", bag20), bag(0, "OUTBOUND", bag20), bag(2, "OUTBOUND", bag20),
+						bag(3, "OUTBOUND", bag20), bag(1, "OUTBOUND", retired), bag(1, "RETURN", otherAirline))))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+			.andExpect(jsonPath("$.errors[*].field",
+					contains("baggage[1].direction", "baggage[2].passengerIndex", "baggage[3].passengerIndex",
+							"baggage[4].baggageOptionId", "baggage[5].baggageOptionId")));
+
+		// Một chiều thì không mua được hành lý cho chiều về.
+		quote(Map.of("baggage", List.of(bag(0, "RETURN", bag20)))).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.errors[*].field", contains("baggage[0].direction")));
+	}
+
+	/** BR-30 điều kiện 5: tài khoản đã có booking giữ voucher (chờ thanh toán, đã xuất, đã hoàn) thì không dùng lại. */
+	@Test
+	void voucherOncePerAccount() throws Exception {
+		long voucher = TestVouchers.insert(jdbc, "QVONCE", Map.of());
+		long someoneElse = TestUsers.create(jdbc, Role.CUSTOMER, TestUsers.randomEmail());
+		booking("QABCDE", someoneElse, voucher, "ISSUED");
+		booking("QABCDF", customer.id(), voucher, "EXPIRED");
+		booking("QABCDG", customer.id(), voucher, "CANCELLED");
+
+		// 10% của 3.020.000; mã viết thường vẫn dùng được.
+		quote(Map.of("voucherCode", "qvonce")).andExpect(status().isOk())
+			.andExpect(jsonPath("$.discountTotal").value(302_000))
+			.andExpect(jsonPath("$.totalAmount").value(2_718_000));
+
+		booking("QABCDH", customer.id(), voucher, "REFUNDED");
+		quote(Map.of("voucherCode", "QVONCE")).andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("VOUCHER_INVALID"))
+			.andExpect(jsonPath("$.reason").value("ALREADY_USED"));
+	}
+
+	/** BR-30, BR-31: lý do từ chối đi ra API; ô voucher để trống là không dùng voucher; giảm 100% thì tổng bằng 0. */
+	@Test
+	void voucherReasonsBlankCodeAndFullDiscount() throws Exception {
+		TestVouchers.insert(jdbc, "QVMIN", Map.of("min_order_amount", 3_020_001));
+		TestVouchers.insert(jdbc, "QVFREE", Map.of("discount_value", 100));
+
+		quote(Map.of("voucherCode", "QVMIN")).andExpect(status().isConflict())
+			.andExpect(jsonPath("$.reason").value("MIN_ORDER_NOT_MET"));
+		quote(Map.of("voucherCode", "QVNONE")).andExpect(status().isConflict())
+			.andExpect(jsonPath("$.reason").value("NOT_FOUND"));
+		quote(Map.of("voucherCode", "")).andExpect(status().isOk()).andExpect(jsonPath("$.discountTotal").value(0));
+		quote(Map.of("voucherCode", "  ")).andExpect(status().isOk()).andExpect(jsonPath("$.discountTotal").value(0));
+		quote(Map.of("journeys", List.of(journey("OUTBOUND", firstLeg, secondLeg), journey("RETURN", back)),
+				"voucherCode", "QVFREE"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.journeys[*].discount", contains(3_020_000, 2_160_000)))
+			.andExpect(jsonPath("$.discountTotal").value(5_180_000))
+			.andExpect(jsonPath("$.totalAmount").value(0));
 	}
 
 }
