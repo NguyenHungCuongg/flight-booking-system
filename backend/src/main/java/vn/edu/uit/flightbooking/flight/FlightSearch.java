@@ -247,8 +247,8 @@ public class FlightSearch {
 			.sum();
 	}
 
-	/** Làm tròn half-up, đúng với số không âm (TDD §5.2). */
-	static long percentOf(long amount, int percent) {
+	/** Làm tròn half-up, đúng với số không âm (TDD §5.2). Booking dùng lại cho giá từng vé (Plan 10). */
+	public static long percentOf(long amount, int percent) {
 		return (amount * percent + 50) / 100;
 	}
 
