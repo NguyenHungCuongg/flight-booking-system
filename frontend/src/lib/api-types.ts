@@ -148,6 +148,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["mine"];
+        put?: never;
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bookings/{code}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/bookings/quote": {
         parameters: {
             query?: never;
@@ -269,7 +301,7 @@ export interface paths {
         };
         get: operations["search"];
         put?: never;
-        post: operations["create"];
+        post: operations["create_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -285,7 +317,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["create_1"];
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -301,7 +333,7 @@ export interface paths {
         };
         get: operations["list"];
         put?: never;
-        post: operations["create_2"];
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -317,7 +349,7 @@ export interface paths {
         };
         get: operations["list_1"];
         put?: never;
-        post: operations["create_3"];
+        post: operations["create_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -333,7 +365,7 @@ export interface paths {
         };
         get: operations["list_2"];
         put?: never;
-        post: operations["create_4"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -349,7 +381,7 @@ export interface paths {
         };
         get: operations["list_3"];
         put?: never;
-        post: operations["create_5"];
+        post: operations["create_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -388,6 +420,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/staff/bookings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["search_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/staff/bookings/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["detail_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/flights/search": {
         parameters: {
             query?: never;
@@ -396,6 +460,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["searchFlights"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bookings/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["detail_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -741,6 +821,22 @@ export interface components {
             /** Format: date */
             passportExpiry?: string;
         };
+        BookingCreatedResponse: {
+            code: string;
+            /** @enum {string} */
+            status: "PENDING_PAYMENT" | "ISSUED" | "EXPIRED" | "CANCELLED" | "REFUNDED";
+            /** Format: date-time */
+            holdExpiresAt: string;
+            journeys: components["schemas"]["JourneyTotals"][];
+            /** Format: int64 */
+            fareTotal: number;
+            /** Format: int64 */
+            baggageTotal: number;
+            /** Format: int64 */
+            discountTotal: number;
+            /** Format: int64 */
+            totalAmount: number;
+        };
         JourneyTotals: {
             /** @enum {string} */
             direction: "OUTBOUND" | "RETURN";
@@ -864,6 +960,139 @@ export interface components {
         PagedModelFlightView: {
             content: components["schemas"]["FlightView"][];
             page: components["schemas"]["PageMetadata"];
+        };
+        BookingSummary: {
+            code: string;
+            /** @enum {string} */
+            status: "PENDING_PAYMENT" | "ISSUED" | "EXPIRED" | "CANCELLED" | "REFUNDED";
+            contactName: string;
+            contactEmail: string;
+            contactPhone: string;
+            /** Format: int64 */
+            totalAmount: number;
+            /** Format: date-time */
+            holdExpiresAt: string;
+            /** Format: date-time */
+            createdAt: string;
+            routes: components["schemas"]["RouteView"][];
+        };
+        PagedModelBookingSummary: {
+            content: components["schemas"]["BookingSummary"][];
+            page: components["schemas"]["PageMetadata"];
+        };
+        RouteView: {
+            /** @enum {string} */
+            direction: "OUTBOUND" | "RETURN";
+            departureAirport: string;
+            arrivalAirport: string;
+            /** Format: date-time */
+            departureTime: string;
+        };
+        BaggageView: {
+            /** Format: int32 */
+            passengerIndex: number;
+            /** Format: int32 */
+            weightKg: number;
+            /** Format: int64 */
+            price: number;
+        };
+        BookingDetail: {
+            code: string;
+            /** @enum {string} */
+            status: "PENDING_PAYMENT" | "ISSUED" | "EXPIRED" | "CANCELLED" | "REFUNDED";
+            /** Format: date-time */
+            holdExpiresAt: string;
+            /** Format: date-time */
+            issuedAt: string;
+            /** Format: date-time */
+            createdAt: string;
+            contact: components["schemas"]["Contact"];
+            voucherCode: string;
+            /** Format: int64 */
+            fareTotal: number;
+            /** Format: int64 */
+            baggageTotal: number;
+            /** Format: int64 */
+            discountTotal: number;
+            /** Format: int64 */
+            totalAmount: number;
+            journeys: components["schemas"]["JourneyView"][];
+            passengers: components["schemas"]["PassengerView"][];
+        };
+        Contact: {
+            name: string;
+            email: string;
+            phone: string;
+        };
+        JourneyView: {
+            /** @enum {string} */
+            direction: "OUTBOUND" | "RETURN";
+            status: string;
+            airlineCode: string;
+            fareFamilyName: string;
+            /** @enum {string} */
+            cabinClass: "ECONOMY" | "PREMIUM_ECONOMY" | "BUSINESS" | "FIRST";
+            /** Format: int32 */
+            carryOnKg: number;
+            /** Format: int32 */
+            checkedBaggageKg: number;
+            refundable: boolean;
+            /** Format: int64 */
+            refundFee: number;
+            changeable: boolean;
+            /** Format: int64 */
+            changeFee: number;
+            /** Format: int64 */
+            discount: number;
+            segments: components["schemas"]["SegmentView"][];
+            baggage: components["schemas"]["BaggageView"][];
+        };
+        PassengerView: {
+            /** @enum {string} */
+            type: "ADULT" | "CHILD" | "INFANT";
+            lastName: string;
+            firstName: string;
+            /** @enum {string} */
+            gender: "MALE" | "FEMALE";
+            /** Format: date */
+            dateOfBirth: string;
+            nationality: string;
+            passportNumber: string;
+            /** Format: date */
+            passportExpiry: string;
+            tickets: components["schemas"]["TicketView"][];
+        };
+        SegmentView: {
+            /** Format: int64 */
+            flightId: number;
+            flightNumber: string;
+            departureAirport: string;
+            /** Format: date-time */
+            departureTime: string;
+            arrivalAirport: string;
+            /** Format: date-time */
+            arrivalTime: string;
+            status: string;
+            /** Format: int64 */
+            adultPrice: number;
+        };
+        StaffBookingDetail: {
+            account: components["schemas"]["UserSummary"];
+            booking: components["schemas"]["BookingDetail"];
+        };
+        TicketView: {
+            /** @enum {string} */
+            direction: "OUTBOUND" | "RETURN";
+            flightNumber: string;
+            /** Format: int64 */
+            fareAmount: number;
+            ticketNumber: string;
+        };
+        UserSummary: {
+            /** Format: int64 */
+            id: number;
+            email: string;
+            fullName: string;
         };
         AirlineRef: {
             code: string;
@@ -1317,6 +1546,73 @@ export interface operations {
             };
         };
     };
+    mine: {
+        parameters: {
+            query: {
+                status?: "PENDING_PAYMENT" | "ISSUED" | "EXPIRED" | "CANCELLED" | "REFUNDED";
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelBookingSummary"];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BookingCreatedResponse"];
+                };
+            };
+        };
+    };
+    cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     quote: {
         parameters: {
             query?: never;
@@ -1519,7 +1815,7 @@ export interface operations {
             };
         };
     };
-    create: {
+    create_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1543,7 +1839,7 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    create_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -1587,7 +1883,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -1631,7 +1927,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -1677,7 +1973,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -1725,7 +2021,7 @@ export interface operations {
             };
         };
     };
-    create_5: {
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -1804,6 +2100,52 @@ export interface operations {
             };
         };
     };
+    search_1: {
+        parameters: {
+            query: {
+                q?: string;
+                status?: "PENDING_PAYMENT" | "ISSUED" | "EXPIRED" | "CANCELLED" | "REFUNDED";
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelBookingSummary"];
+                };
+            };
+        };
+    };
+    detail_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StaffBookingDetail"];
+                };
+            };
+        };
+    };
     searchFlights: {
         parameters: {
             query: {
@@ -1828,6 +2170,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SearchResult"];
+                };
+            };
+        };
+    };
+    detail_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BookingDetail"];
                 };
             };
         };
