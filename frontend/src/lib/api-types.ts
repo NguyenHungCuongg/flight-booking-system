@@ -148,6 +148,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/bookings/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["quote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/reset-password": {
         parameters: {
             query?: never;
@@ -682,6 +698,80 @@ export interface components {
             name: string;
             ticketPrefix: string;
             active: boolean;
+        };
+        BaggageRequest: {
+            /** Format: int32 */
+            passengerIndex: number;
+            /** @enum {string} */
+            direction: "OUTBOUND" | "RETURN";
+            /** Format: int64 */
+            baggageOptionId: number;
+        };
+        BookingRequest: {
+            journeys: components["schemas"]["JourneyRequest"][];
+            passengers: components["schemas"]["PassengerRequest"][];
+            baggage?: components["schemas"]["BaggageRequest"][];
+            contact: components["schemas"]["ContactRequest"];
+            voucherCode?: string;
+        };
+        ContactRequest: {
+            name: string;
+            /** Format: email */
+            email: string;
+            phone: string;
+        };
+        JourneyRequest: {
+            /** @enum {string} */
+            direction: "OUTBOUND" | "RETURN";
+            flightIds: number[];
+            /** Format: int64 */
+            fareFamilyId: number;
+        };
+        PassengerRequest: {
+            /** @enum {string} */
+            type: "ADULT" | "CHILD" | "INFANT";
+            lastName: string;
+            firstName: string;
+            /** @enum {string} */
+            gender: "MALE" | "FEMALE";
+            /** Format: date */
+            dateOfBirth: string;
+            nationality?: string;
+            passportNumber?: string;
+            /** Format: date */
+            passportExpiry?: string;
+        };
+        JourneyTotals: {
+            /** @enum {string} */
+            direction: "OUTBOUND" | "RETURN";
+            /** Format: int64 */
+            fareTotal: number;
+            /** Format: int64 */
+            baggageTotal: number;
+            /** Format: int64 */
+            discount: number;
+            passengerFares: components["schemas"]["PassengerFare"][];
+        };
+        PassengerFare: {
+            /** @enum {string} */
+            type: "ADULT" | "CHILD" | "INFANT";
+            /** Format: int32 */
+            count: number;
+            /** Format: int64 */
+            unitPrice: number;
+            /** Format: int64 */
+            total: number;
+        };
+        QuoteResponse: {
+            journeys: components["schemas"]["JourneyTotals"][];
+            /** Format: int64 */
+            fareTotal: number;
+            /** Format: int64 */
+            baggageTotal: number;
+            /** Format: int64 */
+            discountTotal: number;
+            /** Format: int64 */
+            totalAmount: number;
         };
         ResetPasswordRequest: {
             token: string;
@@ -1224,6 +1314,30 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    quote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuoteResponse"];
+                };
             };
         };
     };
