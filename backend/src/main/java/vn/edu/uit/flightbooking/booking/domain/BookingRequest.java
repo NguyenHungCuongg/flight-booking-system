@@ -17,7 +17,7 @@ import jakarta.validation.constraints.Size;
  * tra định dạng (BR-12, BR-14, định dạng hộ chiếu của BR-13); quy tắc cần dữ liệu chuyến bay nằm ở
  * {@link PassengerRules} và {@code QuoteService}. {@code voucherCode} rỗng là không dùng voucher.
  */
-public record BookingRequest(@NotNull List<@NotNull @Valid JourneyRequest> journeys,
+public record BookingRequest(@NotNull @Size(max = 10) List<@NotNull @Valid JourneyRequest> journeys,
 		@NotEmpty List<@NotNull @Valid PassengerRequest> passengers, List<@NotNull @Valid BaggageRequest> baggage,
 		@NotNull @Valid ContactRequest contact, String voucherCode) {
 
@@ -32,7 +32,7 @@ public record BookingRequest(@NotNull List<@NotNull @Valid JourneyRequest> journ
 	}
 
 	/** {@code flightIds} theo thứ tự bay. Số chặng và các quy tắc khác do {@code FlightApi} kiểm tra (BR-02–BR-05). */
-	public record JourneyRequest(@NotNull Direction direction, @NotNull List<@NotNull Long> flightIds,
+	public record JourneyRequest(@NotNull Direction direction, @NotNull @Size(max = 10) List<@NotNull Long> flightIds,
 			@NotNull Long fareFamilyId) {
 	}
 

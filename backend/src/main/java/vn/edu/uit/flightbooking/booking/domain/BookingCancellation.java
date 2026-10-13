@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -42,7 +43,7 @@ public class BookingCancellation {
 			SELECT id
 			FROM bookings
 			WHERE status = 'PENDING_PAYMENT'
-			  AND hold_expires_at < now() - INTERVAL '5 minutes'
+			  AND hold_expires_at < :cutoff
 			ORDER BY hold_expires_at
 			LIMIT 100
 			""";
@@ -73,10 +74,10 @@ public class BookingCancellation {
 		return new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Không tìm thấy booking");
 	}
 
-	/** Q-07: tối đa 100 booking chờ thanh toán đã quá hạn giữ chỗ hơn 5 phút, quá hạn lâu nhất trước. */
+	/** Q-07: tối đa 100 booking chờ thanh toán đã quá hạn giữ chỗ hơn {@link #GRACE} (cùng đồng hồ JVM với {@code expire}), quá hạn lâu nhất trước. */
 	@Transactional(readOnly = true)
 	public List<Long> overdue() {
-		return jdbc.sql(OVERDUE).query(Long.class).list();
+		return jdbc.sql(OVERDUE).param("cutoff", Instant.now().minus(GRACE).atOffset(ZoneOffset.UTC)).query(Long.class).list();
 	}
 
 	/** FR-33: khách huỷ booking chưa thanh toán của mình, kể cả trong 5 phút ân hạn sau hạn giữ chỗ. */

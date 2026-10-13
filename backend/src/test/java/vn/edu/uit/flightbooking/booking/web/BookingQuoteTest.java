@@ -182,6 +182,15 @@ class BookingQuoteTest {
 			.andExpect(jsonPath("$.totalAmount").value(1_000_000));
 	}
 
+	/** Giới hạn 10 chuyến mỗi hành trình chặn khoá hàng loạt chuyến bay trước khi báo giá kiểm tra. */
+	@Test
+	void rejectsTooManyFlightsInOneJourney() throws Exception {
+		quote(Map.of("journeys", List.of(journey("OUTBOUND", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11))))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+			.andExpect(jsonPath("$.errors[*].field", contains("journeys[0].flightIds")));
+	}
+
 	/** BR-12, BR-14 và định dạng hộ chiếu: lỗi theo trường như ví dụ TDD §8.8, mọi trường sai trong một lần. */
 	@Test
 	void rejectsMalformedFieldsPerField() throws Exception {
