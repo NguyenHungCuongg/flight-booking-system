@@ -119,7 +119,7 @@ public class QuoteService {
 					fareTotals.get(i), baggageTotals.get(i), shares.get(i)))
 			.toList();
 		return new Quote(journeys, voucher.map(VoucherApi.Applied::voucherId).orElse(null), fareTotal, baggageTotal,
-				discount, fareTotal + baggageTotal - discount);
+				discount, fareTotal + baggageTotal - discount, childPercent, infantPercent);
 	}
 
 	/** Chiều đi, rồi chiều về nếu là khứ hồi (FR-12), đúng thứ tự đó. */

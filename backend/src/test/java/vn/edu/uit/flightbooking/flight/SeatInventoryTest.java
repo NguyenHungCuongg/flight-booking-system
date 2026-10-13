@@ -3,9 +3,11 @@ package vn.edu.uit.flightbooking.flight;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -13,7 +15,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import vn.edu.uit.flightbooking.IntegrationTest;
 import vn.edu.uit.flightbooking.catalog.CabinClass;
@@ -32,6 +37,9 @@ class SeatInventoryTest {
 
 	@Autowired
 	JdbcClient jdbc;
+
+	@Autowired
+	PlatformTransactionManager transactions;
 
 	long flightId;
 
@@ -127,6 +135,40 @@ class SeatInventoryTest {
 		seats.release(flightId, CabinClass.ECONOMY, 3);
 
 		assertThat(available(CabinClass.ECONOMY)).isEqualTo(5);
+	}
+
+	/** TDD §5.4: khoá chia sẻ chặn khoá ghi (huỷ chuyến, Plan 16) tới khi transaction giữ chỗ kết thúc. */
+	@Test
+	void lockedFlightsCannotBeLockedForUpdate() throws Exception {
+		TransactionTemplate tx = new TransactionTemplate(transactions);
+		CountDownLatch locked = new CountDownLatch(1);
+		CountDownLatch done = new CountDownLatch(1);
+		ExecutorService pool = Executors.newSingleThreadExecutor();
+		Future<?> holder = pool.submit(() -> tx.executeWithoutResult(status -> {
+			seats.lockFlights(List.of(flightId));
+			locked.countDown();
+			try {
+				done.await(10, TimeUnit.SECONDS);
+			}
+			catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		}));
+		try {
+			assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
+			assertThatThrownBy(() -> tx.executeWithoutResult(status -> jdbc
+				.sql("SELECT id FROM flights WHERE id = ? FOR UPDATE NOWAIT")
+				.param(flightId)
+				.query(Long.class)
+				.list())).isInstanceOf(DataAccessException.class);
+			// Khoá chia sẻ không chặn nhau: một lượt giữ chỗ khác vẫn khoá được.
+			tx.executeWithoutResult(status -> seats.lockFlights(List.of(flightId)));
+		}
+		finally {
+			done.countDown();
+			holder.get(10, TimeUnit.SECONDS);
+			pool.shutdown();
+		}
 	}
 
 }

@@ -1,5 +1,7 @@
 package vn.edu.uit.flightbooking.flight;
 
+import java.util.Collection;
+
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,8 +13,8 @@ import vn.edu.uit.flightbooking.common.ErrorCode;
 
 /**
  * Kho ghế: giữ và trả ghế chỉ bằng {@code UPDATE} nguyên tử (Q-01, Q-02, TDD §5.4). Bên gọi chạy trong transaction
- * của mình, giữ ghế nhiều chặng theo thứ tự {@code flightId} tăng dần, và tự khoá chuyến {@code FOR SHARE} để chặn
- * huỷ chuyến chen vào (Plan 11).
+ * của mình, giữ ghế nhiều chặng theo thứ tự {@code flightId} tăng dần, và khoá chuyến bằng {@link #lockFlights} trước khi
+ * giữ ghế.
  */
 @Service
 public class SeatInventory {
@@ -21,6 +23,18 @@ public class SeatInventory {
 
 	SeatInventory(JdbcClient jdbc) {
 		this.jdbc = jdbc;
+	}
+
+	/**
+	 * TDD §5.4: khoá chia sẻ các chuyến theo id tăng dần trước khi giữ ghế. Nhiều lượt giữ chỗ khoá cùng lúc được,
+	 * còn huỷ chuyến (khoá FOR UPDATE, Plan 16) phải chờ các lượt đó xong.
+	 */
+	@Transactional
+	public void lockFlights(Collection<Long> flightIds) {
+		jdbc.sql("SELECT id FROM flights WHERE id IN (:ids) ORDER BY id FOR SHARE")
+			.param("ids", flightIds)
+			.query(Long.class)
+			.list();
 	}
 
 	/** Q-01. Không đủ ghế (hoặc chuyến không có hạng này) thì báo SEATS_UNAVAILABLE. */
