@@ -4,15 +4,22 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Locale;
 
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.edu.uit.flightbooking.booking.UnexpectedPaymentReceived;
 import vn.edu.uit.flightbooking.common.BusinessException;
 import vn.edu.uit.flightbooking.common.ErrorCode;
 import vn.edu.uit.flightbooking.payment.PaymentApi;
+import vn.edu.uit.flightbooking.payment.PaymentSucceeded;
 
-/** Thanh toán booking (FR-30, BR-41): tạo lượt thu qua {@link PaymentApi}. */
+/**
+ * Thanh toán booking: tạo lượt thu qua {@link PaymentApi} (FR-30, BR-41) và nhận kết quả qua {@link PaymentSucceeded}
+ * (FR-31, BR-43, BR-44).
+ */
 @Service
 public class BookingPayments {
 
@@ -21,11 +28,17 @@ public class BookingPayments {
 
 	private final PaymentApi payments;
 
+	private final BookingService bookings;
+
 	private final JdbcClient jdbc;
 
-	BookingPayments(PaymentApi payments, JdbcClient jdbc) {
+	private final ApplicationEventPublisher events;
+
+	BookingPayments(PaymentApi payments, BookingService bookings, JdbcClient jdbc, ApplicationEventPublisher events) {
 		this.payments = payments;
+		this.bookings = bookings;
 		this.jdbc = jdbc;
+		this.events = events;
 	}
 
 	/**
@@ -54,6 +67,25 @@ public class BookingPayments {
 		}
 		return payments.charge(booking.id(), booking.totalAmount(), booking.holdExpiresAt(),
 				"Thanh toan dat ve " + upper, clientIp);
+	}
+
+	/**
+	 * TDD §6.3: chạy đồng bộ trong transaction của callback, đã khoá {@code payments}; khoá booking rồi kiểm tra lại.
+	 * Booking còn chờ thanh toán (kể cả trong 5 phút ân hạn của BR-45) thì xuất vé (BR-43). Ngược lại phát
+	 * {@link UnexpectedPaymentReceived} để hoàn 100% lượt thu (BR-44).
+	 */
+	@EventListener
+	void on(PaymentSucceeded event) {
+		BookingStatus status = jdbc.sql("SELECT status FROM bookings WHERE id = ? FOR UPDATE")
+			.param(event.bookingId())
+			.query((rs, rowNum) -> BookingStatus.valueOf(rs.getString("status")))
+			.single();
+		if (status == BookingStatus.PENDING_PAYMENT) {
+			bookings.issue(event.bookingId());
+		}
+		else {
+			events.publishEvent(new UnexpectedPaymentReceived(event.paymentId(), event.bookingId()));
+		}
 	}
 
 }
