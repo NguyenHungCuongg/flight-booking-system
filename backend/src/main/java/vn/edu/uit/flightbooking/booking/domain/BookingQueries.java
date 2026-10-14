@@ -27,7 +27,8 @@ import vn.edu.uit.flightbooking.identity.UserSummary;
 
 /**
  * Đọc booking cho C-08, C-09 (FR-40, FR-41) và S-01, S-02 (FR-70). Chỉ đọc. Đọc thẳng bảng {@code flights},
- * {@code airports} (flight, catalog) và {@code vouchers} (promotion) bằng SQL để lấy số hiệu, múi giờ, mã voucher.
+ * {@code airports} (flight, catalog), {@code vouchers} (promotion) và {@code payments} (payment) bằng SQL để lấy số
+ * hiệu, múi giờ, mã voucher và lịch sử thu.
  * Thông tin gói giá và giá luôn lấy từ snapshot của booking (BR-24). Chặng hiện hành là chặng ACTIVE hoặc CANCELLED;
  * Plan 15 (đổi chuyến) tinh chỉnh cho chặng PENDING_CHANGE và REPLACED.
  */
@@ -73,11 +74,16 @@ public class BookingQueries {
 			List<TicketView> tickets) {
 	}
 
-	/** Lượt thu, lượt hoàn, yêu cầu hoàn và đổi chuyến do Plan 12, 14, 15 thêm. */
+	/** Mọi lượt thu và lượt hoàn của booking (FR-41, S-02), cũ nhất trước; giờ theo giờ Việt Nam. */
+	public record PaymentView(String kind, String status, long amount, OffsetDateTime createdAt,
+			OffsetDateTime completedAt) {
+	}
+
+	/** Yêu cầu hoàn và đổi chuyến do Plan 14, 15 thêm. */
 	public record BookingDetail(String code, BookingStatus status, OffsetDateTime holdExpiresAt,
 			OffsetDateTime issuedAt, OffsetDateTime createdAt, Contact contact, String voucherCode, long fareTotal,
 			long baggageTotal, long discountTotal, long totalAmount, List<JourneyView> journeys,
-			List<PassengerView> passengers) {
+			List<PassengerView> passengers, List<PaymentView> payments) {
 	}
 
 	/** S-02: chi tiết kèm tài khoản đã đặt. */
@@ -209,6 +215,13 @@ public class BookingQueries {
 			ORDER BY bb.id
 			""";
 
+	private static final String PAYMENTS = """
+			SELECT kind, status, amount, created_at, completed_at
+			FROM payments
+			WHERE booking_id = :id
+			ORDER BY created_at, id
+			""";
+
 	private final JdbcClient jdbc;
 
 	private final UserApi users;
@@ -332,6 +345,12 @@ public class BookingQueries {
 					rs.getInt("weight_kg"), rs.getLong("price")))
 			.list();
 
+		List<PaymentView> payments = jdbc.sql(PAYMENTS)
+			.params(id)
+			.query((rs, n) -> new PaymentView(rs.getString("kind"), rs.getString("status"), rs.getLong("amount"),
+					vietnam(rs, "created_at"), vietnam(rs, "completed_at")))
+			.list();
+
 		Map<Long, Integer> passengerIndex = new HashMap<>();
 		for (int i = 0; i < passengers.size(); i++) {
 			passengerIndex.put(passengers.get(i).id(), i);
@@ -361,7 +380,8 @@ public class BookingQueries {
 			.toList();
 		return new BookingDetail(booking.code(), booking.status(), booking.holdExpiresAt(), booking.issuedAt(),
 				booking.createdAt(), booking.contact(), booking.voucherCode(), booking.fareTotal(),
-				booking.baggageTotal(), booking.discountTotal(), booking.totalAmount(), journeyViews, passengerViews);
+				booking.baggageTotal(), booking.discountTotal(), booking.totalAmount(), journeyViews, passengerViews,
+				payments);
 	}
 
 	private static SummaryRow summary(ResultSet rs, int rowNum) throws SQLException {
