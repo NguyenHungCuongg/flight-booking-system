@@ -8,6 +8,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -17,11 +18,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import vn.edu.uit.flightbooking.booking.BookingIssued;
+import vn.edu.uit.flightbooking.booking.TicketEmailRequested;
 import vn.edu.uit.flightbooking.booking.domain.BookingRequest.ContactRequest;
 import vn.edu.uit.flightbooking.booking.domain.BookingRequest.PassengerRequest;
 import vn.edu.uit.flightbooking.booking.domain.Quote.BaggageLine;
 import vn.edu.uit.flightbooking.booking.domain.Quote.JourneyQuote;
 import vn.edu.uit.flightbooking.catalog.CabinClass;
+import vn.edu.uit.flightbooking.common.BusinessException;
+import vn.edu.uit.flightbooking.common.ErrorCode;
 import vn.edu.uit.flightbooking.common.SettingKey;
 import vn.edu.uit.flightbooking.common.SettingsApi;
 import vn.edu.uit.flightbooking.flight.FlightApi.FareSnapshot;
@@ -219,6 +223,22 @@ public class BookingService {
 			.param(bookingId)
 			.update();
 		events.publishEvent(new BookingIssued(bookingId));
+	}
+
+	/** FR-73: Staff gửi lại email vé, chỉ cho booking đã xuất vé. Email gửi sau khi commit, như lúc xuất vé. */
+	@Transactional
+	public void resendTicketEmail(String code) {
+		record Found(long id, BookingStatus status) {
+		}
+		Found booking = jdbc.sql("SELECT id, status FROM bookings WHERE code = ?")
+			.param(code.toUpperCase(Locale.ROOT))
+			.query((rs, rowNum) -> new Found(rs.getLong("id"), BookingStatus.valueOf(rs.getString("status"))))
+			.optional()
+			.orElseThrow(BookingCancellation::notFound);
+		if (booking.status() != BookingStatus.ISSUED) {
+			throw new BusinessException(ErrorCode.INVALID_STATE, "Chỉ gửi lại email vé cho booking đã xuất vé");
+		}
+		events.publishEvent(new TicketEmailRequested(booking.id()));
 	}
 
 	/**

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Vé điện tử SkyLine</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 24px;
+      background: #ffffff;
+      color: #000d10;
+      font-family: Inter, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+    "
+  >
+    <p>Xin chào <span th:text="${contactName}">NGUYEN VAN AN</span>,</p>
+    <p>
+      Thanh toán đã thành công và vé của bạn đã được xuất. Mã đặt chỗ:
+      <strong th:text="${code}" style="font-size: 20px; letter-spacing: 2px"
+        >K7Q2XM</strong
+      >
+    </p>
+    <table style="border-collapse: collapse; width: 100%; font-size: 14px">
+      <thead>
+        <tr style="text-align: left; border-bottom: 1px solid #e5e5e5">
+          <th style="padding: 8px 8px 8px 0">Hành khách</th>
+          <th style="padding: 8px">Chuyến bay</th>
+          <th style="padding: 8px">Hành trình</th>
+          <th style="padding: 8px">Khởi hành</th>
+          <th style="padding: 8px 0 8px 8px">Số vé</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="t : ${tickets}" style="border-bottom: 1px solid #e5e5e5">
+          <td style="padding: 8px 8px 8px 0" th:text="${t.passengerName()}">
+            NGUYEN VAN AN
+          </td>
+          <td style="padding: 8px" th:text="${t.flightNumber()}">VN213</td>
+          <td
+            style="padding: 8px"
+            th:text="${t.departureAirport() + ' → ' + t.arrivalAirport()}"
+          >
+            HAN → SGN
+          </td>
+          <td
+            style="padding: 8px"
+            th:text="${#temporals.format(t.departureTime(), 'HH:mm dd/MM/yyyy')}"
+          >
+            06:00 01/12/2026
+          </td>
+          <td
+            style="padding: 8px 0 8px 8px; font-family: monospace"
+            th:text="${t.ticketNumber()}"
+          >
+            7381234567890
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Tổng thanh toán:
+      <strong
+        ><span th:text="${#numbers.formatInteger(totalAmount, 1, 'POINT')}"
+          >5.848.000</span
+        >
+        đ</strong
+      >
+    </p>
+    <p>
+      <a
+        th:href="${link}"
+        href="#"
+        style="
+          display: inline-block;
+          padding: 12px 24px;
+          border-radius: 1000px;
+          background: #000d10;
+          color: #ffffff;
+          text-decoration: none;
+          font-weight: 700;
+        "
+        >Xem booking</a
+      >
+    </p>
+    <p style="color: #8e8e95">
+      Giờ khởi hành là giờ địa phương của sân bay đi. Vui lòng có mặt tại sân
+      bay ít nhất 2 giờ trước giờ khởi hành.
+    </p>
+  </body>
+</html>
