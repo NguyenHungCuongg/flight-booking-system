@@ -148,6 +148,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/staff/bookings/{code}/resend-ticket-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["resendTicketEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/bookings": {
         parameters: {
             query?: never;
@@ -158,6 +174,22 @@ export interface paths {
         get: operations["mine"];
         put?: never;
         post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bookings/{code}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["pay"];
         delete?: never;
         options?: never;
         head?: never;
@@ -444,6 +476,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["detail_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/payments/vnpay/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["back"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/payments/vnpay/ipn": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ipn"];
         put?: never;
         post?: never;
         delete?: never;
@@ -858,6 +922,9 @@ export interface components {
             /** Format: int64 */
             total: number;
         };
+        PaymentUrlResponse: {
+            paymentUrl: string;
+        };
         QuoteResponse: {
             journeys: components["schemas"]["JourneyTotals"][];
             /** Format: int64 */
@@ -1018,6 +1085,7 @@ export interface components {
             totalAmount: number;
             journeys: components["schemas"]["JourneyView"][];
             passengers: components["schemas"]["PassengerView"][];
+            payments: components["schemas"]["PaymentView"][];
         };
         Contact: {
             name: string;
@@ -1061,6 +1129,16 @@ export interface components {
             /** Format: date */
             passportExpiry: string;
             tickets: components["schemas"]["TicketView"][];
+        };
+        PaymentView: {
+            kind: string;
+            status: string;
+            /** Format: int64 */
+            amount: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            completedAt: string;
         };
         SegmentView: {
             /** Format: int64 */
@@ -1546,6 +1624,26 @@ export interface operations {
             };
         };
     };
+    resendTicketEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     mine: {
         parameters: {
             query: {
@@ -1589,6 +1687,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["BookingCreatedResponse"];
+                };
+            };
+        };
+    };
+    pay: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PaymentUrlResponse"];
                 };
             };
         };
@@ -2142,6 +2262,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["StaffBookingDetail"];
+                };
+            };
+        };
+    };
+    back: {
+        parameters: {
+            query: {
+                params: {
+                    [key: string]: string;
+                };
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ipn: {
+        parameters: {
+            query: {
+                params: {
+                    [key: string]: string;
+                };
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
                 };
             };
         };
