@@ -217,4 +217,18 @@ class VnpayCallbackTest {
 				new UnexpectedPaymentReceived(paymentId(second), TestBookings.bookingId(jdbc, code)));
 	}
 
+	/** BR-42: mã phản hồi 00 nhưng vnp_TransactionStatus khác 00 thì lượt thu FAILED, booking vẫn chờ thanh toán. */
+	@Test
+	void responseCodeOkButTransactionStatusFailedIsNotSuccess() throws Exception {
+		LinkedMultiValueMap<String, String> params = paid(txnRef);
+		params.set("vnp_TransactionStatus", "02");
+		params.set("vnp_SecureHash", vnpay.hash(params.toSingleValueMap()));
+
+		ipn(params).andExpect(jsonPath("$.RspCode").value("00"));
+
+		assertThat(payment(txnRef)).containsEntry("status", "FAILED");
+		assertThat(bookingStatus()).isEqualTo("PENDING_PAYMENT");
+		assertThat(events.stream(PaymentSucceeded.class)).isEmpty();
+	}
+
 }

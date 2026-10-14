@@ -8,6 +8,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import vn.edu.uit.flightbooking.booking.UnexpectedPaymentReceived;
@@ -72,9 +73,11 @@ public class BookingPayments {
 	/**
 	 * TDD §6.3: chạy đồng bộ trong transaction của callback, đã khoá {@code payments}; khoá booking rồi kiểm tra lại.
 	 * Booking còn chờ thanh toán (kể cả trong 5 phút ân hạn của BR-45) thì xuất vé (BR-43). Ngược lại phát
-	 * {@link UnexpectedPaymentReceived} để hoàn 100% lượt thu (BR-44).
+	 * {@link UnexpectedPaymentReceived} để hoàn 100% lượt thu (BR-44). Bắt buộc chạy trong transaction của callback
+	 * (MANDATORY: gọi ngoài transaction thì lỗi ngay thay vì chạy sai).
 	 */
 	@EventListener
+	@Transactional(propagation = Propagation.MANDATORY)
 	void on(PaymentSucceeded event) {
 		BookingStatus status = jdbc.sql("SELECT status FROM bookings WHERE id = ? FOR UPDATE")
 			.param(event.bookingId())
