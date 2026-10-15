@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import PlaceholderPage from "@/components/placeholder-page";
+import CheckoutView from "./checkout-view";
 
 export const metadata: Metadata = { title: "Đặt vé | SkyLine" };
 
-/** C-07 (APP_FLOW §2.1), Plan 13 làm. Lựa chọn hành trình đã nằm trong sessionStorage (src/lib/selection.ts). */
+/** C-07 (APP_FLOW §2.1): Customer. proxy.ts chặn khi chưa có cookie phiên; lựa chọn hành trình nằm ở sessionStorage. */
 export default function Page() {
-  return <PlaceholderPage code="C-07" title="Đặt vé" />;
+  return <CheckoutView />;
 }

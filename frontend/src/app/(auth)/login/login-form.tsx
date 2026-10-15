@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   Field,
   Notice,
@@ -13,7 +13,6 @@ import {
 import { apiFetch, safeNext, type User } from "@/lib/api";
 
 export default function LoginForm() {
-  const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next");
   const { pending, formError, submit } = useSubmit();
@@ -28,7 +27,9 @@ export default function LoginForm() {
         password: String(data.get("password")),
       },
     });
-    router.replace(safeNext(next, user.role));
+    // Tải lại hẳn trang: client router còn giữ kết quả chuyển hướng về /login của proxy.ts từ lúc chưa đăng nhập
+    // (VD /checkout), router.replace sẽ dùng lại kết quả đó.
+    window.location.replace(safeNext(next, user.role));
   });
 
   return (

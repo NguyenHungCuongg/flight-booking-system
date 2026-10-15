@@ -183,6 +183,7 @@ export default function FlightResults() {
   const choose = (itinerary: Itinerary, fare: FareOption) => {
     if (returnDate && !picked) {
       const p = new URLSearchParams(params);
+      p.delete("unavailable");
       p.set("out", itineraryKey(itinerary));
       p.set("outFare", String(fare.fareFamilyId));
       router.push(`/flights?${p}`);
@@ -305,6 +306,13 @@ export default function FlightResults() {
           <Notice>
             Chiều đi đã chọn không còn bán hoặc đã hết chỗ. Hãy chọn lại chiều
             đi.
+          </Notice>
+        )}
+
+        {params.get("unavailable") && (
+          <Notice>
+            Chuyến bay bạn chọn không còn đủ chỗ hoặc đã ngừng bán. Hãy chọn
+            chuyến khác.
           </Notice>
         )}
 

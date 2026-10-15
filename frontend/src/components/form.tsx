@@ -6,6 +6,7 @@ import {
   type FormEvent,
   type InputHTMLAttributes,
   type ReactNode,
+  type SelectHTMLAttributes,
 } from "react";
 import { ApiError } from "@/lib/api";
 import { Icon } from "./landing/icons";
@@ -41,6 +42,35 @@ function describe(
   if (v.valueMissing) return `Hãy nhập ${label.toLowerCase()}.`;
   if (v.typeMismatch) return "Email chưa đúng định dạng.";
   return invalidMessage ?? input.validationMessage;
+}
+
+/** Dưới ô nhập: lỗi (ưu tiên) hoặc gợi ý. */
+function Note({
+  id,
+  message,
+  hint,
+}: {
+  id: string;
+  message?: string;
+  hint?: string;
+}) {
+  if (message) {
+    return (
+      <p
+        id={id}
+        role="alert"
+        className="flex items-start gap-8 text-caption font-bold"
+      >
+        <Icon name="alert" className={`${iconClass} mt-2`} />
+        {message}
+      </p>
+    );
+  }
+  return hint ? (
+    <p id={id} className="text-caption text-muted">
+      {hint}
+    </p>
+  ) : null;
 }
 
 /** Nhãn trên ô, lỗi dưới ô (DESIGN.md: ô nhập là khối vuông viền hairline, không bo góc). */
@@ -101,22 +131,62 @@ export function Field({
           </button>
         )}
       </div>
-      {message ? (
-        <p
-          id={noteId}
-          role="alert"
-          className="flex items-start gap-8 text-caption font-bold"
+      <Note id={noteId} message={message} hint={hint} />
+    </div>
+  );
+}
+
+type SelectFieldProps = SelectHTMLAttributes<HTMLSelectElement> & {
+  label: string;
+  name: string;
+  /** Lỗi từ backend cho trường này. */
+  error?: string;
+  hint?: string;
+};
+
+/** Như Field nhưng là ô chọn (giới tính, hành lý mua thêm). */
+export function SelectField({
+  label,
+  error,
+  hint,
+  onChange,
+  children,
+  ...select
+}: SelectFieldProps) {
+  const id = useId();
+  const [own, setOwn] = useState<string>();
+  const message = own ?? error;
+  const noteId = `${id}-note`;
+
+  return (
+    <div className="grid gap-8">
+      <label htmlFor={id} className="text-caption font-bold">
+        {label}
+      </label>
+      <div
+        className={`flex border bg-paper transition-colors focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-ink ${
+          message ? "border-ink" : "border-line-strong"
+        }`}
+      >
+        <select
+          {...select}
+          id={id}
+          aria-invalid={message ? true : undefined}
+          aria-describedby={message || hint ? noteId : undefined}
+          className="min-w-0 flex-1 bg-transparent h-55 px-16 text-body text-ink outline-none"
+          onInvalid={(e) => {
+            e.preventDefault();
+            setOwn(`Hãy chọn ${label.toLowerCase()}.`);
+          }}
+          onChange={(e) => {
+            setOwn(undefined);
+            onChange?.(e);
+          }}
         >
-          <Icon name="alert" className={`${iconClass} mt-2`} />
-          {message}
-        </p>
-      ) : (
-        hint && (
-          <p id={noteId} className="text-caption text-muted">
-            {hint}
-          </p>
-        )
-      )}
+          {children}
+        </select>
+      </div>
+      <Note id={noteId} message={message} hint={hint} />
     </div>
   );
 }
