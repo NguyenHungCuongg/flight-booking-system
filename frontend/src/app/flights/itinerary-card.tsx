@@ -5,6 +5,7 @@ import {
   cheapest,
   dayShift,
   duration,
+  fareRules,
   first,
   hhmm,
   itineraryKey,
@@ -27,25 +28,6 @@ function Time({ t, shift = 0 }: { t: AirportTime; shift?: number }) {
       <span className="text-caption text-muted">{t.airport}</span>
     </p>
   );
-}
-
-function fareRules(f: FareOption) {
-  return [
-    `Xách tay ${f.carryOnKg} kg`,
-    f.checkedBaggageKg
-      ? `Ký gửi ${f.checkedBaggageKg} kg`
-      : "Không có hành lý ký gửi",
-    !f.refundable
-      ? "Không hoàn vé"
-      : f.refundFee
-        ? `Hoàn vé, phí ${vnd(f.refundFee)}`
-        : "Hoàn vé miễn phí",
-    !f.changeable
-      ? "Không đổi chuyến"
-      : f.changeFee
-        ? `Đổi chuyến, phí ${vnd(f.changeFee)}`
-        : "Đổi chuyến miễn phí",
-  ];
 }
 
 /** Một hành trình (FR-11): tóm tắt trên một dòng; bấm "Chọn" mở chi tiết chặng và các gói giá. */

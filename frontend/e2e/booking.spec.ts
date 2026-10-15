@@ -61,7 +61,7 @@ const isBagQuote = (r: Request) =>
   r.url().endsWith("/api/bookings/quote") &&
   r.postDataJSON().baggage.length > 0;
 
-test("chọn vé, đăng nhập, khai hành khách, hành lý, voucher rồi giữ chỗ", async ({
+test("đặt vé từ C-07 tới VNPay, hết hạn rồi huỷ trên C-09", async ({
   page,
 }) => {
   test.slow();
@@ -158,6 +158,61 @@ test("chọn vé, đăng nhập, khai hành khách, hành lý, voucher rồi gi�
   await page.goto("/checkout");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Chưa có chuyến bay nào được chọn.",
+  );
+  // C-09: tiêu đề, đếm ngược, giờ sân bay, hành khách, vé chưa xuất, bảng giá (FR-41).
+  await page.goto(`/bookings/${code}`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    `Đặt chỗ ${code}.`,
+  );
+  await expect(page.getByText("Chờ thanh toán", { exact: true })).toBeVisible();
+  await expect(page.getByText(/^Còn \d{2}:\d{2} để thanh toán$/)).toBeVisible();
+  await expect(page.getByRole("region", { name: "Hành trình" })).toContainText(
+    "VJ123: 08:00 HAN → 10:10 SGN",
+  );
+  const passengers = page.getByRole("region", { name: "Hành khách" });
+  await expect(passengers).toContainText("NGUYEN VAN DUC");
+  await expect(passengers).toContainText("Vé VJ123: chưa xuất vé");
+  await expect(passengers).toContainText("Hành lý mua thêm chiều đi: 20 kg");
+  await expect(
+    page
+      .getByRole("region", { name: "Bảng giá" })
+      .getByRole("definition")
+      .last(),
+  ).toHaveText("1.206.000 đ");
+
+  // Thanh toán: chuyển sang VNPay với đúng số tiền (vnp_Amount = tiền × 100). Trang VNPay giả lập, không cần mạng.
+  await page.route("https://sandbox.vnpayment.vn/**", (route) =>
+    route.fulfill({ contentType: "text/html", body: "<h1>VNPay sandbox</h1>" }),
+  );
+  await page.getByRole("button", { name: /^Thanh toán/ }).click();
+  await expect(page).toHaveURL(
+    /^https:\/\/sandbox\.vnpayment\.vn\/paymentv2\/vpcpay\.html\?.*vnp_Amount=120600000/,
+  );
+
+  // Return URL báo thất bại (FR-30): có thông báo, lượt thu còn chờ, vẫn thanh toán lại được.
+  await page.goto(`/bookings/${code}?payment=failed`);
+  await expect(page.getByText("Thanh toán chưa thành công.")).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Lịch sử thanh toán" }),
+  ).toContainText("Thanh toán, đang xử lý, 1.206.000 đ");
+  await expect(page.getByRole("button", { name: /^Thanh toán/ })).toBeVisible();
+
+  // Hết hạn giữ chỗ khi đang mở trang thì ẩn nút thanh toán (BR-41). Chỉ đồng hồ trình duyệt chạy nhanh 16 phút.
+  await page.clock.install();
+  await page.reload();
+  await expect(page.getByText(/^Còn \d{2}:\d{2} để thanh toán$/)).toBeVisible();
+  await page.clock.fastForward("16:00");
+  await expect(page.getByText("Đã hết hạn giữ chỗ.")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Thanh toán/ })).toHaveCount(
+    0,
+  );
+
+  // Huỷ giữ chỗ (FR-33): hỏi lại, rồi booking thành Đã huỷ.
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Huỷ giữ chỗ" }).click();
+  await expect(page.getByText("Đã huỷ", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Huỷ giữ chỗ" })).toHaveCount(
+    0,
   );
 });
 

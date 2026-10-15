@@ -10,7 +10,8 @@ const PUBLIC = [
   "/forgot-password",
   "/reset-password",
 ];
-const PROTECTED = ["/account", "/bookings", "/checkout"];
+// Mã không tồn tại: C-09 vẫn phải có tiêu đề "Không tìm thấy đặt chỗ." (BR-104).
+const PROTECTED = ["/account", "/bookings", "/checkout", "/bookings/ZZZZZZ"];
 
 async function expectRenders(page: Page, path: string) {
   const errors: Error[] = [];

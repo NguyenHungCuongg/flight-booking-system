@@ -40,6 +40,36 @@ const money = new Intl.NumberFormat("vi-VN");
 /** VD "990.000 đ"; khoảng trắng không ngắt để "đ" không rớt xuống dòng. */
 export const vnd = (amount: number) => `${money.format(amount)}\u00a0đ`;
 
+/** Quy định của gói giá (BR-24): dùng cho gói đang bán (C-02) và snapshot trong booking (C-09). */
+export function fareRules(
+  f: Pick<
+    FareOption,
+    | "carryOnKg"
+    | "checkedBaggageKg"
+    | "refundable"
+    | "refundFee"
+    | "changeable"
+    | "changeFee"
+  >,
+) {
+  return [
+    `Xách tay ${f.carryOnKg} kg`,
+    f.checkedBaggageKg
+      ? `Ký gửi ${f.checkedBaggageKg} kg`
+      : "Không có hành lý ký gửi",
+    !f.refundable
+      ? "Không hoàn vé"
+      : f.refundFee
+        ? `Hoàn vé, phí ${vnd(f.refundFee)}`
+        : "Hoàn vé miễn phí",
+    !f.changeable
+      ? "Không đổi chuyến"
+      : f.changeFee
+        ? `Đổi chuyến, phí ${vnd(f.changeFee)}`
+        : "Đổi chuyến miễn phí",
+  ];
+}
+
 /** BR-04: chặng đầu chiều về phải cất cánh sau giờ hạ cánh chặng cuối chiều đi. Chuỗi có offset nên so thời điểm được. */
 export const departsAfter = (outbound: Itinerary) => (ret: Itinerary) =>
   Date.parse(first(ret).departure.time) >
