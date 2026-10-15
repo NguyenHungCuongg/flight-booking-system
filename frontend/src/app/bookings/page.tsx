@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
-import PlaceholderPage from "@/components/placeholder-page";
+import { Suspense } from "react";
+import BookingList from "./booking-list";
 
 export const metadata: Metadata = { title: "Đặt chỗ của tôi | SkyLine" };
 
+/** C-08 (APP_FLOW §2.1): Customer, trang mặc định sau đăng nhập. useSearchParams cần Suspense (Cache Components). */
 export default function Page() {
-  return <PlaceholderPage code="C-08" title="Đặt chỗ của tôi" />;
+  return (
+    <Suspense>
+      <BookingList />
+    </Suspense>
+  );
 }

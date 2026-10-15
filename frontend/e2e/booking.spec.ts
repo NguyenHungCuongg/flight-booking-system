@@ -74,6 +74,7 @@ test("đặt vé từ C-07 tới VNPay, hết hạn rồi huỷ trên C-09", asy
   await field(page, "Mật khẩu").fill("matkhau1");
   await page.getByRole("button", { name: "Tạo tài khoản" }).click();
   await expect(page).toHaveURL("/bookings");
+  await expect(page.getByText("Bạn chưa có đặt chỗ nào.")).toBeVisible();
 
   // UF-01: chọn vé khi chưa đăng nhập, đăng nhập xong quay lại C-07 với lựa chọn còn nguyên.
   await page.context().clearCookies();
@@ -214,6 +215,28 @@ test("đặt vé từ C-07 tới VNPay, hết hạn rồi huỷ trên C-09", asy
   await expect(page.getByRole("button", { name: "Huỷ giữ chỗ" })).toHaveCount(
     0,
   );
+  // C-08 (FR-40): đúng một booking (bấm đúp không tạo thêm), giờ sân bay, lọc theo trạng thái.
+  await page.goto("/bookings");
+  const rows = page
+    .getByRole("list", { name: "Danh sách đặt chỗ" })
+    .getByRole("listitem");
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText(`${code}, Đã huỷ`);
+  await expect(rows.first()).toContainText("Chiều đi: HAN → SGN, 08:00");
+  await page
+    .getByRole("navigation", { name: "Lọc theo trạng thái" })
+    .getByRole("link", { name: "Chờ thanh toán" })
+    .click();
+  await expect(page).toHaveURL("/bookings?status=PENDING_PAYMENT");
+  await expect(
+    page.getByText("Không có đặt chỗ nào ở trạng thái này."),
+  ).toBeVisible();
+
+  // Return URL không xác định được booking thì về C-08 kèm ?payment=failed (Plan 12).
+  await page.goto("/bookings?payment=failed");
+  await expect(page.getByText("Thanh toán chưa thành công.")).toBeVisible();
+  await rows.first().getByRole("link").click();
+  await expect(page).toHaveURL(`/bookings/${code}`);
 });
 
 test("hành trình quốc tế hỏi hộ chiếu, báo giá đánh dấu đúng ô sai", async ({
