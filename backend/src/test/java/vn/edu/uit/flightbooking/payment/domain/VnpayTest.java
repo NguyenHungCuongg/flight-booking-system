@@ -1,6 +1,7 @@
 package vn.edu.uit.flightbooking.payment.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -64,6 +65,26 @@ class VnpayTest {
 		params.put("vnp_Amount", "302000000");
 		params.remove("vnp_SecureHash");
 		assertThat(VNPAY.verify(params)).isFalse();
+	}
+
+	/** TDD §6.6: tính độc lập bằng {@code printf '%s' "$DATA" | openssl dgst -sha512 -hmac "$SECRET"}. */
+	static final String REFUND_HASH = "b1c65f81a6c85dc7750f04d5c47ff1f7a03719e7265b5f3eb1915a07684ff051"
+			+ "94f68f053939ef0abde4b472c9ad3dde893eb17093435286f3dc4bb32e07886d";
+
+	/** 09:00 giờ Việt Nam; số tiền nhân 100; chữ ký nối các giá trị bằng {@code |}, không URL-encode. */
+	@Test
+	void buildsSignedRefundBody() {
+		Map<String, String> body = VNPAY.refundBody(new Vnpay.RefundCall("fedcba9876543210fedcba9876543210", "03",
+				"0123456789abcdef0123456789abcdef", 2_720_000, "14000001", "20261201081000", "staff@test.local",
+				Instant.parse("2026-12-10T02:00:00Z"), "127.0.0.1", "Hoan tien yeu cau 42"));
+
+		assertThat(body).containsExactly(entry("vnp_RequestId", "fedcba9876543210fedcba9876543210"),
+				entry("vnp_Version", "2.1.0"), entry("vnp_Command", "refund"), entry("vnp_TmnCode", "TESTTMN1"),
+				entry("vnp_TransactionType", "03"), entry("vnp_TxnRef", "0123456789abcdef0123456789abcdef"),
+				entry("vnp_Amount", "272000000"), entry("vnp_TransactionNo", "14000001"),
+				entry("vnp_TransactionDate", "20261201081000"), entry("vnp_CreateBy", "staff@test.local"),
+				entry("vnp_CreateDate", "20261210090000"), entry("vnp_IpAddr", "127.0.0.1"),
+				entry("vnp_OrderInfo", "Hoan tien yeu cau 42"), entry("vnp_SecureHash", REFUND_HASH));
 	}
 
 }

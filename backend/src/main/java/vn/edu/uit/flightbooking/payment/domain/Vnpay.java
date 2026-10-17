@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
@@ -83,10 +84,40 @@ public class Vnpay {
 				signed.put(key, value);
 			}
 		});
+		return hmac(query(signed));
+	}
+
+	/** Một yêu cầu Refund API (TDD §6.6). {@code amount} tính bằng đồng; {@code transactionDate} là {@code vnp_PayDate} của giao dịch gốc. */
+	public record RefundCall(String requestId, String transactionType, String txnRef, long amount,
+			String transactionNo, String transactionDate, String createBy, Instant createdAt, String ipAddr,
+			String orderInfo) {
+	}
+
+	/** Body JSON của Refund API: 13 trường theo thứ tự ký, rồi {@code vnp_SecureHash}; chữ ký nối giá trị bằng {@code |}. */
+	public Map<String, String> refundBody(RefundCall call) {
+		Map<String, String> body = new LinkedHashMap<>();
+		body.put("vnp_RequestId", call.requestId());
+		body.put("vnp_Version", "2.1.0");
+		body.put("vnp_Command", "refund");
+		body.put("vnp_TmnCode", tmnCode);
+		body.put("vnp_TransactionType", call.transactionType());
+		body.put("vnp_TxnRef", call.txnRef());
+		body.put("vnp_Amount", String.valueOf(call.amount() * 100));
+		body.put("vnp_TransactionNo", call.transactionNo());
+		body.put("vnp_TransactionDate", call.transactionDate());
+		body.put("vnp_CreateBy", call.createBy());
+		body.put("vnp_CreateDate", TIME.format(call.createdAt()));
+		body.put("vnp_IpAddr", call.ipAddr());
+		body.put("vnp_OrderInfo", call.orderInfo());
+		body.put("vnp_SecureHash", hmac(String.join("|", body.values())));
+		return body;
+	}
+
+	private String hmac(String data) {
 		try {
 			Mac mac = Mac.getInstance("HmacSHA512");
 			mac.init(new SecretKeySpec(hashSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA512"));
-			return HexFormat.of().formatHex(mac.doFinal(query(signed).getBytes(StandardCharsets.US_ASCII)));
+			return HexFormat.of().formatHex(mac.doFinal(data.getBytes(StandardCharsets.US_ASCII)));
 		}
 		catch (GeneralSecurityException e) {
 			throw new IllegalStateException(e);
