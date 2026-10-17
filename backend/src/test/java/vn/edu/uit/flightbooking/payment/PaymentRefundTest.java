@@ -143,6 +143,19 @@ class PaymentRefundTest {
 			.containsExactly("FAILED", null);
 	}
 
+	/** Body rỗng từ VNPay: không ném lỗi, dòng SUCCESS đã ghi trước đó được giữ, lần hỏng ghi FAILED. */
+	@Test
+	void nullBodyIsRecordedAsFailedAndKeepsEarlierRows() {
+		api.respond("00", TestVnpayApi.NULL_BODY);
+
+		RefundOutcome outcome = payments.refund(order(3_000_000, null, List.of()));
+
+		assertThat(outcome).isEqualTo(new RefundOutcome(500_000, "Không kết nối được VNPay"));
+		assertThat(payments.refunds(requestId)).extracting(RefundAttempt::status, RefundAttempt::amount,
+				RefundAttempt::responseCode)
+			.containsExactly(tuple("SUCCESS", 500_000L, "00"), tuple("FAILED", 2_500_000L, null));
+	}
+
 	/** BR-64: hoàn thủ công ghi dòng MANUAL SUCCESS, không gọi VNPay; vượt số đã thu thì báo lỗi, không ghi gì. */
 	@Test
 	void manualRefundWritesManualRowsWithoutCallingVnpay() {

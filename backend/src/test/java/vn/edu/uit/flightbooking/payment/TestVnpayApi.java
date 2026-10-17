@@ -20,6 +20,9 @@ public class TestVnpayApi extends VnpayApi {
 
 	public static final String TIMEOUT = "TIMEOUT";
 
+	/** Giả lập VNPay trả 200 nhưng body rỗng. */
+	public static final String NULL_BODY = "NULL_BODY";
+
 	private final Queue<String> codes = new ConcurrentLinkedQueue<>();
 
 	private final List<Map<String, String>> requests = new CopyOnWriteArrayList<>();
@@ -48,6 +51,9 @@ public class TestVnpayApi extends VnpayApi {
 		String code = codes.isEmpty() ? "00" : codes.poll();
 		if (TIMEOUT.equals(code)) {
 			throw new ResourceAccessException("timeout");
+		}
+		if (NULL_BODY.equals(code)) {
+			return null;
 		}
 		return Map.of("vnp_ResponseCode", code, "vnp_Message", "test");
 	}

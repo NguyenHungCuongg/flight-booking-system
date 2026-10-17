@@ -13,7 +13,6 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestClientException;
 
 import tools.jackson.databind.json.JsonMapper;
 import vn.edu.uit.flightbooking.common.BusinessException;
@@ -185,15 +184,22 @@ public class PaymentApi {
 						"Hoan tien yeu cau " + order.refundRequestId());
 				try {
 					raw = vnpayApi.post(vnpay.refundBody(call));
-					code = String.valueOf(raw.get("vnp_ResponseCode"));
+					Object rc = raw.get("vnp_ResponseCode");
+					if (rc == null) {
+						throw new IllegalStateException("Thiếu vnp_ResponseCode");
+					}
+					code = rc.toString();
 					if (!"00".equals(code)) {
 						status = "FAILED";
 						error = "VNPay từ chối hoàn tiền (mã " + code + ")";
 					}
 				}
-				catch (RestClientException e) {
+				catch (RuntimeException e) {
+					// Lỗi mạng, body rỗng hoặc sai dạng: ghi FAILED và dừng, không để rollback các dòng SUCCESS đã ghi.
 					status = "FAILED";
+					code = null;
 					error = "Không kết nối được VNPay";
+					log.warn("Hoàn tiền VNPay lỗi txn_ref={}: {}", txnRef, e.toString());
 				}
 			}
 			jdbc.sql(INSERT_REFUND)

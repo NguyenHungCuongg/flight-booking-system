@@ -93,6 +93,7 @@ public class RefundRequests {
 		}
 		long remaining = remaining(id, r);
 		if (remaining > 0) {
+			// ponytail: dòng booking và một kết nối DB bị giữ suốt các lượt gọi HTTP (tối đa ~35s mỗi lượt thu); đủ cho quy mô này, nếu tranh chấp khoá tăng thì đưa lệnh gọi VNPay ra ngoài khoá.
 			RefundOutcome outcome = payments.refund(order(id, r, remaining, staffId));
 			remaining -= outcome.refunded();
 			if (remaining > 0) {
@@ -177,6 +178,7 @@ public class RefundRequests {
 			.query(Long.class)
 			.optional()
 			.orElseThrow(RefundRequests::notFound);
+		// ponytail: khoá bookings rồi ghi payments (FK KEY SHARE) lệch thứ tự chung payments → bookings, nhưng không thể deadlock: IPN chỉ chờ bookings khi lượt thu của nó đang PENDING, mà lượt thu PENDING không bao giờ là đích hoàn tiền.
 		bookings.lock(bookingId);
 		return lock(id);
 	}
