@@ -1,6 +1,7 @@
 package vn.edu.uit.flightbooking.aftersales;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import vn.edu.uit.flightbooking.IntegrationTest;
 import vn.edu.uit.flightbooking.TestUsers;
 import vn.edu.uit.flightbooking.aftersales.domain.CustomerRefunds;
+import vn.edu.uit.flightbooking.aftersales.domain.StaffRefunds;
 import vn.edu.uit.flightbooking.booking.domain.BookingRequest;
 import vn.edu.uit.flightbooking.booking.domain.BookingRequest.ContactRequest;
 import vn.edu.uit.flightbooking.booking.domain.BookingRequest.JourneyRequest;
@@ -29,10 +31,12 @@ import vn.edu.uit.flightbooking.booking.domain.Direction;
 import vn.edu.uit.flightbooking.booking.domain.Gender;
 import vn.edu.uit.flightbooking.booking.domain.PassengerType;
 import vn.edu.uit.flightbooking.common.BusinessException;
+import vn.edu.uit.flightbooking.common.ErrorCode;
 import vn.edu.uit.flightbooking.common.Role;
+import vn.edu.uit.flightbooking.payment.TestVnpayApi;
 
 /**
- * T14. Không dùng {@code @Transactional}: mỗi luồng cần transaction riêng, nên dữ liệu được commit thật. Hãng Q7,
+ * T14, T8. Không dùng {@code @Transactional}: mỗi luồng cần transaction riêng, nên dữ liệu được commit thật. Hãng Q7,
  * sân bay QXA, QXB chỉ dùng trong test này và được xoá ở {@link #cleanUp()}.
  */
 @IntegrationTest
@@ -43,6 +47,12 @@ class RefundConcurrencyTest {
 
 	@Autowired
 	CustomerRefunds refunds;
+
+	@Autowired
+	StaffRefunds staffRefunds;
+
+	@Autowired
+	TestVnpayApi api;
 
 	@Autowired
 	JdbcClient jdbc;
@@ -96,6 +106,7 @@ class RefundConcurrencyTest {
 		bookingId = jdbc.sql("SELECT id FROM bookings WHERE code = ?").param(code).query(Long.class).single();
 		// Không gọi issue: tránh email bất đồng bộ chạy trong lúc dọn dữ liệu.
 		jdbc.sql("UPDATE bookings SET status = 'ISSUED', issued_at = now() WHERE id = ?").param(bookingId).update();
+		api.reset();
 	}
 
 	@AfterEach
@@ -168,6 +179,61 @@ class RefundConcurrencyTest {
 		assertThat(results).filteredOn("REQUEST_IN_PROGRESS"::equals).hasSize(4);
 		assertThat(jdbc.sql("SELECT count(*) FROM refund_requests WHERE booking_id = ?").param(bookingId)
 			.query(Long.class).single()).isEqualTo(1);
+	}
+
+	/** Lượt thu SUCCESS của booking; {@code completedAt} là biểu thức SQL. */
+	void charge(long amount, String completedAt, String txnNo) {
+		jdbc.sql("""
+				INSERT INTO payments (booking_id, kind, provider, status, amount, txn_ref, provider_txn_no,
+				                      provider_txn_date, completed_at)
+				VALUES (?, 'CHARGE', 'VNPAY', 'SUCCESS', ?, ?, ?, '20261201081000', %s)
+				""".formatted(completedAt))
+			.params(bookingId, amount, "t8" + txnNo + System.nanoTime(), txnNo)
+			.update();
+	}
+
+	/** Mỗi dòng REFUND của yêu cầu dạng {@code A|B:status:amount}, theo id. A là lượt thu 15000001, B là 15000002. */
+	List<String> refundRows(long id) {
+		return jdbc.sql("""
+				SELECT CASE c.provider_txn_no WHEN '15000001' THEN 'A' ELSE 'B' END || ':' || r.status || ':' || r.amount
+				FROM payments r JOIN payments c ON c.id = r.original_payment_id
+				WHERE r.refund_request_id = ?
+				ORDER BY r.id
+				""").param(id).query(String.class).list();
+	}
+
+	/** Số ghế còn của Q7100. */
+	int available() {
+		return jdbc.sql("SELECT available_seats FROM flight_cabins WHERE flight_id = ?")
+			.param(flightId)
+			.query(Integer.class)
+			.single();
+	}
+
+	/** T8, Review Focus 1: B hoàn xong, A lỗi; phần đã hoàn và last_error phải được commit dù Staff nhận 502. */
+	@Test
+	void t8GatewayErrorKeepsCommittedRefundsAndRetryPaysOnlyTheRest() {
+		charge(1_000_000, "now() - interval '1 hour'", "15000001");
+		charge(500_000, "now()", "15000002");
+		long id = refunds.request(userId, code, "OUTBOUND", "Đổi kế hoạch").id();
+		api.respond("00", "94");
+
+		assertThatThrownBy(() -> staffRefunds.approve(id, staffId, null))
+			.isInstanceOfSatisfying(BusinessException.class,
+					e -> assertThat(e.code()).isEqualTo(ErrorCode.PAYMENT_GATEWAY_ERROR));
+
+		assertThat(jdbc.sql("SELECT status, last_error FROM refund_requests WHERE id = ?").param(id).query().singleRow())
+			.containsEntry("status", "APPROVED").containsEntry("last_error", "VNPay từ chối hoàn tiền (mã 94)");
+		assertThat(refundRows(id)).containsExactly("B:SUCCESS:500000", "A:FAILED:200000");
+		assertThat(available()).isEqualTo(5);
+
+		api.respond("00");
+		staffRefunds.retry(id, staffId);
+
+		assertThat(refundRows(id)).containsExactly("B:SUCCESS:500000", "A:FAILED:200000", "A:SUCCESS:200000");
+		assertThat(jdbc.sql("SELECT status FROM refund_requests WHERE id = ?").param(id).query(String.class).single())
+			.isEqualTo("COMPLETED");
+		assertThat(api.requests()).extracting(r -> r.get("vnp_TransactionType")).containsExactly("02", "03", "03");
 	}
 
 }
