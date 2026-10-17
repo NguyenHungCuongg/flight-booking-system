@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hoàn tiền SkyLine</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 24px;
+      background: #ffffff;
+      color: #000d10;
+      font-family: Inter, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+    "
+  >
+    <p>Xin chào <span th:text="${contactName}">NGUYEN VAN AN</span>,</p>
+    <p>
+      Yêu cầu hoàn tiền cho
+      <span th:text="${direction == 'RETURN'} ? 'chiều về' : (${direction == 'OUTBOUND'} ? 'chiều đi' : 'khoản thanh toán trùng hoặc trễ')">chiều đi</span>
+      của booking <strong th:text="${code}">K7Q2XM</strong> đã hoàn tất. Số tiền
+      <strong
+        ><span th:text="${#numbers.formatInteger(refundAmount, 1, 'POINT')}"
+          >2.720.000</span
+        >
+        đ</strong
+      >
+      sẽ được VNPay trả về phương thức bạn đã dùng để thanh toán.
+    </p>
+    <p>
+      <a
+        th:href="${link}"
+        href="#"
+        style="
+          display: inline-block;
+          padding: 12px 24px;
+          border-radius: 1000px;
+          background: #000d10;
+          color: #ffffff;
+          text-decoration: none;
+          font-weight: 700;
+        "
+        >Xem booking</a
+      >
+    </p>
+  </body>
+</html>
