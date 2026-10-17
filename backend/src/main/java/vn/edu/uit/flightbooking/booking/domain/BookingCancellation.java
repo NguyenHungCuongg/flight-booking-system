@@ -13,6 +13,7 @@ import java.util.Optional;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import vn.edu.uit.flightbooking.catalog.CabinClass;
@@ -54,6 +55,15 @@ public class BookingCancellation {
 			SET status = 'CANCELLED'
 			FROM booking_journeys j
 			WHERE j.id = s.journey_id AND j.booking_id = :bookingId AND s.status = 'ACTIVE'
+			RETURNING s.flight_id, j.cabin_class
+			""";
+
+	/** Như {@link #CANCEL_SEGMENTS} nhưng chỉ trong một chiều. */
+	private static final String CANCEL_JOURNEY_SEGMENTS = """
+			UPDATE booking_segments s
+			SET status = 'CANCELLED'
+			FROM booking_journeys j
+			WHERE j.id = s.journey_id AND j.id = :journeyId AND s.status = 'ACTIVE'
 			RETURNING s.flight_id, j.cabin_class
 			""";
 
@@ -115,21 +125,14 @@ public class BookingCancellation {
 	}
 
 	/**
-	 * Mỗi chặng ACTIVE trả đúng (người lớn + trẻ em) ghế một lần, theo {@code flightId} tăng dần (Q-02). Trả lượt
+	 * Trả ghế các chặng ACTIVE ({@link #releaseSeats}). Trả lượt
 	 * voucher (Q-15, BR-32). Chuyển booking sang {@code status}.
 	 */
 	private void release(Locked booking, BookingStatus status) {
-		int seated = jdbc.sql("SELECT count(*) FROM passengers WHERE booking_id = ? AND type <> 'INFANT'")
-			.param(booking.id())
-			.query(Integer.class)
-			.single();
-		jdbc.sql(CANCEL_SEGMENTS)
+		releaseSeats(booking.id(), jdbc.sql(CANCEL_SEGMENTS)
 			.param("bookingId", booking.id())
-			.query((rs, rowNum) -> new Seat(rs.getLong("flight_id"), CabinClass.valueOf(rs.getString("cabin_class"))))
-			.list()
-			.stream()
-			.sorted(Comparator.comparingLong(Seat::flightId))
-			.forEach(seat -> seats.release(seat.flightId(), seat.cabin(), seated));
+			.query(BookingCancellation::seat)
+			.list());
 		if (booking.voucherId() != null) {
 			vouchers.release(booking.voucherId());
 		}
@@ -137,6 +140,42 @@ public class BookingCancellation {
 			.param("status", status.name())
 			.param("id", booking.id())
 			.update();
+	}
+
+	/**
+	 * Hoàn một chiều (BR-62, BR-65): chặng ACTIVE của chiều thành CANCELLED và trả ghế, chiều thành REFUNDED; hết chiều
+	 * chưa hoàn thì booking thành REFUNDED. Bên gọi đã khoá booking. Lượt voucher không được trả (BR-32).
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void refundJourney(long journeyId) {
+		long bookingId = jdbc.sql("UPDATE booking_journeys SET status = 'REFUNDED' WHERE id = ? RETURNING booking_id")
+			.param(journeyId)
+			.query(Long.class)
+			.single();
+		releaseSeats(bookingId, jdbc.sql(CANCEL_JOURNEY_SEGMENTS)
+			.param("journeyId", journeyId)
+			.query(BookingCancellation::seat)
+			.list());
+		jdbc.sql("""
+				UPDATE bookings SET status = 'REFUNDED', updated_at = now()
+				WHERE id = :bookingId
+				  AND NOT EXISTS (SELECT 1 FROM booking_journeys WHERE booking_id = :bookingId AND status <> 'REFUNDED')
+				""").param("bookingId", bookingId).update();
+	}
+
+	/** Mỗi chặng trả đúng (người lớn + trẻ em) ghế một lần, theo {@code flightId} tăng dần (Q-02). */
+	private void releaseSeats(long bookingId, List<Seat> released) {
+		int seated = jdbc.sql("SELECT count(*) FROM passengers WHERE booking_id = ? AND type <> 'INFANT'")
+			.param(bookingId)
+			.query(Integer.class)
+			.single();
+		released.stream()
+			.sorted(Comparator.comparingLong(Seat::flightId))
+			.forEach(seat -> seats.release(seat.flightId(), seat.cabin(), seated));
+	}
+
+	private static Seat seat(ResultSet rs, int rowNum) throws SQLException {
+		return new Seat(rs.getLong("flight_id"), CabinClass.valueOf(rs.getString("cabin_class")));
 	}
 
 	private static Locked locked(ResultSet rs, int rowNum) throws SQLException {

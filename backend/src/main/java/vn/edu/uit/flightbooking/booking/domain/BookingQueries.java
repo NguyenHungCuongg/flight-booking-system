@@ -27,7 +27,7 @@ import vn.edu.uit.flightbooking.identity.UserSummary;
 
 /**
  * Đọc booking cho C-08, C-09 (FR-40, FR-41) và S-01, S-02 (FR-70). Chỉ đọc. Đọc thẳng bảng {@code flights},
- * {@code airports} (flight, catalog), {@code vouchers} (promotion) và {@code payments} (payment) bằng SQL để lấy số
+ * {@code airports} (flight, catalog), {@code vouchers} (promotion), {@code payments} (payment) và {@code refund_requests} (aftersales) bằng SQL để lấy số
  * hiệu, múi giờ, mã voucher và lịch sử thu.
  * Thông tin gói giá và giá luôn lấy từ snapshot của booking (BR-24). Chặng hiện hành là chặng ACTIVE hoặc CANCELLED;
  * Plan 15 (đổi chuyến) tinh chỉnh cho chặng PENDING_CHANGE và REPLACED.
@@ -79,11 +79,18 @@ public class BookingQueries {
 			OffsetDateTime completedAt) {
 	}
 
-	/** Yêu cầu hoàn và đổi chuyến do Plan 14, 15 thêm. */
+	/** FR-41: {@code direction} là {@code null} với nguồn INVALID_PAYMENT; giờ theo giờ Việt Nam. */
+	public record RefundRequestView(long id, Direction direction, String source, String status, long baseAmount,
+			long feeAmount, long refundAmount, String reason, String staffNote, OffsetDateTime createdAt,
+			OffsetDateTime completedAt) {
+	}
+
+	/** Yêu cầu đổi chuyến do Plan 15 thêm. */
 	public record BookingDetail(String code, BookingStatus status, OffsetDateTime holdExpiresAt,
 			OffsetDateTime issuedAt, OffsetDateTime createdAt, Contact contact, String voucherCode, long fareTotal,
 			long baggageTotal, long discountTotal, long totalAmount, List<JourneyView> journeys,
-			List<PassengerView> passengers, List<PaymentView> payments) {
+			List<PassengerView> passengers, List<PaymentView> payments,
+			List<RefundRequestView> refundRequests) {
 	}
 
 	/** S-02: chi tiết kèm tài khoản đã đặt. */
@@ -222,6 +229,15 @@ public class BookingQueries {
 			ORDER BY created_at, id
 			""";
 
+	private static final String REFUND_REQUESTS = """
+			SELECT r.id, j.direction, r.source, r.status, r.base_amount, r.fee_amount, r.refund_amount, r.reason,
+			       r.staff_note, r.created_at, r.completed_at
+			FROM refund_requests r
+			LEFT JOIN booking_journeys j ON j.id = r.journey_id
+			WHERE r.booking_id = :id
+			ORDER BY r.created_at, r.id
+			""";
+
 	private final JdbcClient jdbc;
 
 	private final UserApi users;
@@ -350,6 +366,14 @@ public class BookingQueries {
 			.query((rs, n) -> new PaymentView(rs.getString("kind"), rs.getString("status"), rs.getLong("amount"),
 					vietnam(rs, "created_at"), vietnam(rs, "completed_at")))
 			.list();
+		List<RefundRequestView> refundRequests = jdbc.sql(REFUND_REQUESTS)
+			.params(id)
+			.query((rs, n) -> new RefundRequestView(rs.getLong("id"),
+					rs.getString("direction") == null ? null : Direction.valueOf(rs.getString("direction")),
+					rs.getString("source"), rs.getString("status"), rs.getLong("base_amount"),
+					rs.getLong("fee_amount"), rs.getLong("refund_amount"), rs.getString("reason"),
+					rs.getString("staff_note"), vietnam(rs, "created_at"), vietnam(rs, "completed_at")))
+			.list();
 
 		Map<Long, Integer> passengerIndex = new HashMap<>();
 		for (int i = 0; i < passengers.size(); i++) {
@@ -381,7 +405,7 @@ public class BookingQueries {
 		return new BookingDetail(booking.code(), booking.status(), booking.holdExpiresAt(), booking.issuedAt(),
 				booking.createdAt(), booking.contact(), booking.voucherCode(), booking.fareTotal(),
 				booking.baggageTotal(), booking.discountTotal(), booking.totalAmount(), journeyViews, passengerViews,
-				payments);
+				payments, refundRequests);
 	}
 
 	private static SummaryRow summary(ResultSet rs, int rowNum) throws SQLException {
