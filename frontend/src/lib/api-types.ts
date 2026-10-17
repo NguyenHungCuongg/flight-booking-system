@@ -148,6 +148,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/staff/refund-requests/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/staff/refund-requests/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/staff/refund-requests/{id}/mark-manual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["markManual"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/staff/refund-requests/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/staff/bookings/{code}/resend-ticket-email": {
         parameters: {
             query?: never;
@@ -190,6 +254,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["pay"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bookings/{code}/journeys/{direction}/refund-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["request"];
         delete?: never;
         options?: never;
         head?: never;
@@ -436,6 +516,38 @@ export interface paths {
         patch: operations["updateStatus"];
         trace?: never;
     };
+    "/api/staff/refund-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["page"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/staff/refund-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["detail_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/staff/flights": {
         parameters: {
             query?: never;
@@ -475,7 +587,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["detail_1"];
+        get: operations["detail_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -539,7 +651,23 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["detail_2"];
+        get: operations["detail_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bookings/{code}/journeys/{direction}/refund-quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["quote_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -843,6 +971,54 @@ export interface components {
             ticketPrefix: string;
             active: boolean;
         };
+        RefundAttempt: {
+            provider: string;
+            status: string;
+            /** Format: int64 */
+            amount: number;
+            responseCode: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        RefundDetail: {
+            /** Format: int64 */
+            id: number;
+            bookingCode: string;
+            bookingStatus: string;
+            contactName: string;
+            contactEmail: string;
+            contactPhone: string;
+            direction: string;
+            /** @enum {string} */
+            source: "CUSTOMER" | "FLIGHT_CANCELLED" | "INVALID_PAYMENT";
+            /** @enum {string} */
+            status: "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED";
+            /** Format: int64 */
+            baseAmount: number;
+            /** Format: int64 */
+            feeAmount: number;
+            /** Format: int64 */
+            refundAmount: number;
+            /** Format: int64 */
+            refundedAmount: number;
+            reason: string;
+            staffNote: string;
+            lastError: string;
+            processedBy: string;
+            /** Format: date-time */
+            processedAt: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            completedAt: string;
+            attempts: components["schemas"]["RefundAttempt"][];
+        };
+        ReasonBody: {
+            reason: string;
+        };
+        NoteBody: {
+            note: string;
+        };
         BaggageRequest: {
             /** Format: int32 */
             passengerIndex: number;
@@ -924,6 +1100,14 @@ export interface components {
         };
         PaymentUrlResponse: {
             paymentUrl: string;
+        };
+        RefundCreatedResponse: {
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            status: "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED";
+            /** Format: int64 */
+            refundAmount: number;
         };
         QuoteResponse: {
             journeys: components["schemas"]["JourneyTotals"][];
@@ -1024,6 +1208,24 @@ export interface components {
             /** Format: int64 */
             totalPages: number;
         };
+        PagedModelRefundSummary: {
+            content: components["schemas"]["RefundSummary"][];
+            page: components["schemas"]["PageMetadata"];
+        };
+        RefundSummary: {
+            /** Format: int64 */
+            id: number;
+            bookingCode: string;
+            direction: string;
+            /** @enum {string} */
+            source: "CUSTOMER" | "FLIGHT_CANCELLED" | "INVALID_PAYMENT";
+            /** @enum {string} */
+            status: "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED";
+            /** Format: int64 */
+            refundAmount: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
         PagedModelFlightView: {
             content: components["schemas"]["FlightView"][];
             page: components["schemas"]["PageMetadata"];
@@ -1086,6 +1288,7 @@ export interface components {
             journeys: components["schemas"]["JourneyView"][];
             passengers: components["schemas"]["PassengerView"][];
             payments: components["schemas"]["PaymentView"][];
+            refundRequests: components["schemas"]["RefundRequestView"][];
         };
         Contact: {
             name: string;
@@ -1135,6 +1338,26 @@ export interface components {
             status: string;
             /** Format: int64 */
             amount: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            completedAt: string;
+        };
+        RefundRequestView: {
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            direction: "OUTBOUND" | "RETURN";
+            source: string;
+            status: string;
+            /** Format: int64 */
+            baseAmount: number;
+            /** Format: int64 */
+            feeAmount: number;
+            /** Format: int64 */
+            refundAmount: number;
+            reason: string;
+            staffNote: string;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -1229,6 +1452,14 @@ export interface components {
             aircraftModel: string;
             /** Format: int64 */
             layoverMinutesAfter: number;
+        };
+        RefundQuote: {
+            /** Format: int64 */
+            journeyValue: number;
+            /** Format: int64 */
+            fee: number;
+            /** Format: int64 */
+            refundAmount: number;
         };
         PagedModelUserResponse: {
             content: components["schemas"]["UserResponse"][];
@@ -1624,6 +1855,106 @@ export interface operations {
             };
         };
     };
+    retry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RefundDetail"];
+                };
+            };
+        };
+    };
+    reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RefundDetail"];
+                };
+            };
+        };
+    };
+    markManual: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["NoteBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RefundDetail"];
+                };
+            };
+        };
+    };
+    approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["NoteBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RefundDetail"];
+                };
+            };
+        };
+    };
     resendTicketEmail: {
         parameters: {
             query?: never;
@@ -1709,6 +2040,33 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PaymentUrlResponse"];
+                };
+            };
+        };
+    };
+    request: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+                direction: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonBody"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RefundCreatedResponse"];
                 };
             };
         };
@@ -2193,6 +2551,52 @@ export interface operations {
             };
         };
     };
+    page: {
+        parameters: {
+            query: {
+                status?: "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED";
+                source?: "CUSTOMER" | "FLIGHT_CANCELLED" | "INVALID_PAYMENT";
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelRefundSummary"];
+                };
+            };
+        };
+    };
+    detail_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RefundDetail"];
+                };
+            };
+        };
+    };
     list_4: {
         parameters: {
             query: {
@@ -2244,7 +2648,7 @@ export interface operations {
             };
         };
     };
-    detail_1: {
+    detail_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -2342,7 +2746,7 @@ export interface operations {
             };
         };
     };
-    detail_2: {
+    detail_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -2360,6 +2764,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["BookingDetail"];
+                };
+            };
+        };
+    };
+    quote_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+                direction: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RefundQuote"];
                 };
             };
         };
