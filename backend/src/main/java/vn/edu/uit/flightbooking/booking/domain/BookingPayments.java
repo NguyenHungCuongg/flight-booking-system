@@ -66,7 +66,7 @@ public class BookingPayments {
 		if (!pending) {
 			throw new BusinessException(ErrorCode.INVALID_STATE, "Chỉ thanh toán được booking đang chờ thanh toán");
 		}
-		return payments.charge(booking.id(), booking.totalAmount(), booking.holdExpiresAt(),
+		return payments.charge(booking.id(), null, booking.totalAmount(), booking.holdExpiresAt(),
 				"Thanh toan dat ve " + upper, clientIp);
 	}
 
@@ -74,11 +74,14 @@ public class BookingPayments {
 	 * TDD §6.3: chạy đồng bộ trong transaction của callback, đã khoá {@code payments}; khoá booking rồi kiểm tra lại.
 	 * Booking còn chờ thanh toán (kể cả trong 5 phút ân hạn của BR-45) thì xuất vé (BR-43). Ngược lại phát
 	 * {@link UnexpectedPaymentReceived} để hoàn 100% lượt thu (BR-44). Bắt buộc chạy trong transaction của callback
-	 * (MANDATORY: gọi ngoài transaction thì lỗi ngay thay vì chạy sai).
+	 * (MANDATORY: gọi ngoài transaction thì lỗi ngay thay vì chạy sai). Lượt thu của đổi chuyến do aftersales xử lý.
 	 */
 	@EventListener
 	@Transactional(propagation = Propagation.MANDATORY)
 	void on(PaymentSucceeded event) {
+		if (event.rescheduleId() != null) {
+			return;
+		}
 		BookingStatus status = jdbc.sql("SELECT status FROM bookings WHERE id = ? FOR UPDATE")
 			.param(event.bookingId())
 			.query((rs, rowNum) -> BookingStatus.valueOf(rs.getString("status")))

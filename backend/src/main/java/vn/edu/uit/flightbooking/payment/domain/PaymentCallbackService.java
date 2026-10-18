@@ -26,7 +26,8 @@ public class PaymentCallbackService {
 	public record Outcome(String rspCode, String message, String bookingCode, boolean paid) {
 	}
 
-	private record Locked(long id, long bookingId, long amount, String status, String bookingCode) {
+	private record Locked(long id, long bookingId, Long rescheduleId, long amount, String status,
+			String bookingCode) {
 	}
 
 	/**
@@ -34,7 +35,7 @@ public class PaymentCallbackService {
 	 * §3.2), nên đọc thẳng bảng như {@code BookingQueries} đọc {@code flights}.
 	 */
 	private static final String LOCK = """
-			SELECT p.id, p.booking_id, p.amount, p.status, b.code
+			SELECT p.id, p.booking_id, p.reschedule_id, p.amount, p.status, b.code
 			FROM payments p
 			JOIN bookings b ON b.id = p.booking_id
 			WHERE p.txn_ref = :txnRef AND p.kind = 'CHARGE'
@@ -68,7 +69,8 @@ public class PaymentCallbackService {
 		}
 		Optional<Locked> found = jdbc.sql(LOCK)
 			.param("txnRef", params.get("vnp_TxnRef"))
-			.query((rs, rowNum) -> new Locked(rs.getLong("id"), rs.getLong("booking_id"), rs.getLong("amount"),
+			.query((rs, rowNum) -> new Locked(rs.getLong("id"), rs.getLong("booking_id"),
+					rs.getObject("reschedule_id", Long.class), rs.getLong("amount"),
 					rs.getString("status"), rs.getString("code")))
 			.optional();
 		if (found.isEmpty()) {
@@ -93,7 +95,8 @@ public class PaymentCallbackService {
 			.param("id", payment.id())
 			.update();
 		if (paid) {
-			events.publishEvent(new PaymentSucceeded(payment.id(), payment.bookingId(), payment.amount()));
+			events.publishEvent(new PaymentSucceeded(payment.id(), payment.bookingId(), payment.rescheduleId(),
+					payment.amount()));
 		}
 		return new Outcome("00", "Confirm Success", payment.bookingCode(), paid);
 	}

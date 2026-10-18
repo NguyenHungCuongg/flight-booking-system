@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static vn.edu.uit.flightbooking.TestCsrf.csrf;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +30,7 @@ import vn.edu.uit.flightbooking.booking.BookingIssued;
 import vn.edu.uit.flightbooking.booking.TestBookings;
 import vn.edu.uit.flightbooking.booking.UnexpectedPaymentReceived;
 import vn.edu.uit.flightbooking.common.Role;
+import vn.edu.uit.flightbooking.payment.PaymentApi;
 import vn.edu.uit.flightbooking.payment.PaymentSucceeded;
 import vn.edu.uit.flightbooking.payment.TestVnpay;
 import vn.edu.uit.flightbooking.payment.domain.Vnpay;
@@ -50,6 +52,9 @@ class VnpayCallbackTest {
 
 	@Autowired
 	Vnpay vnpay;
+
+	@Autowired
+	PaymentApi payments;
 
 	@Autowired
 	ApplicationEvents events;
@@ -229,6 +234,33 @@ class VnpayCallbackTest {
 		assertThat(payment(txnRef)).containsEntry("status", "FAILED");
 		assertThat(bookingStatus()).isEqualTo("PENDING_PAYMENT");
 		assertThat(events.stream(PaymentSucceeded.class)).isEmpty();
+	}
+
+	/** Review Focus 3: lượt thu của đổi chuyến mang reschedule_id; listener của booking bỏ qua (aftersales xử lý). */
+	@Test
+	void reschedulePaymentCarriesRescheduleIdAndLeavesBookingAlone() throws Exception {
+		ipn(paid(txnRef));
+		long bookingId = TestBookings.bookingId(jdbc, code);
+		long rescheduleId = jdbc.sql("""
+				INSERT INTO reschedules (booking_id, journey_id, status, old_fare_total, new_fare_total,
+				                         change_fee_total, amount_due, hold_expires_at)
+				SELECT b.id, j.id, 'PENDING_PAYMENT', 0, 0, 500000, 500000, now() + interval '15 minutes'
+				FROM bookings b JOIN booking_journeys j ON j.booking_id = b.id WHERE b.id = ?
+				RETURNING id
+				""").param(bookingId).query(Long.class).single();
+		String ref = TestVnpay.query(payments.charge(bookingId, rescheduleId, 500_000, Instant.now().plusSeconds(900),
+				"Thanh toan doi chuyen " + code, "127.0.0.1")).get("vnp_TxnRef");
+
+		ipn(TestVnpay.callback(vnpay, ref, 500_000, "00")).andExpect(jsonPath("$.RspCode").value("00"));
+
+		assertThat(jdbc.sql("SELECT reschedule_id FROM payments WHERE txn_ref = ?").param(ref).query(Long.class).single())
+			.isEqualTo(rescheduleId);
+		assertThat(events.stream(PaymentSucceeded.class))
+			.containsExactly(new PaymentSucceeded(paymentId(txnRef), bookingId, null, 3_020_000),
+					new PaymentSucceeded(paymentId(ref), bookingId, rescheduleId, 500_000));
+		assertThat(events.stream(UnexpectedPaymentReceived.class)).isEmpty();
+		assertThat(events.stream(BookingIssued.class)).hasSize(1);
+		assertThat(bookingStatus()).isEqualTo("ISSUED");
 	}
 
 }

@@ -82,8 +82,8 @@ public class PaymentApi {
 	}
 
 	private static final String INSERT_CHARGE = """
-			INSERT INTO payments (booking_id, kind, provider, status, amount, txn_ref, expires_at)
-			VALUES (:bookingId, 'CHARGE', 'VNPAY', 'PENDING', :amount, :txnRef, :expiresAt)
+			INSERT INTO payments (booking_id, reschedule_id, kind, provider, status, amount, txn_ref, expires_at)
+			VALUES (:bookingId, :rescheduleId, 'CHARGE', 'VNPAY', 'PENDING', :amount, :txnRef, :expiresAt)
 			""";
 
 	private final JdbcClient jdbc;
@@ -103,10 +103,11 @@ public class PaymentApi {
 	 * tự kiểm tra trạng thái và hạn giữ chỗ. {@code orderInfo} phải không dấu.
 	 */
 	@Transactional
-	public String charge(long bookingId, long amount, Instant expiresAt, String orderInfo, String clientIp) {
+	public String charge(long bookingId, Long rescheduleId, long amount, Instant expiresAt, String orderInfo, String clientIp) {
 		String txnRef = UUID.randomUUID().toString().replace("-", "");
 		jdbc.sql(INSERT_CHARGE)
 			.param("bookingId", bookingId)
+			.param("rescheduleId", rescheduleId)
 			.param("amount", amount)
 			.param("txnRef", txnRef)
 			.param("expiresAt", expiresAt.atOffset(ZoneOffset.UTC))
