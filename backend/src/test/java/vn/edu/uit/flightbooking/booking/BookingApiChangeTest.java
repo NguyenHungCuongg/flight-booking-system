@@ -104,6 +104,20 @@ class BookingApiChangeTest {
 		assertThat(api.change(TestUsers.create(jdbc, Role.CUSTOMER, TestUsers.randomEmail()), code, "RETURN")).isEmpty();
 	}
 
+	/** Chiều đã hoàn không còn chặng ACTIVE: vẫn đọc được (để bên gọi báo INVALID_STATE), không ném lỗi. */
+	@Test
+	void changeRefOfRefundedJourneyHasNoLegs() {
+		api.refundJourney(journeyId(bookingId, "RETURN"));
+
+		ChangeRef back = api.change(customer.id(), code, "RETURN").orElseThrow();
+
+		assertThat(back.journey().journeyActive()).isFalse();
+		assertThat(back.flightIds()).isEmpty();
+		assertThat(back.origin()).isNull();
+		assertThat(back.destination()).isNull();
+		assertThat(back.fareTotal()).isZero();
+	}
+
 	/** BR-73, BR-21: chặng mới PENDING_CHANGE gắn reschedule_id; vé theo tỉ lệ truyền vào, chưa có số; giữ ghế chuyến mới. */
 	@Test
 	void holdChangeAddsPendingSegmentWithTicketsAndHoldsSeats() throws Exception {

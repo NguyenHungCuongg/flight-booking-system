@@ -51,7 +51,8 @@ public class BookingApi {
 	 * Một chiều để đổi (BR-71): {@code flightIds}, {@code origin}, {@code destination} của các chặng ACTIVE theo
 	 * {@code seq}; {@code fareTotal}: tổng giá vé các chặng đó (BR-72). {@code departAfter}: giờ hạ cánh của chiều đi,
 	 * chỉ có khi đây là chiều về và chiều đi còn ACTIVE; {@code arriveBefore}: giờ cất cánh của chiều về, chỉ có khi đây
-	 * là chiều đi và chiều về còn ACTIVE.
+	 * là chiều đi và chiều về còn ACTIVE. Chiều không còn chặng ACTIVE (đã hoàn, booking đã huỷ): {@code flightIds}
+	 * rỗng, {@code origin}, {@code destination} là {@code null}, {@code fareTotal} là 0.
 	 */
 	public record ChangeRef(JourneyRef journey, long fareFamilyId, CabinClass cabinClass, int adults, int children,
 			int infants, List<Long> flightIds, String origin, String destination, long fareTotal, Instant departAfter,
@@ -233,8 +234,9 @@ public class BookingApi {
 			.orElse(null);
 		boolean otherIsOutbound = other != null && other.direction().equals("OUTBOUND");
 		return new ChangeRef(ref, profile.fareFamilyId(), profile.cabinClass(), profile.adults(), profile.children(),
-				profile.infants(), legs.stream().map(Leg::flightId).toList(), legs.getFirst().departureAirport(),
-				legs.getLast().arrivalAirport(), fareTotal, otherIsOutbound ? other.lastArrival() : null,
+				profile.infants(), legs.stream().map(Leg::flightId).toList(),
+				legs.isEmpty() ? null : legs.getFirst().departureAirport(),
+				legs.isEmpty() ? null : legs.getLast().arrivalAirport(), fareTotal, otherIsOutbound ? other.lastArrival() : null,
 				other != null && !otherIsOutbound ? other.firstDeparture() : null);
 	}
 
