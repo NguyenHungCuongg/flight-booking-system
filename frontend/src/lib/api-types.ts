@@ -228,6 +228,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reschedules/{id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["pay"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/bookings": {
         parameters: {
             query?: never;
@@ -253,7 +269,39 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["pay"];
+        post: operations["pay_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bookings/{code}/journeys/{direction}/reschedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bookings/{code}/journeys/{direction}/reschedule-quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["quote"];
         delete?: never;
         options?: never;
         head?: never;
@@ -301,7 +349,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["quote"];
+        post: operations["quote_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -660,6 +708,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/bookings/{code}/journeys/{direction}/reschedule-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/bookings/{code}/journeys/{direction}/refund-quote": {
         parameters: {
             query?: never;
@@ -667,7 +731,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["quote_1"];
+        get: operations["quote_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1019,6 +1083,9 @@ export interface components {
         NoteBody: {
             note: string;
         };
+        ReschedulePaymentResponse: {
+            paymentUrl: string;
+        };
         BaggageRequest: {
             /** Format: int32 */
             passengerIndex: number;
@@ -1100,6 +1167,29 @@ export interface components {
         };
         PaymentUrlResponse: {
             paymentUrl: string;
+        };
+        FlightIdsBody: {
+            flightIds: number[];
+        };
+        RescheduleCreatedResponse: {
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            status: "PENDING_PAYMENT" | "COMPLETED" | "EXPIRED" | "CANCELLED";
+            /** Format: int64 */
+            amountDue: number;
+            /** Format: date-time */
+            holdExpiresAt: string;
+        };
+        RescheduleQuote: {
+            /** Format: int64 */
+            oldFareTotal: number;
+            /** Format: int64 */
+            newFareTotal: number;
+            /** Format: int64 */
+            changeFeeTotal: number;
+            /** Format: int64 */
+            amountDue: number;
         };
         RefundCreatedResponse: {
             /** Format: int64 */
@@ -1289,6 +1379,7 @@ export interface components {
             passengers: components["schemas"]["PassengerView"][];
             payments: components["schemas"]["PaymentView"][];
             refundRequests: components["schemas"]["RefundRequestView"][];
+            reschedules: components["schemas"]["RescheduleView"][];
         };
         Contact: {
             name: string;
@@ -1362,6 +1453,28 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             completedAt: string;
+        };
+        RescheduleView: {
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            direction: "OUTBOUND" | "RETURN";
+            status: string;
+            /** Format: int64 */
+            oldFareTotal: number;
+            /** Format: int64 */
+            newFareTotal: number;
+            /** Format: int64 */
+            changeFeeTotal: number;
+            /** Format: int64 */
+            amountDue: number;
+            /** Format: date-time */
+            holdExpiresAt: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            completedAt: string;
+            flightNumbers: string[];
         };
         SegmentView: {
             /** Format: int64 */
@@ -1452,6 +1565,13 @@ export interface components {
             aircraftModel: string;
             /** Format: int64 */
             layoverMinutesAfter: number;
+        };
+        RescheduleOption: {
+            itinerary: components["schemas"]["Itinerary"];
+            quote: components["schemas"]["RescheduleQuote"];
+        };
+        RescheduleOptions: {
+            options: components["schemas"]["RescheduleOption"][];
         };
         RefundQuote: {
             /** Format: int64 */
@@ -1975,6 +2095,28 @@ export interface operations {
             };
         };
     };
+    pay: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReschedulePaymentResponse"];
+                };
+            };
+        };
+    };
     mine: {
         parameters: {
             query: {
@@ -2022,7 +2164,7 @@ export interface operations {
             };
         };
     };
-    pay: {
+    pay_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -2040,6 +2182,60 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PaymentUrlResponse"];
+                };
+            };
+        };
+    };
+    confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+                direction: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlightIdsBody"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RescheduleCreatedResponse"];
+                };
+            };
+        };
+    };
+    quote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+                direction: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlightIdsBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RescheduleQuote"];
                 };
             };
         };
@@ -2091,7 +2287,7 @@ export interface operations {
             };
         };
     };
-    quote: {
+    quote_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -2768,7 +2964,32 @@ export interface operations {
             };
         };
     };
-    quote_1: {
+    options: {
+        parameters: {
+            query: {
+                date: string;
+            };
+            header?: never;
+            path: {
+                code: string;
+                direction: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RescheduleOptions"];
+                };
+            };
+        };
+    };
+    quote_2: {
         parameters: {
             query?: never;
             header?: never;
