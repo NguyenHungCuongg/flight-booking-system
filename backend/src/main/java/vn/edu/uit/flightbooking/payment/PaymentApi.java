@@ -100,10 +100,12 @@ public class PaymentApi {
 
 	/**
 	 * FR-30, TDD §6.3: ghi lượt thu PENDING và trả URL thanh toán VNPay hết hạn lúc {@code expiresAt} (BR-41). Bên gọi
-	 * tự kiểm tra trạng thái và hạn giữ chỗ. {@code orderInfo} phải không dấu.
+	 * tự kiểm tra trạng thái và hạn giữ chỗ. {@code rescheduleId} là yêu cầu đổi chuyến mà lượt thu trả tiền cho,
+	 * {@code null} với lượt thu của booking. {@code orderInfo} phải không dấu.
 	 */
 	@Transactional
-	public String charge(long bookingId, Long rescheduleId, long amount, Instant expiresAt, String orderInfo, String clientIp) {
+	public String charge(long bookingId, Long rescheduleId, long amount, Instant expiresAt, String orderInfo,
+			String clientIp) {
 		String txnRef = UUID.randomUUID().toString().replace("-", "");
 		jdbc.sql(INSERT_CHARGE)
 			.param("bookingId", bookingId)

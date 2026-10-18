@@ -21,7 +21,7 @@ import vn.edu.uit.flightbooking.aftersales.domain.RescheduleOptions;
 import vn.edu.uit.flightbooking.aftersales.domain.RescheduleQuote;
 import vn.edu.uit.flightbooking.common.CurrentUser;
 
-/** FR-60, FR-61: khách xem lựa chọn thay thế và báo giá đổi chuyến. Quyền CUSTOMER theo đường dẫn ở SecurityConfig. */
+/** FR-60, FR-61, FR-62: khách xem lựa chọn thay thế, báo giá, xác nhận và thanh toán đổi chuyến. Quyền CUSTOMER theo đường dẫn ở SecurityConfig. */
 @RestController
 class RescheduleController {
 

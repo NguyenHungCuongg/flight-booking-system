@@ -281,12 +281,12 @@ class RescheduleTest {
 		assertThat(query).containsEntry("vnp_Amount", "54000000")
 			.containsEntry("vnp_OrderInfo", "Thanh toan doi chuyen " + code);
 
-		jdbc.sql("UPDATE reschedules SET hold_expires_at = now() - interval '1 minute'").update();
+		jdbc.sql("UPDATE reschedules SET hold_expires_at = now() - interval '1 minute' WHERE id = ?").param(id).update();
 		TestReschedules.pay(mvc, customer.session(), id)
 			.andExpect(status().isConflict())
 			.andExpect(jsonPath("$.code").value("HOLD_EXPIRED"));
 
-		jdbc.sql("UPDATE reschedules SET status = 'COMPLETED', completed_at = now()").update();
+		jdbc.sql("UPDATE reschedules SET status = 'COMPLETED', completed_at = now() WHERE id = ?").param(id).update();
 		TestReschedules.pay(mvc, customer.session(), id)
 			.andExpect(status().isConflict())
 			.andExpect(jsonPath("$.code").value("INVALID_STATE"));
