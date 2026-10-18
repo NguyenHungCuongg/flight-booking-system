@@ -75,6 +75,15 @@ public final class TestBookings {
 		return new Trip(catalog, firstLeg, secondLeg, back);
 	}
 
+	/** Chuyến Q1 QHE→QHA bay 130 phút ngày {@code day}, chỉ bán gói Eco giá {@code price}; tạo qua API Admin. */
+	public static long returnFlight(MockMvc mvc, JdbcClient jdbc, Trip trip, String flightNumber, LocalDate day,
+			String departureTime, long price) throws Exception {
+		MockHttpSession admin = TestUsers.loggedIn(mvc, jdbc, Role.ADMIN).session();
+		return createOne(mvc, admin, newFlight(trip.catalog(), Map.of("flightNumber", flightNumber, "departureAirport",
+				"QHE", "arrivalAirport", "QHA", "departureTime", departureTime, "fromDate", day.toString(), "toDate",
+				day.toString(), "fares", eco(trip.catalog(), price))));
+	}
+
 	private static List<Map<String, Object>> eco(TestFlights.Catalog catalog, long price) {
 		return List.of(Map.of("fareFamilyId", catalog.economyFare(), "price", price));
 	}

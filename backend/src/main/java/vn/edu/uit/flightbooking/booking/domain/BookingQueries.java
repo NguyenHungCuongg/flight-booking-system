@@ -27,10 +27,9 @@ import vn.edu.uit.flightbooking.identity.UserSummary;
 
 /**
  * Đọc booking cho C-08, C-09 (FR-40, FR-41) và S-01, S-02 (FR-70). Chỉ đọc. Đọc thẳng bảng {@code flights},
- * {@code airports} (flight, catalog), {@code vouchers} (promotion), {@code payments} (payment) và {@code refund_requests} (aftersales) bằng SQL để lấy số
- * hiệu, múi giờ, mã voucher và lịch sử thu.
- * Thông tin gói giá và giá luôn lấy từ snapshot của booking (BR-24). Chặng hiện hành là chặng ACTIVE hoặc CANCELLED;
- * Plan 15 (đổi chuyến) tinh chỉnh cho chặng PENDING_CHANGE và REPLACED.
+ * {@code airports} (flight, catalog), {@code vouchers} (promotion), {@code payments} (payment), {@code refund_requests}
+ * và {@code reschedules} (aftersales) bằng SQL để lấy số hiệu, múi giờ, mã voucher và lịch sử thu.
+ * Thông tin gói giá và giá luôn lấy từ snapshot của booking (BR-24). Chặng hiện hành xác định ở {@link #CURRENT_SEGMENT}.
  */
 @Service
 public class BookingQueries {
@@ -85,12 +84,18 @@ public class BookingQueries {
 			OffsetDateTime completedAt) {
 	}
 
-	/** Yêu cầu đổi chuyến do Plan 15 thêm. */
+	/** FR-41: yêu cầu đổi chuyến một chiều; {@code flightNumbers}: các chặng mới theo thứ tự; giờ theo giờ Việt Nam. */
+	public record RescheduleView(long id, Direction direction, String status, long oldFareTotal, long newFareTotal,
+			long changeFeeTotal, long amountDue, OffsetDateTime holdExpiresAt, OffsetDateTime createdAt,
+			OffsetDateTime completedAt, List<String> flightNumbers) {
+	}
+
+	/** {@code reschedules}: các yêu cầu đổi chuyến, cũ nhất trước. */
 	public record BookingDetail(String code, BookingStatus status, OffsetDateTime holdExpiresAt,
 			OffsetDateTime issuedAt, OffsetDateTime createdAt, Contact contact, String voucherCode, long fareTotal,
 			long baggageTotal, long discountTotal, long totalAmount, List<JourneyView> journeys,
-			List<PassengerView> passengers, List<PaymentView> payments,
-			List<RefundRequestView> refundRequests) {
+			List<PassengerView> passengers, List<PaymentView> payments, List<RefundRequestView> refundRequests,
+			List<RescheduleView> reschedules) {
 	}
 
 	/** S-02: chi tiết kèm tài khoản đã đặt. */
@@ -149,7 +154,13 @@ public class BookingQueries {
 	private record BaggageRow(long journeyId, long passengerId, int weightKg, long price) {
 	}
 
-	private static final String CURRENT_SEGMENT = "s.status IN ('ACTIVE', 'CANCELLED')";
+	/**
+	 * Chặng hiện hành: ACTIVE, hoặc CANCELLED mà từng ACTIVE (của booking gốc, hoặc của lần đổi đã hoàn tất). Bỏ chặng
+	 * REPLACED, PENDING_CHANGE và chặng mới của lần đổi quá hạn hoặc bị huỷ.
+	 */
+	private static final String CURRENT_SEGMENT = """
+			(s.status = 'ACTIVE' OR s.status = 'CANCELLED' AND (s.reschedule_id IS NULL
+			    OR EXISTS (SELECT 1 FROM reschedules r WHERE r.id = s.reschedule_id AND r.status = 'COMPLETED')))""";
 
 	private static final String SUMMARY = """
 			SELECT b.id, b.code, b.status, b.contact_name, b.contact_email, b.contact_phone, b.total_amount,
@@ -234,6 +245,18 @@ public class BookingQueries {
 			       r.staff_note, r.created_at, r.completed_at
 			FROM refund_requests r
 			LEFT JOIN booking_journeys j ON j.id = r.journey_id
+			WHERE r.booking_id = :id
+			ORDER BY r.created_at, r.id
+			""";
+
+	private static final String RESCHEDULES = """
+			SELECT r.id, j.direction, r.status, r.old_fare_total, r.new_fare_total, r.change_fee_total, r.amount_due,
+			       r.hold_expires_at, r.created_at, r.completed_at,
+			       (SELECT string_agg(f.flight_number, ',' ORDER BY s.seq)
+			        FROM booking_segments s JOIN flights f ON f.id = s.flight_id
+			        WHERE s.reschedule_id = r.id) AS flight_numbers
+			FROM reschedules r
+			JOIN booking_journeys j ON j.id = r.journey_id
 			WHERE r.booking_id = :id
 			ORDER BY r.created_at, r.id
 			""";
@@ -374,6 +397,14 @@ public class BookingQueries {
 					rs.getLong("fee_amount"), rs.getLong("refund_amount"), rs.getString("reason"),
 					rs.getString("staff_note"), vietnam(rs, "created_at"), vietnam(rs, "completed_at")))
 			.list();
+		List<RescheduleView> reschedules = jdbc.sql(RESCHEDULES)
+			.params(id)
+			.query((rs, n) -> new RescheduleView(rs.getLong("id"), Direction.valueOf(rs.getString("direction")),
+					rs.getString("status"), rs.getLong("old_fare_total"), rs.getLong("new_fare_total"),
+					rs.getLong("change_fee_total"), rs.getLong("amount_due"), vietnam(rs, "hold_expires_at"),
+					vietnam(rs, "created_at"), vietnam(rs, "completed_at"),
+					rs.getString("flight_numbers") == null ? List.of() : List.of(rs.getString("flight_numbers").split(","))))
+			.list();
 
 		Map<Long, Integer> passengerIndex = new HashMap<>();
 		for (int i = 0; i < passengers.size(); i++) {
@@ -405,7 +436,7 @@ public class BookingQueries {
 		return new BookingDetail(booking.code(), booking.status(), booking.holdExpiresAt(), booking.issuedAt(),
 				booking.createdAt(), booking.contact(), booking.voucherCode(), booking.fareTotal(),
 				booking.baggageTotal(), booking.discountTotal(), booking.totalAmount(), journeyViews, passengerViews,
-				payments, refundRequests);
+				payments, refundRequests, reschedules);
 	}
 
 	private static SummaryRow summary(ResultSet rs, int rowNum) throws SQLException {

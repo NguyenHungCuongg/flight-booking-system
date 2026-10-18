@@ -36,7 +36,7 @@ public class BookingCancellation {
 	private record Locked(long id, long userId, BookingStatus status, Long voucherId, Instant holdExpiresAt) {
 	}
 
-	private record Seat(long flightId, CabinClass cabin) {
+	record Seat(long flightId, CabinClass cabin) {
 	}
 
 	/** Q-07. */
@@ -129,7 +129,7 @@ public class BookingCancellation {
 	 * voucher (Q-15, BR-32). Chuyển booking sang {@code status}.
 	 */
 	private void release(Locked booking, BookingStatus status) {
-		releaseSeats(booking.id(), jdbc.sql(CANCEL_SEGMENTS)
+		releaseSeats(jdbc, seats, booking.id(), jdbc.sql(CANCEL_SEGMENTS)
 			.param("bookingId", booking.id())
 			.query(BookingCancellation::seat)
 			.list());
@@ -152,7 +152,7 @@ public class BookingCancellation {
 			.param(journeyId)
 			.query(Long.class)
 			.single();
-		releaseSeats(bookingId, jdbc.sql(CANCEL_JOURNEY_SEGMENTS)
+		releaseSeats(jdbc, seats, bookingId, jdbc.sql(CANCEL_JOURNEY_SEGMENTS)
 			.param("journeyId", journeyId)
 			.query(BookingCancellation::seat)
 			.list());
@@ -164,7 +164,7 @@ public class BookingCancellation {
 	}
 
 	/** Mỗi chặng trả đúng (người lớn + trẻ em) ghế một lần, theo {@code flightId} tăng dần (Q-02). */
-	private void releaseSeats(long bookingId, List<Seat> released) {
+	static void releaseSeats(JdbcClient jdbc, SeatInventory seats, long bookingId, List<Seat> released) {
 		int seated = jdbc.sql("SELECT count(*) FROM passengers WHERE booking_id = ? AND type <> 'INFANT'")
 			.param(bookingId)
 			.query(Integer.class)
@@ -174,7 +174,7 @@ public class BookingCancellation {
 			.forEach(seat -> seats.release(seat.flightId(), seat.cabin(), seated));
 	}
 
-	private static Seat seat(ResultSet rs, int rowNum) throws SQLException {
+	static Seat seat(ResultSet rs, int rowNum) throws SQLException {
 		return new Seat(rs.getLong("flight_id"), CabinClass.valueOf(rs.getString("cabin_class")));
 	}
 

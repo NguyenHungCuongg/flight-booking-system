@@ -86,7 +86,7 @@ public class BookingService {
 			RETURNING id
 			""";
 
-	private static final String INSERT_TICKET = """
+	static final String INSERT_TICKET = """
 			INSERT INTO tickets (segment_id, passenger_id, fare_amount) VALUES (:segmentId, :passengerId, :fareAmount)
 			""";
 
@@ -96,7 +96,7 @@ public class BookingService {
 			""";
 
 	/** Q-13 cho mọi vé chưa có số của các chặng ACTIVE; {@code nextval} chạy riêng cho từng dòng. */
-	private static final String ISSUE_TICKETS = """
+	static final String ISSUE_TICKETS = """
 			UPDATE tickets t
 			SET ticket_number = a.ticket_prefix || lpad(nextval('ticket_number_seq')::text, 10, '0'),
 			    issued_at = now()
