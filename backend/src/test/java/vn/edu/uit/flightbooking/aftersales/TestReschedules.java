@@ -2,6 +2,7 @@ package vn.edu.uit.flightbooking.aftersales;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static vn.edu.uit.flightbooking.TestCsrf.csrf;
 
 import java.time.LocalDate;
@@ -14,8 +15,11 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+import com.jayway.jsonpath.JsonPath;
+
 import tools.jackson.databind.json.JsonMapper;
 import vn.edu.uit.flightbooking.booking.TestBookings;
+import vn.edu.uit.flightbooking.payment.TestVnpay;
 
 /** Dữ liệu và lời gọi dùng chung cho test đổi chuyến (Plan 15). */
 public final class TestReschedules {
@@ -47,6 +51,36 @@ public final class TestReschedules {
 			.session(customer)
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(JsonMapper.shared().writeValueAsString(Map.of("flightIds", Arrays.stream(flightIds).boxed().toList()))));
+	}
+
+	/** Xác nhận đổi chiều {@code direction} sang hành trình mới. */
+	public static ResultActions confirm(MockMvc mvc, MockHttpSession customer, String code, String direction,
+			long... flightIds) throws Exception {
+		return mvc.perform(post("/api/bookings/{code}/journeys/{direction}/reschedules", code, direction)
+			.with(csrf(mvc))
+			.session(customer)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(JsonMapper.shared().writeValueAsString(Map.of("flightIds", Arrays.stream(flightIds).boxed().toList()))));
+	}
+
+	/** Xác nhận đổi (phải trả 201), trả id yêu cầu. */
+	public static long confirmId(MockMvc mvc, MockHttpSession customer, String code, String direction,
+			long... flightIds) throws Exception {
+		String json = confirm(mvc, customer, code, direction, flightIds).andExpect(status().isCreated())
+			.andReturn()
+			.getResponse()
+			.getContentAsString();
+		return ((Number) JsonPath.read(json, "$.id")).longValue();
+	}
+
+	public static ResultActions pay(MockMvc mvc, MockHttpSession customer, long id) throws Exception {
+		return mvc.perform(post("/api/reschedules/{id}/payments", id).with(csrf(mvc)).session(customer));
+	}
+
+	/** Tạo lượt thu (phải trả 201), trả {@code vnp_TxnRef} của lượt đó. */
+	public static String payTxnRef(MockMvc mvc, MockHttpSession customer, long id) throws Exception {
+		String json = pay(mvc, customer, id).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+		return TestVnpay.query(JsonPath.<String>read(json, "$.paymentUrl")).get("vnp_TxnRef");
 	}
 
 }

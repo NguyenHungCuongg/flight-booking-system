@@ -59,12 +59,18 @@ public class RefundRequests {
 	@EventListener
 	@Transactional(propagation = Propagation.MANDATORY)
 	void on(UnexpectedPaymentReceived event) {
-		long amount = payments.unrefunded(event.paymentId());
+		createInvalidPayment(event.bookingId(), event.paymentId());
+	}
+
+	/** BR-44: yêu cầu hoàn {@code INVALID_PAYMENT} đúng bằng phần chưa hoàn của lượt thu; bên gọi đã khoá booking. */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void createInvalidPayment(long bookingId, long paymentId) {
+		long amount = payments.unrefunded(paymentId);
 		jdbc.sql("""
 				INSERT INTO refund_requests (booking_id, payment_id, source, status, base_amount, fee_amount,
 				                             refund_amount)
 				VALUES (?, ?, 'INVALID_PAYMENT', 'PENDING', ?, 0, ?)
-				""").params(event.bookingId(), event.paymentId(), amount, amount).update();
+				""").params(bookingId, paymentId, amount, amount).update();
 	}
 
 	/** TDD §6.6 bước 1: chiều chuyển REFUNDED và ghế được trả; tiền hoàn ở {@link #execute}. */
