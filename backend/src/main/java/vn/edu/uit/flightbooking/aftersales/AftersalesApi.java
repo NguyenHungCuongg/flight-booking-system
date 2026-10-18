@@ -4,7 +4,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** API công khai của module aftersales cho module khác (email hoàn tiền). */
+/** API công khai của module aftersales cho module khác (email hoàn tiền và đổi chuyến). */
 @Service
 public class AftersalesApi {
 
@@ -14,6 +14,11 @@ public class AftersalesApi {
 	 */
 	public record RefundNotice(String bookingCode, String contactName, String contactEmail, String direction,
 			long refundAmount, String staffNote) {
+	}
+
+	/** Nội dung email đổi chuyến thành công; {@code amountDue} là số tiền khách đã trả cho lần đổi (có thể 0). */
+	public record RescheduleNotice(long bookingId, String bookingCode, String contactName, String contactEmail,
+			String direction, long amountDue) {
 	}
 
 	private final JdbcClient jdbc;
@@ -35,6 +40,22 @@ public class AftersalesApi {
 			.query((rs, rowNum) -> new RefundNotice(rs.getString("code"), rs.getString("contact_name"),
 					rs.getString("contact_email"), rs.getString("direction"), rs.getLong("refund_amount"),
 					rs.getString("staff_note")))
+			.single();
+	}
+
+	@Transactional(readOnly = true)
+	public RescheduleNotice reschedule(long id) {
+		return jdbc.sql("""
+				SELECT b.id, b.code, b.contact_name, b.contact_email, j.direction, r.amount_due
+				FROM reschedules r
+				JOIN bookings b ON b.id = r.booking_id
+				JOIN booking_journeys j ON j.id = r.journey_id
+				WHERE r.id = ?
+				""")
+			.param(id)
+			.query((rs, rowNum) -> new RescheduleNotice(rs.getLong("id"), rs.getString("code"),
+					rs.getString("contact_name"), rs.getString("contact_email"), rs.getString("direction"),
+					rs.getLong("amount_due")))
 			.single();
 	}
 
