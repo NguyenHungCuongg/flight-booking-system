@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Brand } from "@/components/auth-shell";
 import { Notice, pillLine, textLink } from "@/components/form";
 import { CABINS } from "@/components/landing/data";
 import { ddmm, parseIso, weekday } from "@/components/landing/search-context";
+import SiteHeader from "@/components/site-header";
 import { ApiError, apiFetch, type Schemas } from "@/lib/api";
+import { formFromParams } from "@/lib/search-query";
 import { saveSelection, type Journey } from "@/lib/selection";
 import {
   departsAfter,
@@ -20,6 +21,7 @@ import {
   type Itinerary,
 } from "./itineraries";
 import ResultList from "./result-list";
+import SearchBar from "./search-bar";
 
 type Load =
   | { status: "loading" }
@@ -94,9 +96,7 @@ function LoadError({ error, retry }: { error: ApiError; retry: () => void }) {
             Thử lại
           </button>
         ) : (
-          <Link href="/" className={textLink}>
-            Tìm lại từ trang chủ
-          </Link>
+          "Hãy sửa điều kiện bằng nút Đổi tìm kiếm phía trên."
         )}
       </p>
     </Notice>
@@ -216,21 +216,14 @@ export default function FlightResults() {
   if (!hasQuery) {
     body = (
       <p className="text-muted">
-        Chưa có điều kiện tìm kiếm.{" "}
-        <Link href="/" className={textLink}>
-          Về trang chủ để tìm chuyến
-        </Link>
+        Chọn điểm đi, điểm đến và ngày bay để xem các chuyến còn chỗ.
       </p>
     );
   } else if (badReturn) {
     body = (
       <Notice>
         <p className="font-bold">Ngày về không được trước ngày đi.</p>
-        <p className="mt-8">
-          <Link href="/" className={textLink}>
-            Tìm lại từ trang chủ
-          </Link>
-        </p>
+        <p className="mt-8">Hãy chọn lại ngày ở ô tìm phía trên.</p>
       </Notice>
     );
   } else if (current.load.status === "loading") {
@@ -267,12 +260,7 @@ export default function FlightResults() {
 
   return (
     <div className="min-h-dvh bg-paper">
-      <header className="mx-auto flex max-w-page items-center justify-between gap-16 px-16 py-22 sm:px-38">
-        <Brand />
-        <Link href="/" className={pillLine}>
-          Đổi tìm kiếm
-        </Link>
-      </header>
+      <SiteHeader />
 
       <main className="mx-auto grid max-w-page gap-38 px-16 pt-22 pb-119 sm:px-38">
         <div className="grid gap-13">
@@ -293,14 +281,21 @@ export default function FlightResults() {
             </ol>
           )}
           <h1 className="text-heading-lg font-bold">{title}</h1>
-          {hasQuery && (
-            <p className="text-muted">
-              {legFrom} → {legTo}, {dateLabel(legDate)},{" "}
-              {paxLabel(counts.adults, counts.children, counts.infants)},{" "}
-              {cabinLabel}
-            </p>
-          )}
         </div>
+
+        <SearchBar
+          key={params.toString()}
+          initial={formFromParams(params)}
+          summary={
+            hasQuery && !badReturn ? (
+              <p className="text-muted">
+                {legFrom} → {legTo}, {dateLabel(legDate)},{" "}
+                {paxLabel(counts.adults, counts.children, counts.infants)},{" "}
+                {cabinLabel}
+              </p>
+            ) : null
+          }
+        />
 
         {lost && (
           <Notice>

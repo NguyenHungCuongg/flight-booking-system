@@ -188,4 +188,50 @@ test("URL sai hoặc chiều đi không còn thì báo rõ, không vỡ trang", 
   await expect(
     page.getByText("Ngày về không được trước ngày đi."),
   ).toBeVisible();
+  await expect(
+    page.getByRole("search", { name: "Tìm chuyến bay" }),
+  ).toBeVisible();
+});
+
+test("/flights trống hiện sẵn ô tìm, không dẫn về trang chủ", async ({
+  page,
+}) => {
+  await page.goto("/flights");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Tìm chuyến bay.",
+  );
+  await expect(
+    page.getByRole("search", { name: "Tìm chuyến bay" }),
+  ).toBeVisible();
+  // Logo có aria-label "SkyLine, về trang chủ" nên chỉ bắt các link tìm lại cũ.
+  await expect(
+    page.getByRole("link", {
+      name: /Về trang chủ để tìm|Tìm lại từ trang chủ/,
+    }),
+  ).toHaveCount(0);
+});
+
+test("Đổi tìm kiếm mở ô tìm điền sẵn, tìm lại thì về bước 1 và đóng ô", async ({
+  page,
+}) => {
+  await page.goto(
+    search({
+      from: "HAN",
+      to: "SGN",
+      date: day(1),
+      returnDate: day(3),
+      out: "1",
+      outFare: "1",
+    }),
+  );
+  const box = page.getByRole("search", { name: "Tìm chuyến bay" });
+  await expect(box).toHaveCount(0);
+  await page.getByRole("button", { name: "Đổi tìm kiếm" }).click();
+  await expect(page.getByRole("button", { name: /^Đến SGN/ })).toBeVisible();
+  await box.getByRole("button", { name: "Tìm chuyến bay" }).click();
+  await expect(page).not.toHaveURL(/out=/);
+  await expect(box).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Chọn chiều đi.",
+  );
 });

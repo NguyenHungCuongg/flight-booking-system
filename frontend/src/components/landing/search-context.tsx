@@ -76,7 +76,14 @@ export function useSearch() {
   return c;
 }
 
-export function SearchProvider({ children }: { children: React.ReactNode }) {
+/** `initial` ghi đè giá trị mặc định ban đầu của form, VD điều kiện tìm đọc từ URL ở C-02. */
+export function SearchProvider({
+  children,
+  initial,
+}: {
+  children: React.ReactNode;
+  initial?: Partial<SearchForm>;
+}) {
   // getServerSnapshot trả null nên prerender không gọi new Date() (Cache Components cấm).
   const today = useSyncExternalStore(
     subscribeNone,
@@ -95,6 +102,7 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
     cabin: "ECONOMY",
     fromPar: 0,
     toPar: 0,
+    ...initial,
   });
   const [flash, setFlash] = useState(0);
 
