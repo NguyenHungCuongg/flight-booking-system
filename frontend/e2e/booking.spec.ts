@@ -83,6 +83,21 @@ test("đặt vé từ C-07 tới VNPay, hết hạn rồi huỷ trên C-09", asy
   await expect(page).toHaveURL("/login?next=%2Fcheckout");
   await login(page, email, "matkhau1");
   await expect(page).toHaveURL("/checkout");
+  // Header theo bước: bước 1 quay về đúng kết quả tìm, không có menu chính.
+  const steps = page.getByRole("navigation", { name: "Các bước đặt vé" });
+  await expect(
+    steps.getByRole("link", { name: "1. Chọn chuyến" }),
+  ).toHaveAttribute(
+    "href",
+    `/flights?from=HAN&to=SGN&date=${day(1)}&adults=1&children=0&infants=0&cabin=ECONOMY`,
+  );
+  await expect(steps.getByText("2. Thông tin hành khách")).toHaveAttribute(
+    "aria-current",
+    "step",
+  );
+  await expect(page.getByRole("link", { name: "Đặt chỗ của tôi" })).toHaveCount(
+    0,
+  );
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Hoàn tất đặt vé.",
   );

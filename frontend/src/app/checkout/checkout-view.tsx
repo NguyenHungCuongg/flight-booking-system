@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import SiteHeader from "@/components/site-header";
 import { FormSkeleton, Notice, textLink } from "@/components/form";
 import { useAirports } from "@/lib/airports";
 import { ApiError, apiFetch, type User } from "@/lib/api";
+import { flightsUrl } from "@/lib/search-query";
 import { useSelection } from "@/lib/selection";
 import { first } from "../flights/itineraries";
 import { isInternational } from "./booking-request";
 import CheckoutForm, { type BaggageOption } from "./checkout-form";
+import CheckoutHeader from "./checkout-header";
 
 /**
  * C-07: đọc lựa chọn ở sessionStorage (Plan 08), tài khoản để điền sẵn liên hệ (FR-21), danh mục sân bay để biết chặng
@@ -62,7 +63,9 @@ export default function CheckoutView() {
 
   return (
     <div className="min-h-dvh bg-paper">
-      <SiteHeader />
+      <CheckoutHeader
+        backUrl={selection ? flightsUrl(selection) : "/flights"}
+      />
       <main className="mx-auto grid max-w-page gap-38 px-16 pt-22 pb-119 sm:px-38">
         {selection === null ? (
           <div className="grid gap-13">
@@ -71,7 +74,7 @@ export default function CheckoutView() {
             </h1>
             <p className="text-muted">
               Hãy tìm và chọn chuyến bay trước khi đặt vé.{" "}
-              <Link href="/" className={textLink}>
+              <Link href="/flights" className={textLink}>
                 Tìm chuyến bay
               </Link>
             </p>

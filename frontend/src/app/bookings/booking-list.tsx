@@ -75,7 +75,7 @@ export default function BookingList() {
           : status
             ? "Không có đặt chỗ nào ở trạng thái này. "
             : "Bạn chưa có đặt chỗ nào. "}
-        <Link href="/" className={textLink}>
+        <Link href="/flights" className={textLink}>
           Tìm chuyến bay
         </Link>
       </p>
