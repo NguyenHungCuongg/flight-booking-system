@@ -54,4 +54,20 @@ test("route cần đăng nhập hiển thị được sau khi đăng nhập", as
   await expect(
     page.getByRole("button", { name: /^Menu tài khoản/ }),
   ).toBeVisible();
+
+  await page.goto("/");
+  await expect(
+    page
+      .getByRole("navigation", { name: "Điều hướng chính" })
+      .getByRole("button", { name: /^Menu tài khoản/ }),
+  ).toBeVisible();
+});
+
+test("trang chủ có link Tìm chuyến bay tới /flights", async ({ page }) => {
+  await page.goto("/");
+  await expect(
+    page
+      .getByRole("navigation", { name: "Điều hướng chính" })
+      .getByRole("link", { name: "Tìm chuyến bay" }),
+  ).toHaveAttribute("href", "/flights");
 });
