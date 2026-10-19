@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { apiFetch, type User } from "@/lib/api";
 import { Icon, Logo } from "./icons";
 
 export default function Nav() {
   const [solid, setSolid] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [user, setUser] = useState<User>();
 
   // Nền thanh điều hướng đặc dần khi cuộn qua phần đầu hero.
   useEffect(() => {
@@ -14,6 +16,11 @@ export default function Nav() {
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Cookie phiên là HttpOnly nên hỏi /me; 401 nghĩa là chưa đăng nhập, giữ nút Đăng nhập.
+  useEffect(() => {
+    apiFetch<User>("/me").then(setUser, () => {});
   }, []);
 
   const close = () => setMenuOpen(false);
@@ -35,9 +42,15 @@ export default function Nav() {
           <Link className="nav-link" href="/bookings">
             Đặt chỗ của tôi
           </Link>
-          <Link className="pill pill-dark" href="/login">
-            Đăng nhập
-          </Link>
+          {user ? (
+            <Link className="nav-link" href="/account">
+              Tài khoản
+            </Link>
+          ) : (
+            <Link className="pill pill-dark" href="/login">
+              Đăng nhập
+            </Link>
+          )}
         </nav>
         <button
           type="button"
@@ -67,12 +80,20 @@ export default function Nav() {
           </Link>
         </nav>
         <div className="menu-cta">
-          <Link className="pill pill-dark" href="/login" onClick={close}>
-            Đăng nhập
-          </Link>
-          <Link className="pill pill-line" href="/register" onClick={close}>
-            Đăng ký
-          </Link>
+          {user ? (
+            <Link className="pill pill-dark" href="/account" onClick={close}>
+              Tài khoản
+            </Link>
+          ) : (
+            <>
+              <Link className="pill pill-dark" href="/login" onClick={close}>
+                Đăng nhập
+              </Link>
+              <Link className="pill pill-line" href="/register" onClick={close}>
+                Đăng ký
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>

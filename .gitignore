@@ -26,3 +26,6 @@ Thumbs.db
 # Playwright test (frontend/e2e)
 test-results/
 playwright-report/
+
+# Mockup của visual companion (superpowers brainstorming)
+.superpowers/
