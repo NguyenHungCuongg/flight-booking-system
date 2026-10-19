@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import CustomerHeader from "@/components/customer-header";
+import SiteHeader from "@/components/site-header";
 import { Notice, textLink } from "@/components/form";
 import { ApiError, apiFetch, type Schemas } from "@/lib/api";
 import {
@@ -138,7 +138,7 @@ export default function BookingList() {
 
   return (
     <div className="min-h-dvh bg-paper">
-      <CustomerHeader />
+      <SiteHeader />
       <main className="mx-auto grid max-w-page gap-38 px-16 pt-22 pb-119 sm:px-38">
         <h1 className="text-heading-lg font-bold">Đặt chỗ của tôi.</h1>
         {params.get("payment") === "failed" && (

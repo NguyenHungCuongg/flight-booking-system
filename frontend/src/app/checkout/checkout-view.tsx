@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import CustomerHeader from "@/components/customer-header";
+import SiteHeader from "@/components/site-header";
 import { FormSkeleton, Notice, textLink } from "@/components/form";
 import { useAirports } from "@/lib/airports";
 import { ApiError, apiFetch, type User } from "@/lib/api";
@@ -62,7 +62,7 @@ export default function CheckoutView() {
 
   return (
     <div className="min-h-dvh bg-paper">
-      <CustomerHeader />
+      <SiteHeader />
       <main className="mx-auto grid max-w-page gap-38 px-16 pt-22 pb-119 sm:px-38">
         {selection === null ? (
           <div className="grid gap-13">

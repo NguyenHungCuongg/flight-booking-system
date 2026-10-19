@@ -44,9 +44,13 @@ test("đăng ký, sửa hồ sơ, đổi mật khẩu, đăng xuất rồi đăn
   await page.getByRole("button", { name: "Đổi mật khẩu" }).click();
   await expect(page.getByText("Đã đổi mật khẩu.")).toBeVisible();
 
-  // Đăng xuất: route cần đăng nhập chuyển về /login?next=.
+  // Đăng xuất từ menu tên: về trang chủ, header hiện lại Đăng nhập; route cần đăng nhập chuyển về /login?next=.
+  await page.getByRole("button", { name: /^Menu tài khoản/ }).click();
   await page.getByRole("button", { name: "Đăng xuất" }).click();
-  await expect(page).toHaveURL("/login");
+  await expect(page).toHaveURL("/");
+  await expect(
+    page.getByRole("link", { name: "Đăng nhập" }).first(),
+  ).toBeVisible();
   await page.goto("/account");
   await expect(page).toHaveURL("/login?next=%2Faccount");
 

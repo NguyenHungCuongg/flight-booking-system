@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { Brand } from "@/components/auth-shell";
 import {
   Field,
   FormSkeleton,
@@ -11,11 +9,11 @@ import {
   PASSWORD_PATTERN,
   PASSWORD_RULE,
   pillDark,
-  pillLine,
   text,
   useSubmit,
 } from "@/components/form";
-import { ApiError, apiFetch, homeOf, type Role, type User } from "@/lib/api";
+import SiteHeader from "@/components/site-header";
+import { ApiError, apiFetch, type Role, type User } from "@/lib/api";
 
 const ROLE_LABEL: Record<Role, string> = {
   CUSTOMER: "Khách hàng",
@@ -186,7 +184,6 @@ export default function AccountView() {
   const router = useRouter();
   const [user, setUser] = useState<User>();
   const [loadError, setLoadError] = useState<string>();
-  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     apiFetch<User>("/me").then(setUser, (e: ApiError) => {
@@ -196,36 +193,9 @@ export default function AccountView() {
     });
   }, [router]);
 
-  async function logout() {
-    setLeaving(true);
-    // Phiên đã hết hạn thì backend trả 401, kết quả vẫn là đã đăng xuất.
-    await apiFetch("/auth/logout", { method: "POST" }).catch(() => {});
-    router.replace("/login");
-  }
-
   return (
     <div className="min-h-dvh bg-paper">
-      <header className="mx-auto flex max-w-page items-center justify-between gap-16 px-16 py-22 sm:px-38">
-        <Brand />
-        <div className="flex items-center gap-22">
-          {user && (
-            <Link
-              href={homeOf(user.role)}
-              className="hidden text-caption text-muted transition-colors hover:text-ink sm:inline"
-            >
-              {user.role === "CUSTOMER" ? "Đặt chỗ của tôi" : "Trang làm việc"}
-            </Link>
-          )}
-          <button
-            type="button"
-            className={pillLine}
-            onClick={logout}
-            disabled={leaving}
-          >
-            {leaving ? "Đang đăng xuất..." : "Đăng xuất"}
-          </button>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="mx-auto grid max-w-page gap-53 px-16 pt-38 pb-119 sm:px-38">
         {loadError ? (

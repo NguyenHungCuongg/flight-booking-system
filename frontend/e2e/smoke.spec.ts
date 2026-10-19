@@ -45,4 +45,13 @@ test("route cần đăng nhập hiển thị được sau khi đăng nhập", as
   await page.getByRole("button", { name: "Đăng nhập" }).click();
   await expect(page).toHaveURL("/bookings");
   for (const path of PROTECTED) await expectRenders(page, path);
+
+  // Header chung: mục đang mở được đánh dấu, có menu tên.
+  await page.goto("/bookings");
+  await expect(
+    page.getByRole("link", { name: "Đặt chỗ của tôi" }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(
+    page.getByRole("button", { name: /^Menu tài khoản/ }),
+  ).toBeVisible();
 });
