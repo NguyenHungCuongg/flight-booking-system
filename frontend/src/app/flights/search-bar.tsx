@@ -39,7 +39,7 @@ export default function SearchBar({
       )}
       {open && (
         <SearchProvider initial={initial}>
-          <div className="sk">
+          <div className="sk t-auto">
             <SearchDock />
           </div>
         </SearchProvider>

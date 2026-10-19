@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useId } from "react";
+import { useId, useState } from "react";
 import { apiFetch, homeOf, type User } from "@/lib/api";
 
 const item =
@@ -27,6 +27,7 @@ export default function UserMenu({
   className?: string;
 }) {
   const id = useId();
+  const [pos, setPos] = useState<{ top: number; right: number }>();
   return (
     <>
       <button
@@ -34,14 +35,28 @@ export default function UserMenu({
         popoverTarget={id}
         aria-label={`Menu tài khoản: ${user.fullName}`}
         className={className}
+        // Menu nằm ở top layer nên tự đặt ngay dưới nút, căn mép phải theo nút.
+        // ponytail: đo vị trí lúc mở, chuyển sang CSS anchor positioning khi các trình duyệt đều hỗ trợ.
+        onClick={(e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          setPos({
+            top: r.bottom + 8,
+            right: document.documentElement.clientWidth - r.right,
+          });
+        }}
       >
         {user.fullName.split(" ").at(-1)} ▾
       </button>
-      {/* ponytail: vị trí cố định ở góc phải trên, dùng CSS anchor positioning khi các trình duyệt đều hỗ trợ. */}
+      {/* text-caption đặt ở đây để nút Đăng xuất kế thừa, vì CSS của landing (.sk button) ghi đè cỡ chữ của nút. */}
       <div
         id={id}
         popover="auto"
-        className="fixed inset-auto top-72 right-16 m-0 w-260 border border-line-strong bg-paper py-8 text-ink"
+        style={pos}
+        // Chọn một mục thì đóng menu, kể cả khi mục đó là trang đang mở (không có điều hướng để gỡ menu).
+        onClick={(e) =>
+          (e.target as Element).closest("a") && e.currentTarget.hidePopover()
+        }
+        className="fixed inset-auto m-0 w-260 border border-line-strong bg-paper py-8 text-caption text-ink"
       >
         <div className="border-b border-line px-16 pt-4 pb-11">
           <p className="text-caption font-bold break-words">{user.fullName}</p>
