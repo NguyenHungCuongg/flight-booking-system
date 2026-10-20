@@ -47,9 +47,13 @@ class FlightEmail {
 		sendCancelled(e.flightId());
 	}
 
+	/** Đọc người nhận trước: chuyến chưa có booking có thể đã bị xoá khi listener chạy. */
 	void sendTimeChanged(long flightId) {
-		FlightRef flight = flights.flight(flightId);
 		List<FlightContact> contacts = bookings.contactsOn(flightId);
+		if (contacts.isEmpty()) {
+			return;
+		}
+		FlightRef flight = flights.flight(flightId);
 		for (FlightContact c : contacts) {
 			String subject = "Chuyến bay " + flight.flightNumber() + " đổi giờ – mã đặt chỗ " + c.code();
 			mailer.send(c.contactEmail(), subject, "flight-time-changed",
@@ -59,8 +63,11 @@ class FlightEmail {
 	}
 
 	void sendCancelled(long flightId) {
-		FlightRef flight = flights.flight(flightId);
 		List<FlightContact> contacts = bookings.contactsOn(flightId);
+		if (contacts.isEmpty()) {
+			return;
+		}
+		FlightRef flight = flights.flight(flightId);
 		for (FlightContact c : contacts) {
 			String subject = "Chuyến bay " + flight.flightNumber() + " bị huỷ – mã đặt chỗ " + c.code();
 			mailer.send(c.contactEmail(), subject, "flight-cancelled",
@@ -70,4 +77,3 @@ class FlightEmail {
 	}
 
 }
-

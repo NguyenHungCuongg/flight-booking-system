@@ -208,7 +208,7 @@ public class BookingCancellation {
 		return new Seat(rs.getLong("flight_id"), CabinClass.valueOf(rs.getString("cabin_class")));
 	}
 
-	static Locked locked(ResultSet rs, int rowNum) throws SQLException {
+	private static Locked locked(ResultSet rs, int rowNum) throws SQLException {
 		return new Locked(rs.getLong("id"), rs.getLong("user_id"), BookingStatus.valueOf(rs.getString("status")),
 				rs.getObject("voucher_id", Long.class),
 				rs.getObject("hold_expires_at", OffsetDateTime.class).toInstant());

@@ -6,4 +6,3 @@ package vn.edu.uit.flightbooking.flight;
  */
 public record FlightCancelled(long flightId) {
 }
-
