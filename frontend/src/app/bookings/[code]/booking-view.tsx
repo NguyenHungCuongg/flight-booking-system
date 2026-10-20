@@ -17,10 +17,13 @@ import { ApiError, apiFetch, type Schemas } from "@/lib/api";
 import {
   DIRECTION_LABEL,
   PASSENGER_LABEL,
+  REFUND_SOURCE,
+  REFUND_STATUS,
   STATUS_LABEL,
   clock,
   countdown,
   dmy,
+  journeyActions,
   useNow,
 } from "@/lib/booking";
 import { fareRules, vnd } from "../../flights/itineraries";
@@ -38,9 +41,15 @@ const PAYMENT_STATUS: Record<string, string> = {
 };
 
 /** "08:00 16/10/2026", theo giờ trong chuỗi. */
-const at = (iso: string) => `${clock(iso)} ${dmy(iso)}`;
+export const at = (iso: string) => `${clock(iso)} ${dmy(iso)}`;
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+export function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
   return (
     <section
       aria-label={title}
@@ -52,8 +61,14 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-/** Phần chỉ đọc của FR-41: hành trình, hành khách và vé, bảng giá, liên hệ, lượt thu. */
-function BookingBody({ booking }: { booking: Detail }) {
+/** Phần chỉ đọc của FR-41: hành trình, hành khách và vé, bảng giá, liên hệ, lượt thu, yêu cầu hoàn. */
+function BookingBody({
+  booking,
+  now,
+}: {
+  booking: Detail;
+  now: number | null;
+}) {
   const rows: [string, number][] = [["Giá vé", booking.fareTotal]];
   if (booking.baggageTotal)
     rows.push(["Hành lý mua thêm", booking.baggageTotal]);
@@ -71,9 +86,11 @@ function BookingBody({ booking }: { booking: Detail }) {
           {booking.journeys.map((j) => {
             const cabin =
               CABINS.find((c) => c.id === j.cabinClass)?.label ?? j.cabinClass;
+            const acts = journeyActions(booking, j, now);
             return (
-              <div
+              <article
                 key={j.direction}
+                aria-label={DIRECTION_LABEL[j.direction]}
                 className="grid gap-8 border border-line p-22"
               >
                 <p className="font-bold">
@@ -91,7 +108,17 @@ function BookingBody({ booking }: { booking: Detail }) {
                 <p className="text-caption text-muted">
                   {`${j.fareFamilyName}, ${cabin}. ${fareRules(j).join(", ")}.`}
                 </p>
-              </div>
+                {acts.refund && (
+                  <div className="flex flex-wrap gap-16 text-caption">
+                    <Link
+                      className={textLink}
+                      href={`/bookings/${booking.code}/refund/${j.direction.toLowerCase()}`}
+                    >
+                      Hoàn chiều này
+                    </Link>
+                  </div>
+                )}
+              </article>
             );
           })}
         </Section>
@@ -151,6 +178,32 @@ function BookingBody({ booking }: { booking: Detail }) {
             </ul>
           </Section>
         )}
+        {booking.refundRequests.length > 0 && (
+          <Section title="Yêu cầu hoàn">
+            <ul className="grid gap-16">
+              {booking.refundRequests.map((r) => (
+                <li key={r.id} className="grid gap-4">
+                  <p className="font-bold">
+                    {`${r.direction ? DIRECTION_LABEL[r.direction] : "Khoản thanh toán thừa"}, ${REFUND_STATUS[r.status] ?? r.status}, hoàn ${vnd(r.refundAmount)}`}
+                  </p>
+                  <p className="text-caption text-muted">
+                    {`Gửi lúc ${at(r.createdAt)} (giờ Việt Nam)`}
+                    {r.source !== "CUSTOMER" &&
+                      `. ${REFUND_SOURCE[r.source] ?? r.source}`}
+                  </p>
+                  {r.reason && (
+                    <p className="text-caption">{`Lý do: ${r.reason}`}</p>
+                  )}
+                  {r.staffNote && (
+                    <p className="text-caption">
+                      {`Ghi chú của nhân viên: ${r.staffNote}`}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </Section>
+        )}
       </div>
     </div>
   );
@@ -164,6 +217,7 @@ export default function BookingView() {
   const { code } = useParams<{ code: string }>();
   const params = useSearchParams();
   const payment = params.get("payment");
+  const refund = params.get("refund");
   const router = useRouter();
   const now = useNow();
   // undefined: đang tải; null: không tìm thấy.
@@ -285,6 +339,11 @@ export default function BookingView() {
             {canPay && " Bạn có thể thanh toán lại trước khi hết hạn giữ chỗ."}
           </Notice>
         )}
+        {booking && refund === "sent" && (
+          <Notice tone="ok">
+            {`Đã gửi yêu cầu hoàn. Nhân viên sẽ xét duyệt và báo kết quả qua email ${booking.contact.email}.`}
+          </Notice>
+        )}
         {actionError && <Notice>{actionError}</Notice>}
 
         {booking && (
@@ -334,7 +393,7 @@ export default function BookingView() {
           </section>
         )}
 
-        {booking && <BookingBody booking={booking} />}
+        {booking && <BookingBody booking={booking} now={now} />}
       </main>
     </div>
   );

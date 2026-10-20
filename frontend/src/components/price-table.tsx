@@ -1,12 +1,14 @@
 import { vnd } from "@/app/flights/itineraries";
 
-/** Bảng giá của C-07 và C-09: từng dòng, rồi tổng thanh toán. Số âm là giảm giá. */
+/** Bảng giá của C-07, C-09, C-10 và C-11: từng dòng, rồi dòng tổng. Số âm là giảm giá hoặc phí trừ. */
 export default function PriceTable({
   rows,
   total,
+  totalLabel = "Tổng thanh toán",
 }: {
   rows: [string, number][];
   total: number;
+  totalLabel?: string;
 }) {
   return (
     <dl className="grid gap-8">
@@ -17,7 +19,7 @@ export default function PriceTable({
         </div>
       ))}
       <div className="flex justify-between gap-16 border-t border-line pt-13 font-bold">
-        <dt>Tổng thanh toán</dt>
+        <dt>{totalLabel}</dt>
         <dd>{vnd(total)}</dd>
       </div>
     </dl>

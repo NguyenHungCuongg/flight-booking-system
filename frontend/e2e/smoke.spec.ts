@@ -11,7 +11,13 @@ const PUBLIC = [
   "/reset-password",
 ];
 // Mã không tồn tại: C-09 vẫn phải có tiêu đề "Không tìm thấy đặt chỗ." (BR-104).
-const PROTECTED = ["/account", "/bookings", "/checkout", "/bookings/ZZZZZZ"];
+const PROTECTED = [
+  "/account",
+  "/bookings",
+  "/checkout",
+  "/bookings/ZZZZZZ",
+  "/bookings/ZZZZZZ/refund/outbound",
+];
 
 async function expectRenders(page: Page, path: string) {
   const errors: Error[] = [];
