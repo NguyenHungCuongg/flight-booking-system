@@ -19,6 +19,7 @@ import {
   PASSENGER_LABEL,
   REFUND_SOURCE,
   REFUND_STATUS,
+  RESCHEDULE_STATUS,
   STATUS_LABEL,
   clock,
   countdown,
@@ -61,13 +62,17 @@ export function Section({
   );
 }
 
-/** Phần chỉ đọc của FR-41: hành trình, hành khách và vé, bảng giá, liên hệ, lượt thu, yêu cầu hoàn. */
+/** Phần thân của FR-41: hành trình (kèm thao tác hoàn, đổi), hành khách và vé, bảng giá, liên hệ, thanh toán, hậu mãi. */
 function BookingBody({
   booking,
   now,
+  busy,
+  onPayReschedule,
 }: {
   booking: Detail;
   now: number | null;
+  busy: boolean;
+  onPayReschedule: (id: number) => void;
 }) {
   const rows: [string, number][] = [["Giá vé", booking.fareTotal]];
   if (booking.baggageTotal)
@@ -87,6 +92,7 @@ function BookingBody({
             const cabin =
               CABINS.find((c) => c.id === j.cabinClass)?.label ?? j.cabinClass;
             const acts = journeyActions(booking, j, now);
+            const dirSlug = j.direction.toLowerCase();
             return (
               <article
                 key={j.direction}
@@ -108,14 +114,24 @@ function BookingBody({
                 <p className="text-caption text-muted">
                   {`${j.fareFamilyName}, ${cabin}. ${fareRules(j).join(", ")}.`}
                 </p>
-                {acts.refund && (
+                {(acts.refund || acts.change) && (
                   <div className="flex flex-wrap gap-16 text-caption">
-                    <Link
-                      className={textLink}
-                      href={`/bookings/${booking.code}/refund/${j.direction.toLowerCase()}`}
-                    >
-                      Hoàn chiều này
-                    </Link>
+                    {acts.refund && (
+                      <Link
+                        className={textLink}
+                        href={`/bookings/${booking.code}/refund/${dirSlug}`}
+                      >
+                        Hoàn chiều này
+                      </Link>
+                    )}
+                    {acts.change && (
+                      <Link
+                        className={textLink}
+                        href={`/bookings/${booking.code}/reschedule/${dirSlug}`}
+                      >
+                        Đổi chiều này
+                      </Link>
+                    )}
                   </div>
                 )}
               </article>
@@ -204,6 +220,48 @@ function BookingBody({
             </ul>
           </Section>
         )}
+        {booking.reschedules.length > 0 && (
+          <Section title="Đổi chuyến">
+            <ul className="grid gap-16">
+              {booking.reschedules.map((r) => {
+                const left =
+                  r.status === "PENDING_PAYMENT" && now !== null
+                    ? Date.parse(r.holdExpiresAt) - now
+                    : null;
+                return (
+                  <li key={r.id} className="grid gap-4">
+                    <p className="font-bold">
+                      {`${DIRECTION_LABEL[r.direction]}: ${r.flightNumbers.join(" + ")}, ${RESCHEDULE_STATUS[r.status] ?? r.status}, phải trả ${vnd(r.amountDue)}`}
+                    </p>
+                    <p className="text-caption text-muted">
+                      {`Xác nhận lúc ${at(r.createdAt)} (giờ Việt Nam)`}
+                    </p>
+                    {left !== null && left > 0 && (
+                      <>
+                        <p className="text-caption">
+                          {`Còn ${countdown(left)} để thanh toán`}
+                        </p>
+                        <button
+                          type="button"
+                          className={`${pillDark} justify-self-start`}
+                          disabled={busy}
+                          onClick={() => onPayReschedule(r.id)}
+                        >
+                          {`Thanh toán đổi chuyến ${vnd(r.amountDue)}`}
+                        </button>
+                      </>
+                    )}
+                    {left !== null && left <= 0 && (
+                      <p className="text-caption">
+                        Đã hết hạn thanh toán đổi chuyến.
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </Section>
+        )}
       </div>
     </div>
   );
@@ -218,6 +276,7 @@ export default function BookingView() {
   const params = useSearchParams();
   const payment = params.get("payment");
   const refund = params.get("refund");
+  const reschedule = params.get("reschedule");
   const router = useRouter();
   const now = useNow();
   // undefined: đang tải; null: không tìm thấy.
@@ -250,12 +309,12 @@ export default function BookingView() {
   }, [code, version, router]);
   const reload = () => setVersion((v) => v + 1);
 
-  async function pay() {
+  async function startPayment(path: string) {
     setBusy(true);
     setActionError(undefined);
     try {
       const { paymentUrl } = await apiFetch<Schemas["PaymentUrlResponse"]>(
-        `/bookings/${encodeURIComponent(code)}/payments`,
+        path,
         { method: "POST" },
       );
       // Giữ busy: trang đang chuyển sang VNPay.
@@ -299,6 +358,14 @@ export default function BookingView() {
       ? Date.parse(booking.holdExpiresAt) - now
       : null;
   const canPay = left !== null && left > 0;
+  const canPayReschedule =
+    booking !== null &&
+    booking !== undefined &&
+    now !== null &&
+    booking.reschedules.some(
+      (r) =>
+        r.status === "PENDING_PAYMENT" && Date.parse(r.holdExpiresAt) > now,
+    );
 
   return (
     <div className="min-h-dvh bg-paper">
@@ -337,11 +404,18 @@ export default function BookingView() {
           <Notice>
             Thanh toán chưa thành công.
             {canPay && " Bạn có thể thanh toán lại trước khi hết hạn giữ chỗ."}
+            {canPayReschedule &&
+              " Bạn có thể thanh toán lại phí đổi chuyến trước khi hết hạn."}
           </Notice>
         )}
         {booking && refund === "sent" && (
           <Notice tone="ok">
             {`Đã gửi yêu cầu hoàn. Nhân viên sẽ xét duyệt và báo kết quả qua email ${booking.contact.email}.`}
+          </Notice>
+        )}
+        {booking && reschedule === "done" && (
+          <Notice tone="ok">
+            {`Đổi chuyến thành công. Vé mới đã được gửi tới ${booking.contact.email}.`}
           </Notice>
         )}
         {actionError && <Notice>{actionError}</Notice>}
@@ -375,7 +449,11 @@ export default function BookingView() {
                     type="button"
                     className={pillDark}
                     disabled={busy}
-                    onClick={pay}
+                    onClick={() =>
+                      startPayment(
+                        `/bookings/${encodeURIComponent(code)}/payments`,
+                      )
+                    }
                   >
                     {`Thanh toán ${vnd(booking.totalAmount)}`}
                   </button>
@@ -393,7 +471,14 @@ export default function BookingView() {
           </section>
         )}
 
-        {booking && <BookingBody booking={booking} now={now} />}
+        {booking && (
+          <BookingBody
+            booking={booking}
+            now={now}
+            busy={busy}
+            onPayReschedule={(id) => startPayment(`/reschedules/${id}/payments`)}
+          />
+        )}
       </main>
     </div>
   );

@@ -17,6 +17,7 @@ const PROTECTED = [
   "/checkout",
   "/bookings/ZZZZZZ",
   "/bookings/ZZZZZZ/refund/outbound",
+  "/bookings/ZZZZZZ/reschedule/outbound",
 ];
 
 async function expectRenders(page: Page, path: string) {
@@ -77,3 +78,4 @@ test("trang chủ có link Tìm chuyến bay tới /flights", async ({ page }) =
       .getByRole("link", { name: "Tìm chuyến bay" }),
   ).toHaveAttribute("href", "/flights");
 });
+

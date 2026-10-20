@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import SiteHeader from "@/components/site-header";
 import {
   Field,
@@ -63,31 +63,34 @@ export default function RefundView() {
   const notFound = dir === null || quote === null;
   const bookingHref = `/bookings/${encodeURIComponent(code)}`;
 
-  const onSubmit = submit(
-    async (data) => {
-      if (sent.current || !dir) return;
-      sent.current = true;
-      try {
-        await apiFetch<Schemas["RefundCreatedResponse"]>(
-          `/bookings/${encodeURIComponent(code)}/journeys/${dir}/refund-requests`,
-          { method: "POST", body: { reason: text(data, "reason") } },
-        );
-        router.push(`${bookingHref}?refund=sent`);
-      } catch (e) {
-        sent.current = false;
-        throw e;
-      }
-    },
-    (e) => {
-      if (e.status === 401) {
-        router.replace(
-          `/login?next=${encodeURIComponent(location.pathname + location.search)}`,
-        );
-        return true;
-      }
-      return false;
-    },
-  );
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (sent.current || !dir) return;
+    sent.current = true;
+    await submit(
+      async (data) => {
+        try {
+          await apiFetch<Schemas["RefundCreatedResponse"]>(
+            `/bookings/${encodeURIComponent(code)}/journeys/${dir}/refund-requests`,
+            { method: "POST", body: { reason: text(data, "reason") } },
+          );
+          router.push(`${bookingHref}?refund=sent`);
+        } catch (err) {
+          sent.current = false;
+          throw err;
+        }
+      },
+      (err) => {
+        if (err.status === 401) {
+          router.replace(
+            `/login?next=${encodeURIComponent(location.pathname + location.search)}`,
+          );
+          return true;
+        }
+        return false;
+      },
+    )(e);
+  }
 
   return (
     <div className="min-h-dvh bg-paper">
@@ -155,4 +158,3 @@ export default function RefundView() {
     </div>
   );
 }
-
