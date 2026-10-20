@@ -1,5 +1,4 @@
 import { expect, test, type Page } from "@playwright/test";
-import type { Schemas } from "../src/lib/api";
 import { dmy } from "../src/lib/booking";
 import { day, field, issuedBooking, paidReturn } from "./helpers";
 
