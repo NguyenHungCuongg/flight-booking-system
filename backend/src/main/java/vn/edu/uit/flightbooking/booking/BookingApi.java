@@ -37,6 +37,10 @@ public class BookingApi {
 			List<IssuedTicket> tickets) {
 	}
 
+	/** Người liên hệ của booking trên chuyến cho thông báo đổi giờ hoặc huỷ chuyến (Plan 16). */
+	public record FlightContact(String code, String contactName, String contactEmail) {
+	}
+
 	/**
 	 * Một chiều của booking cho hậu mãi. {@code refundFee}: phí mỗi khách chiếm ghế (snapshot); {@code seated}: số khách
 	 * không phải em bé; {@code firstDeparture}: giờ cất cánh sớm nhất của các chặng ACTIVE, {@code null} khi không còn
@@ -232,6 +236,25 @@ public class BookingApi {
 			.toList();
 	}
 
+	/**
+	 * Booking ISSUED có chặng ACTIVE trên chuyến, mỗi booking một dòng, theo booking id (FR-130, Plan 16).
+	 */
+	@Transactional(readOnly = true)
+	public List<FlightContact> contactsOn(long flightId) {
+		return jdbc.sql("""
+				SELECT DISTINCT b.id, b.code, b.contact_name, b.contact_email
+				FROM bookings b
+				JOIN booking_journeys j ON j.booking_id = b.id
+				JOIN booking_segments s ON s.journey_id = j.id
+				WHERE s.flight_id = ? AND s.status = 'ACTIVE' AND b.status = 'ISSUED'
+				ORDER BY b.id
+				""")
+			.param(flightId)
+			.query((rs, rowNum) -> new FlightContact(rs.getString("code"), rs.getString("contact_name"),
+					rs.getString("contact_email")))
+			.list();
+	}
+
 	private ChangeRef changeOf(JourneyRef ref) {
 		Map<String, Object> id = Map.of("journeyId", ref.journeyId());
 		Profile profile = jdbc.sql(PROFILE)
@@ -305,3 +328,4 @@ public class BookingApi {
 	}
 
 }
+

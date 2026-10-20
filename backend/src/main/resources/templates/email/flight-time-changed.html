@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chuyến bay đổi giờ</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 24px;
+      background: #ffffff;
+      color: #000d10;
+      font-family: Inter, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+    "
+  >
+    <p>Xin chào <span th:text="${contactName}">NGUYEN VAN AN</span>,</p>
+    <p>
+      Chuyến <strong th:text="${flight.flightNumber()}">Q1300</strong> (<span
+        th:text="${flight.departureAirport() + ' → ' + flight.arrivalAirport()}"
+        >QHE → QHA</span
+      >) trong booking
+      <strong th:text="${code}" style="font-size: 20px; letter-spacing: 2px"
+        >K7Q2XM</strong
+      >
+      đã đổi giờ. Giờ mới: cất cánh
+      <strong th:text="${#temporals.format(flight.departureTime(), 'HH:mm dd/MM/yyyy')}"
+        >09:00 20/10/2026</strong
+      >, hạ cánh
+      <strong th:text="${#temporals.format(flight.arrivalTime(), 'HH:mm dd/MM/yyyy')}"
+        >11:00 20/10/2026</strong
+      >.
+    </p>
+    <p>
+      Nếu chuyến này nối với một chuyến khác trong hành trình, vui lòng kiểm tra
+      lại thời gian nối chuyến và liên hệ tổng đài nếu cần hỗ trợ.
+    </p>
+    <p>
+      <a
+        th:href="${link}"
+        href="#"
+        style="
+          display: inline-block;
+          padding: 12px 24px;
+          border-radius: 1000px;
+          background: #000d10;
+          color: #ffffff;
+          text-decoration: none;
+          font-weight: 700;
+        "
+        >Xem booking</a
+      >
+    </p>
+    <p style="color: #8e8e95">
+      Giờ cất cánh và hạ cánh là giờ địa phương của sân bay tương ứng.
+    </p>
+  </body>
+</html>
+

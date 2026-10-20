@@ -51,6 +51,11 @@ public class FlightApi {
 	public record PricedJourney(String airlineCode, FareSnapshot fare, List<PricedSegment> segments) {
 	}
 
+	/** Thông tin tóm tắt chuyến bay cho thông báo đổi giờ hoặc huỷ chuyến (Plan 16). */
+	public record FlightRef(long id, String flightNumber, String departureAirport, String arrivalAirport,
+			OffsetDateTime departureTime, OffsetDateTime arrivalTime) {
+	}
+
 	private record Flight(long id, String flightNumber, String airlineCode, String status, String departureAirport,
 			String arrivalAirport, OffsetDateTime departureTime, OffsetDateTime arrivalTime, boolean international) {
 	}
@@ -116,6 +121,17 @@ public class FlightApi {
 			checkReturn(priced.getFirst(), priced.getLast());
 		}
 		return priced;
+	}
+
+	/** Đọc thông tin chuyến bay theo id kèm giờ địa phương. Chuyến luôn tồn tại. */
+	@Transactional(readOnly = true)
+	public FlightRef flight(long id) {
+		Flight f = jdbc.sql(FLIGHTS)
+			.param("ids", List.of(id))
+			.query(FlightApi::flight)
+			.single();
+		return new FlightRef(f.id(), f.flightNumber(), f.departureAirport(), f.arrivalAirport(), f.departureTime(),
+				f.arrivalTime());
 	}
 
 	private PricedJourney journey(JourneyChoice choice, int seats, Instant minDeparture, int minConnection,

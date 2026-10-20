@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chuyến bay bị huỷ</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 24px;
+      background: #ffffff;
+      color: #000d10;
+      font-family: Inter, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+    "
+  >
+    <p>Xin chào <span th:text="${contactName}">NGUYEN VAN AN</span>,</p>
+    <p>
+      Chuyến <strong th:text="${flight.flightNumber()}">Q1300</strong> (<span
+        th:text="${flight.departureAirport() + ' → ' + flight.arrivalAirport()}"
+        >QHE → QHA</span
+      >) khởi hành
+      <span th:text="${#temporals.format(flight.departureTime(), 'HH:mm dd/MM/yyyy')}"
+        >06:00 20/10/2026</span
+      >
+      trong booking
+      <strong th:text="${code}" style="font-size: 20px; letter-spacing: 2px"
+        >K7Q2XM</strong
+      >
+      đã bị huỷ.
+    </p>
+    <p>
+      Chúng tôi đã tạo yêu cầu hoàn 100% giá trị chiều có chuyến này, không thu
+      phí. Nhân viên sẽ xử lý và hoàn tiền về phương thức thanh toán ban đầu; bạn
+      sẽ nhận email khi hoàn tiền xong.
+    </p>
+    <p>
+      <a
+        th:href="${link}"
+        href="#"
+        style="
+          display: inline-block;
+          padding: 12px 24px;
+          border-radius: 1000px;
+          background: #000d10;
+          color: #ffffff;
+          text-decoration: none;
+          font-weight: 700;
+        "
+        >Xem booking</a
+      >
+    </p>
+    <p style="color: #8e8e95">
+      Giờ khởi hành là giờ địa phương của sân bay đi.
+    </p>
+  </body>
+</html>
+
