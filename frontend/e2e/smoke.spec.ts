@@ -20,6 +20,8 @@ const PROTECTED = [
   "/bookings/ZZZZZZ/reschedule/outbound",
   "/staff/bookings",
   "/staff/bookings/ZZZZZZ",
+  "/staff/flights",
+  "/staff/flights/0/passengers",
 ];
 
 async function expectRenders(page: Page, path: string) {

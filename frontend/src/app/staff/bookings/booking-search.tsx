@@ -49,8 +49,13 @@ export default function BookingSearch() {
           label="Trạng thái"
           name="status"
           defaultValue={status}
-          options={STATUS_OPTIONS}
-        />
+        >
+          {STATUS_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </SelectField>
         <button type="submit" className={pillDark}>
           Tìm
         </button>

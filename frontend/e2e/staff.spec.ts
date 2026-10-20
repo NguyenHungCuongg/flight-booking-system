@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { dmy } from "../src/lib/booking";
 import { day, field, issuedBooking } from "./helpers";
 
 // E2E màn Staff S-01–S-06. Trình duyệt ở múi giờ New York (TDD §7).
@@ -66,6 +67,36 @@ test("Staff tra cứu booking và gửi lại email vé (UF-07)", async ({ page 
   await expect(page.getByRole("status")).toContainText(
     `Đã gửi lại email vé tới ${email}.`,
   );
+
+  // S-05 (APP_FLOW §2.2): ô "Trạng thái" để trống vẫn lọc đúng; giờ theo sân bay dù trình duyệt ở New York.
+  await nav.getByRole("link", { name: "Chuyến bay" }).click();
+  await field(page, "Điểm đi").selectOption("HAN");
+  await field(page, "Điểm đến").selectOption("SGN");
+  await field(page, "Ngày bay").fill(day(3));
+  await field(page, "Hãng bay").selectOption("QH");
+  await page.getByRole("button", { name: "Lọc", exact: true }).click();
+  await expect(page).toHaveURL(
+    `/staff/flights?from=HAN&to=SGN&date=${day(3)}&airline=QH&status=`,
+  );
+  const flight = page.getByRole("row", { name: /QH201/ });
+  await expect(flight).toContainText(`10:00 ${dmy(day(3))}`);
+  await expect(flight).toContainText("Theo lịch");
+  await expect(flight).toContainText(/Phổ thông \d+\/\d+/);
+
+  // S-06 (FR-72): khách của booking vừa tạo có trong manifest, link về S-02.
+  await flight.getByRole("link", { name: "Hành khách" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Hành khách QH201.",
+  );
+  const passenger = page.getByRole("row", { name: new RegExp(code) });
+  await expect(passenger).toContainText("PHAM THU HA");
+  await expect(passenger).toContainText("Người lớn");
+  await expect(passenger).toContainText("Phổ thông");
+  await expect(passenger).toContainText(/\d{13}/);
+  await expect(passenger).toContainText("0912345678");
+  await passenger.getByRole("link", { name: code }).click();
+  await expect(page).toHaveURL(`/staff/bookings/${code}`);
+
   await page.getByRole("link", { name: "Tra cứu đặt chỗ" }).click();
   await expect(page).toHaveURL("/staff/bookings");
 });
