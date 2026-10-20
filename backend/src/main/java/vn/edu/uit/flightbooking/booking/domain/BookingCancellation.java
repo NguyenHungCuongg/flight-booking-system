@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
+import org.springframework.context.event.EventListener;
+import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -19,13 +21,14 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.edu.uit.flightbooking.catalog.CabinClass;
 import vn.edu.uit.flightbooking.common.BusinessException;
 import vn.edu.uit.flightbooking.common.ErrorCode;
+import vn.edu.uit.flightbooking.flight.FlightCancelled;
 import vn.edu.uit.flightbooking.flight.SeatInventory;
 import vn.edu.uit.flightbooking.promotion.VoucherApi;
 
 /**
- * Huỷ booking chưa thanh toán (FR-33, BR-45, TDD §6.5): khách tự huỷ thì CANCELLED, quá hạn giữ chỗ thì EXPIRED. Cả
- * hai dùng chung {@link #release}: thứ tự khoá TDD §5.4 là {@code bookings} → {@code flight_cabins} →
- * {@code vouchers}.
+ * Huỷ booking chưa thanh toán (FR-33, BR-45, TDD §6.5) hoặc chuyến bị huỷ (BR-84 a): khách tự huỷ thì CANCELLED, quá
+ * hạn giữ chỗ thì EXPIRED. Cả hai dùng chung {@link #release}: thứ tự khoá TDD §5.4 là {@code bookings} →
+ * {@code flight_cabins} → {@code vouchers}.
  */
 @Service
 public class BookingCancellation {
@@ -116,6 +119,33 @@ public class BookingCancellation {
 		return true;
 	}
 
+	/**
+	 * TDD §6.8, BR-84 (a): chạy đồng bộ trong transaction huỷ chuyến, trước listener của aftersales ({@code @Order(1)}).
+	 * Khoá mọi booking bị ảnh hưởng, kể cả booking đã xuất vé, để aftersales ghi {@code reschedules} và {@code refund_requests}
+	 * của chúng mà không cần khoá lại.
+	 */
+	@EventListener
+	@Order(1)
+	@Transactional(propagation = Propagation.MANDATORY)
+	public void on(FlightCancelled event) {
+		List<Locked> locked = jdbc.sql("""
+				SELECT id, user_id, status, voucher_id, hold_expires_at FROM bookings
+				WHERE id IN (SELECT j.booking_id FROM booking_segments s JOIN booking_journeys j ON j.id = s.journey_id
+				             WHERE s.flight_id = :flightId AND s.status IN ('ACTIVE', 'PENDING_CHANGE'))
+				ORDER BY id
+				FOR UPDATE
+				""")
+			.param("flightId", event.flightId())
+			.query(BookingCancellation::locked)
+			.list();
+
+		for (Locked booking : locked) {
+			if (booking.status() == BookingStatus.PENDING_PAYMENT) {
+				release(booking, BookingStatus.CANCELLED);
+			}
+		}
+	}
+
 	private Optional<Locked> lock(String where, Object key) {
 		return jdbc.sql("SELECT id, user_id, status, voucher_id, hold_expires_at FROM bookings WHERE " + where
 				+ " FOR UPDATE")
@@ -178,7 +208,7 @@ public class BookingCancellation {
 		return new Seat(rs.getLong("flight_id"), CabinClass.valueOf(rs.getString("cabin_class")));
 	}
 
-	private static Locked locked(ResultSet rs, int rowNum) throws SQLException {
+	static Locked locked(ResultSet rs, int rowNum) throws SQLException {
 		return new Locked(rs.getLong("id"), rs.getLong("user_id"), BookingStatus.valueOf(rs.getString("status")),
 				rs.getObject("voucher_id", Long.class),
 				rs.getObject("hold_expires_at", OffsetDateTime.class).toInstant());

@@ -22,7 +22,7 @@ import vn.edu.uit.flightbooking.flight.FlightApi.PricedSegment;
 
 /**
  * API công khai của booking (TDD §3.2). Có dữ liệu cho email vé (FR-31, FR-73) và các hàm đọc, khoá, hoàn một chiều
- * cho hậu mãi (Plan 14), và các hàm đổi chuyến (Plan 15): đọc một chiều để đổi, giữ chỗ chặng mới, hoàn tất hoặc huỷ.
+ * cho hậu mãi (Plan 14), các hàm đổi chuyến (Plan 15), và các hàm cho chuyến bị huỷ (Plan 16).
  */
 @Service
 public class BookingApi {
@@ -87,7 +87,7 @@ public class BookingApi {
 			""";
 
 	/** Q-08: giá trị một chiều gồm vé các chặng ACTIVE và hành lý, trừ phần giảm giá của chiều. */
-	private static final String JOURNEY = """
+	private static final String JOURNEY_COLUMNS = """
 			SELECT b.id AS booking_id, b.user_id, b.status = 'ISSUED' AS booking_issued,
 			       j.id AS journey_id, j.status = 'ACTIVE' AS journey_active, j.refundable, j.refund_fee,
 			       j.changeable, j.change_fee,
@@ -100,8 +100,9 @@ public class BookingApi {
 			              - j.discount_amount, 0) AS value
 			FROM bookings b
 			JOIN booking_journeys j ON j.booking_id = b.id
-			WHERE b.code = :code AND j.direction = :direction
 			""";
+
+	private static final String JOURNEY = JOURNEY_COLUMNS + "WHERE b.code = :code AND j.direction = :direction\n";
 
 	private static final String PROFILE = """
 			SELECT j.fare_family_id, j.cabin_class,
@@ -211,6 +212,26 @@ public class BookingApi {
 		changes.cancel(rescheduleId);
 	}
 
+	/**
+	 * BR-84 (c): các chiều ACTIVE của booking ISSUED có chặng ACTIVE trên chuyến, theo booking id rồi journey id.
+	 * Bên gọi đã khoá booking.
+	 */
+	@Transactional(propagation = Propagation.MANDATORY)
+	public List<JourneyRef> issuedJourneysOn(long flightId) {
+		return jdbc.sql(JOURNEY_COLUMNS + """
+				WHERE b.status = 'ISSUED' AND j.status = 'ACTIVE'
+				  AND EXISTS (SELECT 1 FROM booking_segments s
+				              WHERE s.journey_id = j.id AND s.flight_id = :flightId AND s.status = 'ACTIVE')
+				ORDER BY b.id, j.id
+				""")
+			.param("flightId", flightId)
+			.query(BookingApi::found)
+			.list()
+			.stream()
+			.map(Found::ref)
+			.toList();
+	}
+
 	private ChangeRef changeOf(JourneyRef ref) {
 		Map<String, Object> id = Map.of("journeyId", ref.journeyId());
 		Profile profile = jdbc.sql(PROFILE)
@@ -240,19 +261,21 @@ public class BookingApi {
 				other != null && !otherIsOutbound ? other.firstDeparture() : null);
 	}
 
+	private static Found found(ResultSet rs, int rowNum) throws SQLException {
+		OffsetDateTime first = rs.getObject("first_departure", OffsetDateTime.class);
+		return new Found(rs.getLong("user_id"),
+				new JourneyRef(rs.getLong("booking_id"), rs.getLong("journey_id"),
+						rs.getBoolean("booking_issued"), rs.getBoolean("journey_active"),
+						rs.getBoolean("refundable"), rs.getLong("refund_fee"), rs.getBoolean("changeable"),
+						rs.getLong("change_fee"), rs.getInt("seated"),
+						first == null ? null : first.toInstant(), rs.getLong("value")));
+	}
+
 	private Optional<JourneyRef> read(long userId, String code, String direction) {
 		return jdbc.sql(JOURNEY)
 			.param("code", code.toUpperCase(Locale.ROOT))
 			.param("direction", direction.toUpperCase(Locale.ROOT))
-			.query((rs, rowNum) -> {
-				OffsetDateTime first = rs.getObject("first_departure", OffsetDateTime.class);
-				return new Found(rs.getLong("user_id"),
-						new JourneyRef(rs.getLong("booking_id"), rs.getLong("journey_id"),
-								rs.getBoolean("booking_issued"), rs.getBoolean("journey_active"),
-								rs.getBoolean("refundable"), rs.getLong("refund_fee"), rs.getBoolean("changeable"),
-									rs.getLong("change_fee"), rs.getInt("seated"),
-								first == null ? null : first.toInstant(), rs.getLong("value")));
-			})
+			.query(BookingApi::found)
 			.optional()
 			.filter(found -> found.userId() == userId)
 			.map(Found::ref);
