@@ -34,6 +34,15 @@ export default function FlightList() {
     `/staff/flights?${query}`,
   );
 
+  // Giá trị đang lọc trên URL luôn có trong ô chọn, kể cả khi sân bay/hãng đã tắt hoặc danh sách tải lỗi.
+  const withCurrent = (
+    options: { value: string; label: string }[],
+    current: string,
+  ) =>
+    current && !options.some((o) => o.value === current)
+      ? [...options, { value: current, label: current }]
+      : options;
+
   const airportOptions = [
     { value: "", label: "Tất cả" },
     ...(airports ?? []).map((a) => ({
@@ -71,7 +80,7 @@ export default function FlightList() {
             name="from"
             defaultValue={from}
           >
-            {airportOptions.map((opt) => (
+            {withCurrent(airportOptions, from).map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
@@ -82,7 +91,7 @@ export default function FlightList() {
             name="to"
             defaultValue={to}
           >
-            {airportOptions.map((opt) => (
+            {withCurrent(airportOptions, to).map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
@@ -99,7 +108,7 @@ export default function FlightList() {
             name="airline"
             defaultValue={airline}
           >
-            {airlineOptions.map((opt) => (
+            {withCurrent(airlineOptions, airline).map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>

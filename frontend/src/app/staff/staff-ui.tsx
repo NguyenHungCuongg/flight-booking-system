@@ -38,8 +38,8 @@ export function Pager({
   params: URLSearchParams;
   totalPages: number;
 }) {
-  if (totalPages <= 1) return null;
   const page = pageOf(params);
+  if (totalPages <= 1 && page <= 1) return null;
 
   return (
     <nav
@@ -47,8 +47,11 @@ export function Pager({
       className="flex items-center gap-22 text-caption"
     >
       {page > 1 && (
-        <Link href={pageHref(path, params, page - 1)} className={textLink}>
-          Trang trước
+        <Link
+          href={pageHref(path, params, Math.min(page - 1, totalPages))}
+          className={textLink}
+        >
+          {page > totalPages ? "Về trang cuối" : "Trang trước"}
         </Link>
       )}
       <span className="text-muted">{`Trang ${page}/${totalPages}`}</span>

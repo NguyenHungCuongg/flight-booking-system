@@ -364,6 +364,9 @@ export default function BookingView() {
       ? Date.parse(booking.holdExpiresAt) - now
       : null;
   const canPay = left !== null && left > 0;
+  // Trả phí đổi chuyến sau khi lượt đổi hết hạn: backend không đổi chuyến mà tạo yêu cầu hoàn.
+  const rescheduleExpired =
+    booking?.reschedules.some((r) => r.status === "EXPIRED") ?? false;
   const canPayReschedule =
     booking !== null &&
     booking !== undefined &&
@@ -401,7 +404,9 @@ export default function BookingView() {
 
         {booking && payment === "success" && (
           <Notice tone="ok">
-            {booking.status === "ISSUED"
+            {booking.status === "ISSUED" && rescheduleExpired
+              ? "Đã nhận thanh toán nhưng lượt đổi chuyến đã hết hạn nên chưa đổi được. Khoản đã trả sẽ được hoàn lại, bạn có thể theo dõi ở mục yêu cầu hoàn."
+              : booking.status === "ISSUED"
               ? `Thanh toán thành công. Vé điện tử đã được gửi tới ${booking.contact.email}.`
               : "Đã nhận kết quả từ VNPay, hệ thống đang xác nhận thanh toán. Hãy tải lại trang sau ít phút."}
           </Notice>

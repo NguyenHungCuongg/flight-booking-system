@@ -15,7 +15,7 @@ export default function PriceTable({
       {rows.map(([label, amount], i) => (
         <div key={i} className="flex justify-between gap-16 text-caption">
           <dt className="text-muted">{label}</dt>
-          <dd>{amount < 0 ? `-${vnd(-amount)}` : vnd(amount)}</dd>
+          <dd>{amount < 0 ? `-${vnd(-amount)}` : vnd(amount || 0)}</dd>
         </div>
       ))}
       <div className="flex justify-between gap-16 border-t border-line pt-13 font-bold">

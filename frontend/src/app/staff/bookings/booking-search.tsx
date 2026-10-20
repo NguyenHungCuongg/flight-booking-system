@@ -67,8 +67,8 @@ export default function BookingSearch() {
         <>
           {res.data.content.length === 0 ? (
             <p className="text-muted">
-              {q
-                ? `Không có đặt chỗ nào khớp "${q}".`
+              {q.trim() || status
+                ? "Không có đặt chỗ nào khớp bộ lọc."
                 : "Chưa có đặt chỗ nào."}
             </p>
           ) : (
