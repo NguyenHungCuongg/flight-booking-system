@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import vn.edu.uit.flightbooking.common.LockRetry;
 import vn.edu.uit.flightbooking.flight.FlightSearch;
 import vn.edu.uit.flightbooking.flight.FlightSearch.SearchQuery;
 import vn.edu.uit.flightbooking.flight.FlightSearch.SearchResult;
@@ -34,7 +35,7 @@ import vn.edu.uit.flightbooking.flight.domain.FlightService.NewFlights;
 import vn.edu.uit.flightbooking.flight.domain.FlightStatus;
 
 /**
- * Tìm chuyến (FR-11, FR-12: màn hình C-02) và quản trị chuyến bay (FR-90–92, FR-94: S-05, A-04–A-06). Quyền theo đường
+ * Tìm chuyến (FR-11, FR-12: màn hình C-02) và quản trị chuyến bay (FR-90–93, FR-94: S-05, A-04–A-06). Quyền theo đường
  * dẫn ở SecurityConfig.
  */
 @RestController
@@ -47,10 +48,13 @@ class FlightController {
 
 	private final FlightSearch search;
 
-	FlightController(FlightService flights, FlightQueries queries, FlightSearch search) {
+	private final LockRetry retry;
+
+	FlightController(FlightService flights, FlightQueries queries, FlightSearch search, LockRetry retry) {
 		this.flights = flights;
 		this.queries = queries;
 		this.search = search;
+		this.retry = retry;
 	}
 
 	/** Công khai, không phân trang (TDD §6.1). */
@@ -84,6 +88,14 @@ class FlightController {
 	FlightDetail update(@PathVariable long id, @Valid @RequestBody FlightChanges body) {
 		flights.update(id, body);
 		return queries.detail(id);
+	}
+
+	@PostMapping("/admin/flights/{id}/cancel")
+	FlightDetail cancel(@PathVariable long id) {
+		return retry.run(() -> {
+			flights.cancel(id);
+			return queries.detail(id);
+		});
 	}
 
 	@DeleteMapping("/admin/flights/{id}")

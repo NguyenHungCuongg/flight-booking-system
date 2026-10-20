@@ -41,10 +41,11 @@ import vn.edu.uit.flightbooking.catalog.CabinClass;
 import vn.edu.uit.flightbooking.catalog.CatalogApi;
 import vn.edu.uit.flightbooking.common.BusinessException;
 import vn.edu.uit.flightbooking.common.ErrorCode;
+import vn.edu.uit.flightbooking.flight.FlightCancelled;
 import vn.edu.uit.flightbooking.flight.FlightTimeChanged;
 
 /**
- * Tạo, sửa, xoá chuyến (FR-90, FR-92, FR-94; BR-80–82, BR-85–87). Dùng JdbcClient thay vì entity: số ghế chỉ được
+ * Tạo, sửa, huỷ, xoá chuyến (FR-90, FR-92, FR-93, FR-94; BR-80–82, BR-85–87). Dùng JdbcClient thay vì entity: số ghế chỉ được
  * đổi bằng UPDATE có điều kiện (TDD §5.4), và tạo hàng loạt cần {@code ON CONFLICT DO NOTHING} để bỏ qua ngày trùng.
  */
 @Service
@@ -207,6 +208,35 @@ public class FlightService {
 		if (!departure.equals(current.departureTime()) || !arrival.equals(current.arrivalTime())) {
 			events.publishEvent(new FlightTimeChanged(id));
 		}
+	}
+
+	/**
+	 * FR-93, TDD §6.8: khoá FOR UPDATE nên mọi lượt giữ ghế (khoá FOR SHARE) trên chuyến phải xong trước; lượt đến sau
+	 * thấy chuyến đã huỷ. Hệ quả BR-84 do listener của {@code FlightCancelled} làm, trong cùng transaction.
+	 */
+	@Transactional
+	public void cancel(long id) {
+		record StatusTime(FlightStatus status, Instant departureTime) {
+		}
+		StatusTime current = jdbc.sql("SELECT status, departure_time FROM flights WHERE id = ? FOR UPDATE")
+			.param(id)
+			.query((rs, n) -> new StatusTime(FlightStatus.valueOf(rs.getString("status")),
+					rs.getObject("departure_time", OffsetDateTime.class).toInstant()))
+			.optional()
+			.orElseThrow(FlightService::notFound);
+
+		if (current.status() == FlightStatus.CANCELLED) {
+			throw new BusinessException(ErrorCode.INVALID_STATE, "Chuyến đã bị huỷ");
+		}
+		if (!current.departureTime().isAfter(Instant.now())) {
+			throw new BusinessException(ErrorCode.DEADLINE_PASSED, "Chuyến đã cất cánh nên không huỷ được");
+		}
+
+		jdbc.sql("UPDATE flights SET status = 'CANCELLED', updated_at = now() WHERE id = ?")
+			.param(id)
+			.update();
+
+		events.publishEvent(new FlightCancelled(id));
 	}
 
 	/** FR-94, BR-82: chuyến đã từng có booking thì khoá ngoại của booking_segments chặn xoá. */
