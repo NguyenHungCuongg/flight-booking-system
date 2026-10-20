@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import type { Schemas } from "./api";
 
 export type BookingStatus = Schemas["BookingDetail"]["status"];
+export type Direction = Schemas["JourneyRequest"]["direction"];
 
 /** APP_FLOW §4.1. */
 export const STATUS_LABEL: Record<BookingStatus, string> = {
@@ -12,15 +13,76 @@ export const STATUS_LABEL: Record<BookingStatus, string> = {
   REFUNDED: "Đã hoàn vé",
 };
 
-export const DIRECTION_LABEL: Record<
-  Schemas["JourneyRequest"]["direction"],
-  string
-> = { OUTBOUND: "Chiều đi", RETURN: "Chiều về" };
+export const DIRECTION_LABEL: Record<Direction, string> = {
+  OUTBOUND: "Chiều đi",
+  RETURN: "Chiều về",
+};
 
 export const PASSENGER_LABEL: Record<
   Schemas["PassengerRequest"]["type"],
   string
 > = { ADULT: "Người lớn", CHILD: "Trẻ em", INFANT: "Em bé" };
+
+/** APP_FLOW §4.5. */
+export const REFUND_STATUS: Record<string, string> = {
+  PENDING: "Chờ duyệt",
+  APPROVED: "Đã duyệt, đang hoàn tiền",
+  REJECTED: "Bị từ chối",
+  COMPLETED: "Đã hoàn tiền",
+};
+
+export const REFUND_SOURCE: Record<string, string> = {
+  CUSTOMER: "Khách yêu cầu",
+  FLIGHT_CANCELLED: "Chuyến bay bị huỷ",
+  INVALID_PAYMENT: "Thanh toán sau khi hết hạn giữ chỗ",
+};
+
+/** APP_FLOW §4.6. */
+export const RESCHEDULE_STATUS: Record<string, string> = {
+  PENDING_PAYMENT: "Chờ thanh toán",
+  COMPLETED: "Hoàn tất",
+  EXPIRED: "Hết hạn thanh toán",
+  CANCELLED: "Đã huỷ",
+};
+
+/** Tham số `[direction]` trên URL của C-10, C-11 (luôn viết thường) sang enum của API. */
+export function directionParam(param: string): Direction | null {
+  if (param === "outbound") return "OUTBOUND";
+  if (param === "return") return "RETURN";
+  return null;
+}
+
+/**
+ * Quy tắc hiện nút "Hoàn chiều này", "Đổi chiều này" trên C-09 (BR-51, BR-60, BR-70). Không kiểm tra hạn chót
+ * `aftersales.min_hours_before_departure` vì tham số đó không có trong `BookingDetail`; khi quá hạn, C-10 và C-11 hiện
+ * câu `DEADLINE_PASSED` của backend.
+ */
+export function journeyActions(
+  booking: Schemas["BookingDetail"],
+  journey: Schemas["JourneyView"],
+  now: number | null,
+): { refund: boolean; change: boolean } {
+  const openRefund = booking.refundRequests.some(
+    (r) =>
+      r.direction === journey.direction &&
+      (r.status === "PENDING" || r.status === "APPROVED"),
+  );
+  const openReschedule = booking.reschedules.some(
+    (r) =>
+      r.direction === journey.direction && r.status === "PENDING_PAYMENT",
+  );
+  const eligible =
+    now !== null &&
+    booking.status === "ISSUED" &&
+    journey.status === "ACTIVE" &&
+    Date.parse(journey.segments[0].departureTime) > now &&
+    !openRefund &&
+    !openReschedule;
+  return {
+    refund: eligible && journey.refundable,
+    change: eligible && journey.changeable,
+  };
+}
 
 /**
  * Ngày và giờ đọc thẳng từ chuỗi có offset của API (giờ sân bay, hoặc giờ Việt Nam cho các mốc của booking), không qua

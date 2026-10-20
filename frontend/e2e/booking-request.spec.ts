@@ -7,7 +7,14 @@ import {
   passengerTypes,
   searchUrl,
 } from "../src/app/checkout/booking-request";
-import { clock, countdown, dmy } from "../src/lib/booking";
+import type { Schemas } from "../src/lib/api";
+import {
+  clock,
+  countdown,
+  directionParam,
+  dmy,
+  journeyActions,
+} from "../src/lib/booking";
 import {
   parseSelection,
   type Journey,
@@ -256,4 +263,81 @@ test("countdown: mm:ss, hết giờ là 00:00", () => {
   expect(countdown(15 * 60_000)).toBe("15:00");
   expect(countdown(61_999)).toBe("01:01");
   expect(countdown(-5_000)).toBe("00:00");
+});
+
+// journeyActions: dựng BookingDetail tối thiểu; chỉ các trường hàm đọc.
+const NOW = Date.parse("2026-11-01T00:00:00+07:00");
+type Changes = Record<string, unknown>;
+const leg = (direction: "OUTBOUND" | "RETURN", changes: Changes = {}) => ({
+  direction,
+  status: "ACTIVE",
+  refundable: true,
+  changeable: true,
+  segments: [{ departureTime: "2026-11-10T10:00:00+07:00" }],
+  ...changes,
+});
+const detail = (changes: Changes = {}) =>
+  ({
+    status: "ISSUED",
+    journeys: [leg("OUTBOUND"), leg("RETURN")],
+    refundRequests: [],
+    reschedules: [],
+    ...changes,
+  }) as unknown as Schemas["BookingDetail"];
+const actions = (
+  b: Schemas["BookingDetail"],
+  i: number,
+  now: number | null = NOW,
+) => journeyActions(b, b.journeys[i], now);
+
+test("journeyActions: đã xuất vé, chiều ACTIVE, chưa bay thì theo cờ của gói (BR-60, BR-70)", () => {
+  expect(actions(detail(), 0)).toEqual({ refund: true, change: true });
+  const lite = detail({ journeys: [leg("OUTBOUND", { refundable: false })] });
+  expect(actions(lite, 0)).toEqual({ refund: false, change: true });
+});
+
+test("journeyActions: không hiện khi chưa xuất vé, chiều đã hoàn, đã cất cánh hoặc chưa hydrate (BR-51)", () => {
+  const none = { refund: false, change: false };
+  expect(actions(detail({ status: "PENDING_PAYMENT" }), 0)).toEqual(none);
+  expect(
+    actions(detail({ journeys: [leg("OUTBOUND", { status: "REFUNDED" })] }), 0),
+  ).toEqual(none);
+  expect(actions(detail(), 0, Date.parse("2026-11-10T10:00:00+07:00"))).toEqual(
+    none,
+  );
+  expect(actions(detail(), 0, null)).toEqual(none);
+});
+
+test("journeyActions: yêu cầu hoàn đang mở hoặc đổi chờ thanh toán chỉ chặn đúng chiều đó (BR-51)", () => {
+  const refund = (direction: string | null, status: string) => ({
+    direction,
+    status,
+  });
+  const open = detail({ refundRequests: [refund("OUTBOUND", "APPROVED")] });
+  expect(actions(open, 0).refund).toBe(false);
+  expect(actions(open, 1).refund).toBe(true);
+  const closed = detail({
+    refundRequests: [
+      refund("OUTBOUND", "REJECTED"),
+      refund("OUTBOUND", "COMPLETED"),
+      refund(null, "PENDING"),
+    ],
+  });
+  expect(actions(closed, 0)).toEqual({ refund: true, change: true });
+  const changing = detail({
+    reschedules: [{ direction: "RETURN", status: "PENDING_PAYMENT" }],
+  });
+  expect(actions(changing, 1)).toEqual({ refund: false, change: false });
+  expect(actions(changing, 0)).toEqual({ refund: true, change: true });
+  const expired = detail({
+    reschedules: [{ direction: "RETURN", status: "EXPIRED" }],
+  });
+  expect(actions(expired, 1).change).toBe(true);
+});
+
+test("directionParam: chỉ nhận outbound, return", () => {
+  expect(directionParam("outbound")).toBe("OUTBOUND");
+  expect(directionParam("return")).toBe("RETURN");
+  expect(directionParam("RETURN")).toBeNull();
+  expect(directionParam("abc")).toBeNull();
 });
