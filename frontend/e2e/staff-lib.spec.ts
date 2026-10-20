@@ -69,3 +69,4 @@ test("cabinLabel: nhãn tiếng Việt, mã lạ giữ nguyên", () => {
   expect(cabinLabel("ECONOMY")).toBe("Phổ thông");
   expect(cabinLabel("XYZ")).toBe("XYZ");
 });
+

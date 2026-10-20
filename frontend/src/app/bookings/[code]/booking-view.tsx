@@ -17,10 +17,12 @@ import { ApiError, apiFetch, type Schemas } from "@/lib/api";
 import {
   DIRECTION_LABEL,
   PASSENGER_LABEL,
+  PAYMENT_STATUS,
   REFUND_SOURCE,
   REFUND_STATUS,
   RESCHEDULE_STATUS,
   STATUS_LABEL,
+  at,
   clock,
   countdown,
   dmy,
@@ -35,14 +37,6 @@ const PAYMENT_KIND: Record<string, string> = {
   CHARGE: "Thanh toán",
   REFUND: "Hoàn tiền",
 };
-const PAYMENT_STATUS: Record<string, string> = {
-  PENDING: "đang xử lý",
-  SUCCESS: "thành công",
-  FAILED: "thất bại",
-};
-
-/** "08:00 16/10/2026", theo giờ trong chuỗi. */
-const at = (iso: string) => `${clock(iso)} ${dmy(iso)}`;
 
 export function Section({
   title,
@@ -63,16 +57,18 @@ export function Section({
 }
 
 /** Phần thân của FR-41: hành trình (kèm thao tác hoàn, đổi), hành khách và vé, bảng giá, liên hệ, thanh toán, hậu mãi. */
-function BookingBody({
+export function BookingBody({
   booking,
   now,
-  busy,
+  staff = false,
+  busy = false,
   onPayReschedule,
 }: {
   booking: Detail;
   now: number | null;
-  busy: boolean;
-  onPayReschedule: (id: number) => void;
+  staff?: boolean;
+  busy?: boolean;
+  onPayReschedule?: (id: number) => void;
 }) {
   const rows: [string, number][] = [["Giá vé", booking.fareTotal]];
   if (booking.baggageTotal)
@@ -114,7 +110,7 @@ function BookingBody({
                 <p className="text-caption text-muted">
                   {`${j.fareFamilyName}, ${cabin}. ${fareRules(j).join(", ")}.`}
                 </p>
-                {(acts.refund || acts.change) && (
+                {!staff && (acts.refund || acts.change) && (
                   <div className="flex flex-wrap gap-16 text-caption">
                     {acts.refund && (
                       <Link
@@ -215,6 +211,14 @@ function BookingBody({
                       {`Ghi chú của nhân viên: ${r.staffNote}`}
                     </p>
                   )}
+                  {staff && (
+                    <Link
+                      className={`${textLink} text-caption justify-self-start`}
+                      href={`/staff/refunds/${r.id}`}
+                    >
+                      Xử lý yêu cầu
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -241,14 +245,16 @@ function BookingBody({
                         <p className="text-caption">
                           {`Còn ${countdown(left)} để thanh toán`}
                         </p>
-                        <button
-                          type="button"
-                          className={`${pillDark} justify-self-start`}
-                          disabled={busy}
-                          onClick={() => onPayReschedule(r.id)}
-                        >
-                          {`Thanh toán đổi chuyến ${vnd(r.amountDue)}`}
-                        </button>
+                        {!staff && onPayReschedule && (
+                          <button
+                            type="button"
+                            className={`${pillDark} justify-self-start`}
+                            disabled={busy}
+                            onClick={() => onPayReschedule(r.id)}
+                          >
+                            {`Thanh toán đổi chuyến ${vnd(r.amountDue)}`}
+                          </button>
+                        )}
                       </>
                     )}
                     {left !== null && left <= 0 && (

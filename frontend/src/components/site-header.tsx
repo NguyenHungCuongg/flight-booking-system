@@ -7,24 +7,46 @@ import { Brand } from "./auth-shell";
 import { pillDark, pillLine } from "./form";
 import UserMenu from "./user-menu";
 
-const LINKS = [
-  ["/flights", "Tìm chuyến bay"],
-  ["/bookings", "Đặt chỗ của tôi"],
-] as const;
+const NAV: Record<
+  "customer" | "staff",
+  { label: string; links: readonly (readonly [string, string])[] }
+> = {
+  customer: {
+    label: "Khách hàng",
+    links: [
+      ["/flights", "Tìm chuyến bay"],
+      ["/bookings", "Đặt chỗ của tôi"],
+    ],
+  },
+  staff: {
+    label: "Nhân viên",
+    links: [
+      ["/staff/bookings", "Đặt chỗ"],
+      ["/staff/refunds", "Yêu cầu hoàn"],
+      ["/staff/flights", "Chuyến bay"],
+    ],
+  },
+};
 
-/** Đầu trang chung của khu khách hàng (C-02, C-08, C-09, C-12): mục đang mở được đánh dấu, bên phải là menu tên. */
-export default function SiteHeader() {
+/** Đầu trang chung của khu khách hàng và nhân viên: mục đang mở được đánh dấu, bên phải là menu tên. */
+export default function SiteHeader({
+  area = "customer",
+}: {
+  area?: "customer" | "staff";
+} = {}) {
   const pathname = usePathname();
   const user = useCurrentUser();
+  const nav = NAV[area];
+
   return (
     <header className="mx-auto flex max-w-page flex-wrap items-center justify-between gap-16 px-16 py-22 sm:px-38">
       <Brand />
       <div className="flex flex-wrap items-center gap-x-22 gap-y-8">
         <nav
-          aria-label="Khách hàng"
+          aria-label={nav.label}
           className="flex flex-wrap gap-x-22 gap-y-8 text-caption"
         >
-          {LINKS.map(([href, label]) => {
+          {nav.links.map(([href, label]) => {
             const active = pathname.startsWith(href);
             return (
               <Link

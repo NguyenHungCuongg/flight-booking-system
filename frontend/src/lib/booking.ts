@@ -45,6 +45,15 @@ export const RESCHEDULE_STATUS: Record<string, string> = {
   CANCELLED: "Đã huỷ",
 };
 
+export const PAYMENT_STATUS: Record<string, string> = {
+  PENDING: "đang xử lý",
+  SUCCESS: "thành công",
+  FAILED: "thất bại",
+};
+
+/** "08:00 16/10/2026", theo giờ trong chuỗi. */
+export const at = (iso: string) => `${clock(iso)} ${dmy(iso)}`;
+
 /** Tham số `[direction]` trên URL của C-10, C-11 (luôn viết thường) sang enum của API. */
 export function directionParam(param: string): Direction | null {
   if (param === "outbound") return "OUTBOUND";
