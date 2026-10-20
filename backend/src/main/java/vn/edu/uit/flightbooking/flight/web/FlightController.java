@@ -28,6 +28,7 @@ import vn.edu.uit.flightbooking.flight.FlightSearch.SearchResult;
 import vn.edu.uit.flightbooking.flight.domain.FlightQueries;
 import vn.edu.uit.flightbooking.flight.domain.FlightQueries.FlightDetail;
 import vn.edu.uit.flightbooking.flight.domain.FlightQueries.FlightView;
+import vn.edu.uit.flightbooking.flight.domain.FlightQueries.Manifest;
 import vn.edu.uit.flightbooking.flight.domain.FlightService;
 import vn.edu.uit.flightbooking.flight.domain.FlightService.CreatedFlights;
 import vn.edu.uit.flightbooking.flight.domain.FlightService.FlightChanges;
@@ -35,8 +36,8 @@ import vn.edu.uit.flightbooking.flight.domain.FlightService.NewFlights;
 import vn.edu.uit.flightbooking.flight.domain.FlightStatus;
 
 /**
- * Tìm chuyến (FR-11, FR-12: màn hình C-02) và quản trị chuyến bay (FR-90–93, FR-94: S-05, A-04–A-06). Quyền theo đường
- * dẫn ở SecurityConfig.
+ * Tìm chuyến (FR-11, FR-12: màn hình C-02) và quản trị chuyến bay (FR-72, FR-90–93, FR-94: S-05, S-06, A-04–A-06). Quyền
+ * theo đường dẫn ở SecurityConfig.
  */
 @RestController
 @RequestMapping("/api")
@@ -73,6 +74,12 @@ class FlightController {
 		return new PagedModel<>(queries.list(from, to, date, airline, status, pageable));
 	}
 
+	/** Danh sách hành khách của chuyến cho Staff (FR-72, S-06). */
+	@GetMapping("/staff/flights/{id}/passengers")
+	Manifest passengers(@PathVariable long id) {
+		return queries.manifest(id);
+	}
+
 	@PostMapping("/admin/flights")
 	@ResponseStatus(HttpStatus.CREATED)
 	CreatedFlights create(@Valid @RequestBody NewFlights body) {
@@ -105,3 +112,4 @@ class FlightController {
 	}
 
 }
+

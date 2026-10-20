@@ -22,8 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.edu.uit.flightbooking.catalog.CabinClass;
 
 /**
- * Danh sách và chi tiết chuyến (FR-91). Chỉ đọc. Đọc thẳng bảng {@code airports}, {@code fare_families} (catalog) và
- * {@code booking_segments}, {@code booking_journeys} (booking) bằng SQL để lấy múi giờ, tên gói và số booking, giống
+ * Danh sách và chi tiết chuyến (FR-91), manifest (FR-72). Chỉ đọc. Đọc thẳng bảng {@code airports},
+ * {@code fare_families} (catalog) và {@code booking_segments}, {@code booking_journeys}, {@code bookings},
+ * {@code tickets}, {@code passengers} (booking) bằng SQL để lấy múi giờ, tên gói, số booking và danh sách khách, giống
  * cách module report đọc dữ liệu.
  */
 @Service
@@ -43,6 +44,13 @@ public class FlightQueries {
 
 	/** Màn hình A-06. {@code bookingCount}: số booking từng có chặng trên chuyến, ở mọi trạng thái (BR-82). */
 	public record FlightDetail(FlightView flight, List<FareView> fares, long bookingCount) {
+	}
+
+	public record ManifestPassenger(String bookingCode, String lastName, String firstName, String type,
+			String ticketNumber, CabinClass cabinClass, String contactPhone, String contactEmail) {
+	}
+
+	public record Manifest(FlightView flight, List<ManifestPassenger> passengers) {
 	}
 
 	private static final String SELECT_FLIGHT = """
@@ -123,6 +131,35 @@ public class FlightQueries {
 				WHERE s.flight_id = ?
 				""").param(id).query(Long.class).single();
 		return new FlightDetail(flight, fares, bookingCount);
+	}
+
+	/**
+	 * FR-72, S-06, Q-17: Danh sách hành khách (manifest) của chuyến bay cho Staff. Chuyến không tồn tại thì 404.
+	 */
+	@Transactional(readOnly = true)
+	public Manifest manifest(long id) {
+		FlightView flight = views(SELECT_FLIGHT + " WHERE f.id = :id", Map.of("id", id)).stream()
+			.findFirst()
+			.orElseThrow(FlightService::notFound);
+		List<ManifestPassenger> passengers = jdbc.sql("""
+				SELECT b.code AS booking_code, p.last_name, p.first_name, p.type,
+				       t.ticket_number, j.cabin_class, b.contact_phone, b.contact_email
+				FROM booking_segments s
+				JOIN booking_journeys j ON j.id = s.journey_id
+				JOIN bookings b         ON b.id = j.booking_id AND b.status = 'ISSUED'
+				JOIN tickets t          ON t.segment_id = s.id
+				JOIN passengers p       ON p.id = t.passenger_id
+				WHERE s.flight_id = :flightId
+				  AND s.status = 'ACTIVE'
+				ORDER BY p.last_name, p.first_name
+				""")
+			.param("flightId", id)
+			.query((rs, n) -> new ManifestPassenger(rs.getString("booking_code"), rs.getString("last_name"),
+					rs.getString("first_name"), rs.getString("type"), rs.getString("ticket_number"),
+					CabinClass.valueOf(rs.getString("cabin_class")), rs.getString("contact_phone"),
+					rs.getString("contact_email")))
+			.list();
+		return new Manifest(flight, passengers);
 	}
 
 	/** Chạy truy vấn chuyến rồi điền hạng ghế của các chuyến đó bằng một truy vấn nữa. */
