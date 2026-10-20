@@ -36,7 +36,7 @@ CI (`.github/workflows/ci.yml`) runs on every push and PR: `./mvnw -B verify` on
 
 ## Backend architecture
 
-Spring Modulith monolith rooted at `vn.edu.uit.flightbooking`; each direct subpackage is a module (`common`, `identity`, `notification`, `catalog`, `flight`, `promotion`, `booking`, `payment`, `aftersales`, `report`, `notification`). TDD §3.2 lists each module's owned tables, public API and allowed dependencies.
+Spring Modulith monolith rooted at `vn.edu.uit.flightbooking`; each direct subpackage is a module (`common`, `identity`, `catalog`, `flight`, `promotion`, `booking`, `payment`, `aftersales`, `report`, `notification`). TDD §3.2 lists each module's owned tables, public API and allowed dependencies.
 
 - Classes in a module's root package (e.g. `booking.BookingApi`) are its public API. The subpackages `web` (controllers, DTOs), `domain` (entities, services) and `infra` (repositories, external clients) are internal. `ModularityTest` enforces this and rejects cycles.
 - `common` is an OPEN module (`package-info.java`), so every module may use it: `ErrorCode`, `BusinessException`, `SettingsApi`, `SecurityConfig`.
@@ -51,7 +51,7 @@ Spring Modulith monolith rooted at `vn.edu.uit.flightbooking`; each direct subpa
 1. **Think before coding.** State assumptions explicitly. If a request has multiple interpretations, present them instead of picking silently. If something is unclear, stop and ask. Push back when a simpler approach exists.
 2. **Simplicity first.** Write the minimum code that solves the problem: no unrequested features, no abstractions for single-use code, no speculative configurability, no error handling for impossible cases.
 3. **Surgical changes.** Touch only what the task requires. Don't reformat or refactor adjacent code; match existing style. Remove only the orphans your own change created; mention unrelated dead code instead of deleting it.
-4. **Goal-driven execution.** Turn tasks into verifiable goals (e.g., "fix bug" → write a failing test, then make it pass). For multi-step work, state a brief plan with a verification check per step, and loop until verified.
+4. **Goal-driven execution.** Turn tasks into verifiable goals (e.g. "fix bug" → write a failing test, then make it pass). For multi-step work, state a brief plan with a verification check per step, and loop until verified.
 
 ## Frontend notes
 

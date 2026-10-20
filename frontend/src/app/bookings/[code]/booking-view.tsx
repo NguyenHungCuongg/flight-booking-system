@@ -42,7 +42,7 @@ const PAYMENT_STATUS: Record<string, string> = {
 };
 
 /** "08:00 16/10/2026", theo giờ trong chuỗi. */
-export const at = (iso: string) => `${clock(iso)} ${dmy(iso)}`;
+const at = (iso: string) => `${clock(iso)} ${dmy(iso)}`;
 
 export function Section({
   title,
@@ -476,7 +476,9 @@ export default function BookingView() {
             booking={booking}
             now={now}
             busy={busy}
-            onPayReschedule={(id) => startPayment(`/reschedules/${id}/payments`)}
+            onPayReschedule={(id) =>
+              startPayment(`/reschedules/${id}/payments`)
+            }
           />
         )}
       </main>

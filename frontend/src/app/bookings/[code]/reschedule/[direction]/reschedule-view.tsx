@@ -288,7 +288,10 @@ export default function RescheduleView() {
                   />
                 </div>
 
-                {!current && <FormSkeleton rows={2} />}
+                {!selectedDate && (
+                  <p className="text-muted">Hãy chọn ngày bay mới.</p>
+                )}
+                {selectedDate && !current && <FormSkeleton rows={2} />}
                 {current?.error && <Notice>{current.error}</Notice>}
                 {current?.options && current.options.length === 0 && (
                   <p className="text-muted">
@@ -364,4 +367,3 @@ export default function RescheduleView() {
     </div>
   );
 }
-
