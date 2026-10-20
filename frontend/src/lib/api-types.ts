@@ -484,6 +484,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/flights/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancel_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/airports": {
         parameters: {
             query?: never;
@@ -604,6 +620,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["list_4"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/staff/flights/{id}/passengers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["passengers"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1319,6 +1351,21 @@ export interface components {
         PagedModelFlightView: {
             content: components["schemas"]["FlightView"][];
             page: components["schemas"]["PageMetadata"];
+        };
+        Manifest: {
+            flight: components["schemas"]["FlightView"];
+            passengers: components["schemas"]["ManifestPassenger"][];
+        };
+        ManifestPassenger: {
+            bookingCode: string;
+            lastName: string;
+            firstName: string;
+            type: string;
+            ticketNumber: string;
+            /** @enum {string} */
+            cabinClass: "ECONOMY" | "PREMIUM_ECONOMY" | "BUSINESS" | "FIRST";
+            contactPhone: string;
+            contactEmail: string;
         };
         BookingSummary: {
             code: string;
@@ -2537,6 +2584,28 @@ export interface operations {
             };
         };
     };
+    cancel_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FlightDetail"];
+                };
+            };
+        };
+    };
     list: {
         parameters: {
             query?: never;
@@ -2816,6 +2885,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PagedModelFlightView"];
+                };
+            };
+        };
+    };
+    passengers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Manifest"];
                 };
             };
         };
