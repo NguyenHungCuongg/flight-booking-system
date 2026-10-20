@@ -20,15 +20,18 @@ import vn.edu.uit.flightbooking.aftersales.domain.RescheduleCreatedResponse;
 import vn.edu.uit.flightbooking.aftersales.domain.RescheduleOptions;
 import vn.edu.uit.flightbooking.aftersales.domain.RescheduleQuote;
 import vn.edu.uit.flightbooking.common.CurrentUser;
+import vn.edu.uit.flightbooking.common.LockRetry;
 
 /** FR-60, FR-61, FR-62: khách xem lựa chọn thay thế, báo giá, xác nhận và thanh toán đổi chuyến. Quyền CUSTOMER theo đường dẫn ở SecurityConfig. */
 @RestController
 class RescheduleController {
 
 	private final CustomerReschedules reschedules;
+	private final LockRetry retry;
 
-	RescheduleController(CustomerReschedules reschedules) {
+	RescheduleController(CustomerReschedules reschedules, LockRetry retry) {
 		this.reschedules = reschedules;
+		this.retry = retry;
 	}
 
 	@GetMapping("/api/bookings/{code}/journeys/{direction}/reschedule-options")
@@ -43,11 +46,12 @@ class RescheduleController {
 		return reschedules.quote(me.id(), code, direction, body.flightIds());
 	}
 
+	/** Thử lại khi deadlock; đường 0 đ khoá {@code flight_cabins} không theo id tăng dần (Plan 15). */
 	@PostMapping("/api/bookings/{code}/journeys/{direction}/reschedules")
 	@ResponseStatus(HttpStatus.CREATED)
 	RescheduleCreatedResponse confirm(@AuthenticationPrincipal CurrentUser me, @PathVariable String code,
 			@PathVariable String direction, @Valid @RequestBody FlightIdsBody body) {
-		return reschedules.confirm(me.id(), code, direction, body.flightIds());
+		return retry.run(() -> reschedules.confirm(me.id(), code, direction, body.flightIds()));
 	}
 
 	@PostMapping("/api/reschedules/{id}/payments")
