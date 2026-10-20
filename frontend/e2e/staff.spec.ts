@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { dmy } from "../src/lib/booking";
-import { day, field, issuedBooking } from "./helpers";
+import { csrfHeaders, day, field, issuedBooking } from "./helpers";
 
 // E2E màn Staff S-01–S-06. Trình duyệt ở múi giờ New York (TDD §7).
 test.use({ timezoneId: "America/New_York" });
@@ -99,5 +99,148 @@ test("Staff tra cứu booking và gửi lại email vé (UF-07)", async ({ page 
 
   await page.getByRole("link", { name: "Tra cứu đặt chỗ" }).click();
   await expect(page).toHaveURL("/staff/bookings");
+});
+
+test("Staff từ chối, duyệt rồi xác nhận hoàn thủ công (UF-02, FR-71)", async ({
+  page,
+}) => {
+  // "Duyệt" gọi Refund API của VNPay sandbox: tối đa ~35 giây.
+  test.setTimeout(180_000);
+  page.on("dialog", (d) => d.accept());
+  const { code } = await issuedBooking(page, "Economy Smart", [
+    { from: "HAN", to: "SGN", date: day(3), flight: "QH201" },
+    { from: "SGN", to: "HAN", date: day(5), flight: "QH202" },
+  ]);
+  const headers = await csrfHeaders(page);
+  for (const [direction, reason] of [
+    ["OUTBOUND", "Đổi kế hoạch công tác"],
+    ["RETURN", "Bận việc gia đình"],
+  ]) {
+    const res = await page.request.post(
+      `/api/bookings/${code}/journeys/${direction}/refund-requests`,
+      { headers, data: { reason } },
+    );
+    expect(res.ok()).toBe(true);
+  }
+  await loginStaff(page);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Tra cứu đặt chỗ.",
+  );
+  const nav = page.getByRole("navigation", { name: "Nhân viên" });
+
+  // S-03: lọc chờ duyệt và nguồn khách, cũ nhất trước; mọi dòng đúng bộ lọc.
+  await nav.getByRole("link", { name: "Yêu cầu hoàn" }).click();
+  const form = page.locator('form[action="/staff/refunds"]');
+  await field(form, "Trạng thái").selectOption("PENDING");
+  await field(form, "Nguồn").selectOption("CUSTOMER");
+  await form.getByRole("button", { name: "Lọc", exact: true }).click();
+  await expect(page).toHaveURL("/staff/refunds?status=PENDING&source=CUSTOMER");
+  const queue = page
+    .getByRole("table", { name: "Hàng đợi yêu cầu hoàn" })
+    .getByRole("row");
+  await expect(queue.nth(1)).toBeVisible();
+  for (const row of (await queue.all()).slice(1)) {
+    await expect(row).toContainText("Chờ duyệt");
+    await expect(row).toContainText("Khách yêu cầu");
+  }
+
+  // Từ S-02 mở yêu cầu của chiều về.
+  await page.goto(`/staff/bookings/${code}`);
+  const requests = page
+    .getByRole("region", { name: "Yêu cầu hoàn" })
+    .getByRole("listitem");
+  await requests
+    .filter({ hasText: "Chiều về" })
+    .getByRole("link", { name: "Xử lý yêu cầu" })
+    .click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    /^Yêu cầu hoàn #\d+\.$/,
+  );
+
+  // Dữ liệu cũ (Staff khác vừa xử lý): câu 409 của backend, rồi trang tải lại.
+  await page.route(
+    "**/api/staff/refund-requests/*/approve",
+    (route) =>
+      route.fulfill({
+        status: 409,
+        json: {
+          code: "INVALID_STATE",
+          detail: "Chỉ duyệt được yêu cầu đang chờ duyệt",
+        },
+      }),
+    { times: 1 },
+  );
+  const reloaded = page.waitForRequest(
+    (r) =>
+      r.method() === "GET" &&
+      /\/api\/staff\/refund-requests\/\d+$/.test(r.url()),
+  );
+  await page.getByRole("button", { name: "Duyệt", exact: true }).click();
+  await expect(page.getByRole("alert").first()).toContainText(
+    "Chỉ duyệt được yêu cầu đang chờ duyệt",
+  );
+  await reloaded;
+
+  // Từ chối: lý do bắt buộc (BR-63), ghi người xử lý (FR-71).
+  const reject = page.getByRole("button", { name: "Từ chối", exact: true });
+  await reject.click();
+  await expect(page.getByText("Hãy nhập lý do từ chối.")).toBeVisible();
+  await field(page, "Lý do từ chối").fill("Không đủ điều kiện hoàn");
+  await reject.click();
+  await expect(page.getByRole("status")).toContainText(
+    "Đã từ chối yêu cầu. Khách sẽ nhận email kèm lý do.",
+  );
+  const state = page.getByRole("region", { name: "Trạng thái" });
+  await expect(state).toContainText("Bị từ chối");
+  await expect(page.getByRole("region", { name: "Xử lý" })).toContainText(
+    "Người xử lý: staff@demo.local",
+  );
+  await expect(page.getByRole("region", { name: "Thao tác" })).toHaveCount(0);
+
+  // Chiều đi: duyệt (BR-62). Lượt thu là giả nên VNPay không hoàn được: APPROVED kèm lỗi (BR-64).
+  await page.getByRole("link", { name: `Đặt chỗ ${code}` }).click();
+  await expect(page).toHaveURL(`/staff/bookings/${code}`);
+  await requests
+    .filter({ hasText: "Chiều đi" })
+    .getByRole("link", { name: "Xử lý yêu cầu" })
+    .click();
+  const amounts = page.getByRole("region", { name: "Số tiền hoàn" });
+  await expect(amounts).toContainText("1.730.000 đ");
+  await expect(amounts).toContainText("-500.000 đ");
+  await expect(amounts.getByRole("definition").last()).toHaveText(
+    "1.230.000 đ",
+  );
+  await page.getByRole("button", { name: "Duyệt", exact: true }).click();
+  await expect(page.getByRole("alert").first()).toContainText(
+    "Hoàn tiền qua VNPay chưa xong",
+    { timeout: 60_000 },
+  );
+  await expect(state).toContainText("Đã duyệt, đang hoàn tiền");
+  await expect(page.getByRole("region", { name: "Xử lý" })).toContainText(
+    "Lỗi gần nhất:",
+  );
+  await expect(page.getByRole("button", { name: "Thử lại" })).toBeVisible();
+  const attempts = page
+    .getByRole("region", { name: "Các lượt hoàn" })
+    .getByRole("listitem");
+  await expect(attempts.first()).toContainText("VNPay, thất bại, 1.230.000 đ");
+
+  // Hoàn thủ công: ghi chú bắt buộc; bấm đúp chỉ gửi một lần (BR-64).
+  let manual = 0;
+  page.on("request", (r) => {
+    if (r.method() === "POST" && r.url().endsWith("/mark-manual")) manual++;
+  });
+  const settle = page.getByRole("button", { name: "Xác nhận hoàn thủ công" });
+  await settle.click();
+  await expect(page.getByText("Hãy nhập ghi chú hoàn thủ công.")).toBeVisible();
+  await field(page, "Ghi chú hoàn thủ công").fill("Đã chuyển khoản ngày 20/10");
+  await settle.dblclick();
+  await expect(state).toContainText("Đã hoàn tiền");
+  expect(manual).toBe(1);
+  await expect(amounts).toContainText("Đã hoàn 1.230.000 đ");
+  await expect(attempts.last()).toContainText(
+    "Thủ công, thành công, 1.230.000 đ",
+  );
+  await expect(page.getByRole("region", { name: "Thao tác" })).toHaveCount(0);
 });
 
