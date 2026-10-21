@@ -852,6 +852,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/reports/sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["sales"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reports/load-factor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["loadFactor"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reports/cash-flow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["cashFlow"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1644,6 +1692,65 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             updatedByName: string;
+        };
+        SalesItem: {
+            groupKey: string;
+            groupName: string;
+            /** Format: int64 */
+            ticketCount: number;
+            /** Format: int64 */
+            revenue: number;
+        };
+        SalesReport: {
+            items: components["schemas"]["SalesItem"][];
+            /** Format: int64 */
+            totalTickets: number;
+            /** Format: int64 */
+            totalRevenue: number;
+        };
+        LoadFactorItem: {
+            /** Format: int64 */
+            flightId: number;
+            flightNumber: string;
+            airlineCode: string;
+            departureAirport: string;
+            arrivalAirport: string;
+            /** Format: date-time */
+            departureTime: string;
+            /** Format: int32 */
+            totalSeats: number;
+            /** Format: int32 */
+            occupiedSeats: number;
+            /** Format: double */
+            loadFactorPercent: number;
+        };
+        LoadFactorReport: {
+            items: components["schemas"]["LoadFactorItem"][];
+            /** Format: int64 */
+            totalSeats: number;
+            /** Format: int64 */
+            occupiedSeats: number;
+            /** Format: double */
+            averageLoadFactorPercent: number;
+        };
+        CashFlowItem: {
+            /** Format: date */
+            period: string;
+            /** Format: int64 */
+            charged: number;
+            /** Format: int64 */
+            refunded: number;
+            /** Format: int64 */
+            net: number;
+        };
+        CashFlowReport: {
+            items: components["schemas"]["CashFlowItem"][];
+            /** Format: int64 */
+            totalCharged: number;
+            /** Format: int64 */
+            totalRefunded: number;
+            /** Format: int64 */
+            netRevenue: number;
         };
     };
     responses: never;
@@ -3201,6 +3308,78 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Setting"][];
+                };
+            };
+        };
+    };
+    sales: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                groupBy: "AIRLINE" | "ROUTE";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SalesReport"];
+                };
+            };
+        };
+    };
+    loadFactor: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                airline?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LoadFactorReport"];
+                };
+            };
+        };
+    };
+    cashFlow: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                groupBy: "DAY" | "MONTH" | "YEAR";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CashFlowReport"];
                 };
             };
         };
