@@ -8,7 +8,7 @@ import { pillDark, pillLine } from "./form";
 import UserMenu from "./user-menu";
 
 const NAV: Record<
-  "customer" | "staff",
+  "customer" | "staff" | "admin",
   { label: string; links: readonly (readonly [string, string])[] }
 > = {
   customer: {
@@ -26,13 +26,25 @@ const NAV: Record<
       ["/staff/flights", "Chuyến bay"],
     ],
   },
+  admin: {
+    label: "Quản trị viên",
+    links: [
+      ["/admin/flights", "Chuyến bay"],
+      ["/admin/airports", "Sân bay"],
+      ["/admin/airlines", "Hãng bay"],
+      ["/admin/vouchers", "Voucher"],
+      ["/admin/users", "Tài khoản"],
+      ["/admin/settings", "Tham số"],
+      ["/admin/reports", "Báo cáo"],
+    ],
+  },
 };
 
-/** Đầu trang chung của khu khách hàng và nhân viên: mục đang mở được đánh dấu, bên phải là menu tên. */
+/** Đầu trang chung của khu khách hàng, nhân viên và quản trị viên: mục đang mở được đánh dấu, bên phải là menu tên. */
 export default function SiteHeader({
   area = "customer",
 }: {
-  area?: "customer" | "staff";
+  area?: "customer" | "staff" | "admin";
 } = {}) {
   const pathname = usePathname();
   const user = useCurrentUser();
