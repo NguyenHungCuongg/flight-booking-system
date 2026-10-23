@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { AdminModal, AdminPage, tableBox, td, th } from "../admin-ui";
-import { Field, FormSkeleton, Notice, SelectField, pillDark, pillLine, textLink } from "@/components/form";
+import { Field, FormSkeleton, Notice, SelectField, pillPrimary, pillLine, textLink } from "@/components/form";
 import { apiFetch, type ApiError, type Schemas } from "@/lib/api";
 import { vnd } from "@/app/flights/itineraries";
 import { errorText, VOUCHER_TYPE_LABEL } from "@/lib/admin";
@@ -93,7 +93,7 @@ export default function VoucherList() {
             setActionError(null);
             setModalState({ mode: "create" });
           }}
-          className={pillDark}
+          className={pillPrimary}
         >
           + Thêm voucher
         </button>
@@ -271,7 +271,7 @@ export default function VoucherList() {
             <button type="button" onClick={() => setModalState(null)} className={pillLine} disabled={loading}>
               Huỷ
             </button>
-            <button type="submit" className={pillDark} disabled={loading}>
+            <button type="submit" className={pillPrimary} disabled={loading}>
               {loading ? "Đang lưu..." : "Lưu voucher"}
             </button>
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import StatusBadge from "@/components/status-badge";
 import { useParams, useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import {
@@ -15,7 +16,8 @@ import {
   Field,
   FormSkeleton,
   Notice,
-  pillDark,
+  pillDanger,
+  pillPrimary,
   pillLine,
   textLink,
 } from "@/components/form";
@@ -146,7 +148,7 @@ export default function FlightDetailView() {
       ) : (
         <>
           {/* Header & Thao tác */}
-          <div className="flex flex-wrap items-center justify-between gap-16 border-b border-line pb-22">
+          <div className="flex flex-wrap items-center justify-between gap-16 border-b border-line pb-16">
             <div>
               <span className="text-caption font-bold text-muted">
                 {detailRes.data.flight.departureAirport} →{" "}
@@ -180,7 +182,7 @@ export default function FlightDetailView() {
                   <button
                     type="button"
                     onClick={() => setCancelOpen(true)}
-                    className={`${pillLine} text-clay-ember border-clay-ember hover:bg-clay-ember hover:text-paper`}
+                    className={pillDanger}
                   >
                     Huỷ chuyến
                   </button>
@@ -199,15 +201,12 @@ export default function FlightDetailView() {
           </div>
 
           {/* Thông tin hành trình & thời gian */}
-          <div className="grid gap-22 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="border border-line p-16 bg-tint/30">
+          <div className="grid gap-16 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="card p-16">
               <span className="text-caption text-muted">Trạng thái</span>
-              <p className="text-subheading font-bold mt-4">
-                {FLIGHT_STATUS[detailRes.data.flight.status] ??
-                  detailRes.data.flight.status}
-              </p>
+              <p className="mt-4"><StatusBadge large status={detailRes.data.flight.status} label={FLIGHT_STATUS[detailRes.data.flight.status] ?? detailRes.data.flight.status} /></p>
             </div>
-            <div className="border border-line p-16">
+            <div className="card p-16">
               <span className="text-caption text-muted">
                 Cất cánh ({detailRes.data.flight.departureAirport})
               </span>
@@ -218,7 +217,7 @@ export default function FlightDetailView() {
                 {dmy(detailRes.data.flight.departureTime)}
               </p>
             </div>
-            <div className="border border-line p-16">
+            <div className="card p-16">
               <span className="text-caption text-muted">
                 Hạ cánh ({detailRes.data.flight.arrivalAirport})
               </span>
@@ -229,7 +228,7 @@ export default function FlightDetailView() {
                 {dmy(detailRes.data.flight.arrivalTime)}
               </p>
             </div>
-            <div className="border border-line p-16">
+            <div className="card p-16">
               <span className="text-caption text-muted">Số lượt đặt chỗ</span>
               <p className="text-subheading font-bold mt-4">
                 {detailRes.data.bookingCount} đơn
@@ -390,7 +389,7 @@ export default function FlightDetailView() {
                 >
                   Huỷ
                 </button>
-                <button type="submit" className={pillDark} disabled={loading}>
+                <button type="submit" className={pillPrimary} disabled={loading}>
                   {loading ? "Đang lưu..." : "Lưu thay đổi"}
                 </button>
               </div>

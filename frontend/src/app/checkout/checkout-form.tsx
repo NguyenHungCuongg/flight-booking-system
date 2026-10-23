@@ -7,7 +7,7 @@ import {
   Field,
   Notice,
   SelectField,
-  pillDark,
+  pillPrimary,
   pillLine,
   textLink,
 } from "@/components/form";
@@ -83,7 +83,7 @@ function JourneySummary({ journey }: { journey: Journey }) {
   const z = last(it);
   const numbers = it.segments.map((s) => s.flightNumber).join(" + ");
   return (
-    <div className="grid gap-4 border border-line p-22">
+    <div className="grid gap-4 card p-16">
       <p className="text-caption text-muted">
         {`${DIRECTION_LABEL[journey.direction]}, ${dmy(a.departure.time)}`}
       </p>
@@ -117,7 +117,7 @@ function PassengerFields({
   return (
     <fieldset className="grid gap-16">
       <legend className="mb-16 font-bold">{label}</legend>
-      <div className="grid items-start gap-22 sm:grid-cols-2">
+      <div className="grid items-start gap-16 sm:grid-cols-2">
         <Field
           label="Họ"
           name={name("lastName")}
@@ -366,9 +366,9 @@ export default function CheckoutForm({
       ref={formRef}
       onSubmit={hold}
       onChange={schedule}
-      className="grid gap-53 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start"
+      className="grid gap-38 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start"
     >
-      <div className="grid gap-53">
+      <div className="grid gap-38">
         <section aria-label="Hành trình" className="grid gap-16">
           <div className="flex flex-wrap items-center justify-between gap-16">
             <h2 className="text-subheading font-bold">Hành trình</h2>
@@ -381,7 +381,7 @@ export default function CheckoutForm({
           ))}
         </section>
 
-        <section className="grid gap-22">
+        <section className="grid gap-16">
           <div className="grid gap-8">
             <h2 className="text-subheading font-bold">Hành khách</h2>
             <p className="text-caption text-muted">
@@ -402,14 +402,14 @@ export default function CheckoutForm({
           ))}
         </section>
 
-        <section className="grid gap-22">
+        <section className="grid gap-16">
           <div className="grid gap-8">
             <h2 className="text-subheading font-bold">Liên hệ</h2>
             <p className="text-caption text-muted">
               Vé điện tử và mọi thông báo về đặt chỗ được gửi tới email này.
             </p>
           </div>
-          <div className="grid items-start gap-22 sm:grid-cols-2">
+          <div className="grid items-start gap-16 sm:grid-cols-2">
             <Field
               label="Họ tên người liên hệ"
               name="contact.name"
@@ -443,7 +443,7 @@ export default function CheckoutForm({
           </div>
         </section>
 
-        <section className="grid gap-22">
+        <section className="grid gap-16">
           <h2 className="text-subheading font-bold">Hành lý mua thêm</h2>
           {baggage === null && (
             <Notice>
@@ -470,7 +470,7 @@ export default function CheckoutForm({
                     Hãng chưa bán hành lý mua thêm cho chiều này.
                   </p>
                 ) : (
-                  <div className="grid items-start gap-22 sm:grid-cols-2">
+                  <div className="grid items-start gap-16 sm:grid-cols-2">
                     {types.map(
                       (type, i) =>
                         type !== "INFANT" && (
@@ -539,11 +539,11 @@ export default function CheckoutForm({
         </section>
       </div>
 
-      <aside className="grid gap-22 lg:sticky lg:top-22">
+      <aside className="grid gap-16 lg:sticky lg:top-22">
         <section
           aria-label="Bảng giá"
           aria-busy={quoting}
-          className="grid gap-16 border border-ink p-22"
+          className="grid gap-16 card-hi p-16"
         >
           <h2 className="text-subheading font-bold">Bảng giá</h2>
           {quote ? (
@@ -590,7 +590,7 @@ export default function CheckoutForm({
         )}
         <button
           type="submit"
-          className={`${pillDark} w-full`}
+          className={`${pillPrimary} w-full`}
           disabled={pending}
         >
           {pending ? "Đang giữ chỗ..." : "Giữ chỗ"}

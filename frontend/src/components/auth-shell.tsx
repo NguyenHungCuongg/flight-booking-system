@@ -9,9 +9,9 @@ export function Brand() {
     <Link
       href="/"
       aria-label="SkyLine, về trang chủ"
-      className="inline-flex items-center gap-11 text-subheading font-bold"
+      className="inline-flex items-center gap-10 text-subheading font-bold"
     >
-      <span className="size-38 [&>svg]:size-full">
+      <span className="size-30 [&>svg]:size-full">
         <Logo />
       </span>
       SkyLine
@@ -28,7 +28,7 @@ export function AuthHeading({
   children?: ReactNode;
 }) {
   return (
-    <div className="mb-38 grid gap-13">
+    <div className="mb-28 grid gap-13">
       <h1 className="text-heading-lg font-bold">{title}</h1>
       {children && <p className="text-muted">{children}</p>}
     </div>
@@ -41,8 +41,8 @@ export function AuthHeading({
  */
 export default function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <div className="grid min-h-dvh bg-paper lg:grid-cols-2">
-      <div className="flex flex-col px-16 py-22 sm:px-38 lg:px-68">
+    <div className="grid min-h-dvh lg:grid-cols-2">
+      <div className="flex flex-col px-16 py-16 sm:px-38 lg:px-68">
         <header className="flex items-center justify-between gap-16">
           <Brand />
           <Link
@@ -52,7 +52,7 @@ export default function AuthShell({ children }: { children: ReactNode }) {
             Về trang chủ
           </Link>
         </header>
-        <main className="mx-auto flex w-full max-w-440 flex-1 flex-col justify-center py-53">
+        <main className="mx-auto flex w-full max-w-440 flex-1 flex-col justify-center py-40">
           {children}
         </main>
       </div>

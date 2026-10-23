@@ -8,7 +8,7 @@ import {
   Field,
   FormSkeleton,
   Notice,
-  pillDark,
+  pillPrimary,
   pillLine,
   textLink,
 } from "@/components/form";
@@ -47,7 +47,7 @@ function OptionCard({
   return (
     <article
       aria-label={`${a.airline.name} ${numbers}`}
-      className="grid gap-16 border border-line bg-paper p-22 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+      className="grid gap-16 card p-16 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
     >
       <div className="grid gap-4">
         <p className="text-caption text-muted">
@@ -68,7 +68,7 @@ function OptionCard({
         <p className="font-bold">{`Phải trả ${vnd(option.quote.amountDue)}`}</p>
         <button
           type="button"
-          className={selected ? pillLine : pillDark}
+          className={selected ? pillLine : pillPrimary}
           onClick={onChoose}
         >
           {selected ? "Đã chọn" : "Chọn"}
@@ -234,9 +234,9 @@ export default function RescheduleView() {
   }
 
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="min-h-dvh">
       <SiteHeader />
-      <main className="mx-auto grid max-w-page gap-38 px-16 pt-22 pb-119 sm:px-38">
+      <main className="mx-auto grid max-w-page gap-28 px-16 pt-16 pb-80 sm:px-38">
         <div className="grid gap-13">
           <Link href={bookingHref} className={`${textLink} text-caption`}>
             {`Đặt chỗ ${code.toUpperCase()}`}
@@ -273,8 +273,8 @@ export default function RescheduleView() {
 
             {actionError && <Notice>{actionError}</Notice>}
 
-            <div className="grid gap-38 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
-              <div className="grid gap-22">
+            <div className="grid gap-28 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+              <div className="grid gap-16">
                 <div className="max-w-[260px]">
                   <Field
                     label="Ngày bay mới"
@@ -351,7 +351,7 @@ export default function RescheduleView() {
                     </p>
                     <button
                       type="button"
-                      className={pillDark}
+                      className={pillPrimary}
                       disabled={busy}
                       onClick={confirmReschedule}
                     >

@@ -5,7 +5,7 @@ import { useState } from "react";
 import {
   Field,
   Notice,
-  pillDark,
+  pillPrimary,
   text,
   textLink,
   useSubmit,
@@ -27,7 +27,7 @@ export default function ForgotForm() {
   // FR-03: luôn báo cùng một câu, không cho biết email có tài khoản hay không.
   if (sent) {
     return (
-      <div className="grid gap-22">
+      <div className="grid gap-16">
         <Notice tone="ok">
           Nếu email này có tài khoản, chúng tôi đã gửi link đặt lại mật khẩu.
           Link có hiệu lực trong 30 phút.
@@ -43,7 +43,7 @@ export default function ForgotForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-22">
+    <form onSubmit={onSubmit} className="grid gap-16">
       <Field
         label="Email"
         name="email"
@@ -54,7 +54,7 @@ export default function ForgotForm() {
       />
       {formError && <Notice>{formError}</Notice>}
       <div className="mt-11 flex flex-wrap items-center gap-x-22 gap-y-16">
-        <button type="submit" className={pillDark} disabled={pending}>
+        <button type="submit" className={pillPrimary} disabled={pending}>
           {pending ? "Đang gửi..." : "Gửi link đặt lại"}
         </button>
         <Link href="/login" className={`text-caption ${textLink}`}>

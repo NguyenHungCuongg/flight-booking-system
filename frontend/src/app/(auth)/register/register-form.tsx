@@ -7,7 +7,7 @@ import {
   Notice,
   PASSWORD_PATTERN,
   PASSWORD_RULE,
-  pillDark,
+  pillPrimary,
   text,
   textLink,
   useSubmit,
@@ -42,7 +42,7 @@ export default function RegisterForm() {
   );
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-22">
+    <form onSubmit={onSubmit} className="grid gap-16">
       <Field
         label="Họ và tên"
         name="fullName"
@@ -82,7 +82,7 @@ export default function RegisterForm() {
       />
       {formError && <Notice>{formError}</Notice>}
       <div className="mt-11 flex flex-wrap items-center gap-x-22 gap-y-16">
-        <button type="submit" className={pillDark} disabled={pending}>
+        <button type="submit" className={pillPrimary} disabled={pending}>
           {pending ? "Đang tạo tài khoản..." : "Tạo tài khoản"}
         </button>
         <p className="text-caption text-muted">

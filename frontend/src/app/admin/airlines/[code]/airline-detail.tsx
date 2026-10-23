@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { AdminModal, AdminPage, AdminTabs, ConfirmModal, tableBox, td, th } from "../../admin-ui";
-import { Field, FormSkeleton, Notice, SelectField, pillDark, pillLine, textLink } from "@/components/form";
+import { Field, FormSkeleton, Notice, SelectField, pillPrimary, pillLine, textLink } from "@/components/form";
 import { apiFetch, type ApiError, type Schemas } from "@/lib/api";
 import { vnd } from "@/app/flights/itineraries";
 import { errorText } from "@/lib/admin";
@@ -165,7 +165,7 @@ export default function AirlineDetail() {
               setBaggageModal({ mode: "create" });
             }
           }}
-          className={pillDark}
+          className={pillPrimary}
         >
           {tab === "fares" ? "+ Thêm gói giá" : "+ Thêm mức hành lý"}
         </button>
@@ -415,7 +415,7 @@ export default function AirlineDetail() {
             <button type="button" onClick={() => setFareModal(null)} className={pillLine} disabled={loading}>
               Huỷ
             </button>
-            <button type="submit" className={pillDark} disabled={loading}>
+            <button type="submit" className={pillPrimary} disabled={loading}>
               {loading ? "Đang lưu..." : "Lưu gói giá"}
             </button>
           </div>
@@ -463,7 +463,7 @@ export default function AirlineDetail() {
             <button type="button" onClick={() => setBaggageModal(null)} className={pillLine} disabled={loading}>
               Huỷ
             </button>
-            <button type="submit" className={pillDark} disabled={loading}>
+            <button type="submit" className={pillPrimary} disabled={loading}>
               {loading ? "Đang lưu..." : "Lưu mức hành lý"}
             </button>
           </div>

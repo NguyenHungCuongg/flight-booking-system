@@ -20,7 +20,7 @@ import {
 } from "./itineraries";
 
 const box =
-  "size-18 shrink-0 accent-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
+  "size-16 shrink-0 accent-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 function toggle<T>(list: T[], value: T) {
   return list.includes(value)
@@ -30,8 +30,8 @@ function toggle<T>(list: T[], value: T) {
 
 function Group({ legend, children }: { legend: string; children: ReactNode }) {
   return (
-    <fieldset className="grid gap-11 border-t border-line pt-16">
-      <legend className="float-left mb-11 text-caption font-bold">
+    <fieldset className="grid gap-11 border-t border-line pt-16 first:border-t-0 first:pt-0">
+      <legend className="float-left mb-11 text-caption font-semibold text-ink-2">
         {legend}
       </legend>
       {children}
@@ -109,7 +109,7 @@ export default function ResultList({
 
   if (itineraries.length === 0) {
     return (
-      <div className="grid gap-13 border border-line p-22">
+      <div className="grid gap-13 card p-16">
         <p className="text-subheading font-bold">
           Không có chuyến bay phù hợp.
         </p>
@@ -121,7 +121,7 @@ export default function ResultList({
   }
 
   return (
-    <div className="grid gap-22 lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start lg:gap-38">
+    <div className="grid gap-16 lg:grid-cols-[248px_minmax(0,1fr)] lg:items-start lg:gap-28">
       <button
         type="button"
         className={`${pillLine} justify-self-start lg:hidden`}
@@ -135,7 +135,7 @@ export default function ResultList({
       <aside
         id="bo-loc"
         aria-label="Bộ lọc"
-        className={`${showFilters ? "grid" : "hidden"} gap-22 lg:grid`}
+        className={`${showFilters ? "grid" : "hidden"} card gap-16 p-16 lg:sticky lg:top-80 lg:grid`}
       >
         <Group legend="Hãng bay">
           {airlines.map((a) => (
@@ -176,7 +176,7 @@ export default function ResultList({
               <span>{vnd(filters.maxPrice ?? maxPrice)}</span>
               <input
                 type="range"
-                className="accent-ink"
+                className="accent-accent"
                 min={minPrice}
                 max={maxPrice}
                 step="any"
@@ -210,7 +210,7 @@ export default function ResultList({
           <label className="flex items-center gap-11 text-caption font-bold">
             Sắp xếp
             <select
-              className="border border-line-strong bg-paper px-13 py-8 font-normal text-ink"
+              className="cursor-pointer rounded-inner border border-line-strong bg-surface px-13 py-8 font-normal text-ink"
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
             >
@@ -237,7 +237,7 @@ export default function ResultList({
           );
         })}
         {shown.length === 0 && (
-          <div className="grid gap-13 border border-line p-22">
+          <div className="grid gap-13 card p-16">
             <p className="font-bold">Không có hành trình khớp bộ lọc.</p>
             <button
               type="button"

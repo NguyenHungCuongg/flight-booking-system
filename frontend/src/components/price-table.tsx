@@ -18,9 +18,9 @@ export default function PriceTable({
           <dd>{amount < 0 ? `-${vnd(-amount)}` : vnd(amount || 0)}</dd>
         </div>
       ))}
-      <div className="flex justify-between gap-16 border-t border-line pt-13 font-bold">
+      <div className="flex items-baseline justify-between gap-16 border-t border-line pt-13 font-bold">
         <dt>{totalLabel}</dt>
-        <dd>{vnd(total)}</dd>
+        <dd className="text-subheading text-accent">{vnd(total)}</dd>
       </div>
     </dl>
   );

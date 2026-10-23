@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCurrentUser } from "@/lib/use-current-user";
 import { Brand } from "./auth-shell";
-import { pillDark, pillLine } from "./form";
+import { pillPrimary, pillLine } from "./form";
 import UserMenu from "./user-menu";
 
 const NAV: Record<
@@ -51,47 +51,50 @@ export default function SiteHeader({
   const nav = NAV[area];
 
   return (
-    <header className="mx-auto flex max-w-page flex-wrap items-center justify-between gap-16 px-16 py-22 sm:px-38">
-      <Brand />
-      <div className="flex flex-wrap items-center gap-x-22 gap-y-8">
-        <nav
-          aria-label={nav.label}
-          className="flex flex-wrap gap-x-22 gap-y-8 text-caption"
-        >
-          {nav.links.map(([href, label]) => {
-            const active = pathname.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                aria-current={active ? "page" : undefined}
-                className={
-                  active
-                    ? "font-bold text-ink"
-                    : "text-muted transition-colors hover:text-ink"
-                }
-              >
-                {label}
+    // Dính đầu trang khi cuộn (từ 640px; trên điện thoại header xuống dòng nên cao, để trôi theo trang); nền trong mờ.
+    <div className="z-10 border-b border-line/70 bg-paper/80 backdrop-blur-md sm:sticky sm:top-0">
+      <header className="mx-auto flex max-w-page flex-wrap items-center justify-between gap-16 px-16 py-10 sm:px-38">
+        <Brand />
+        <div className="flex flex-wrap items-center gap-x-16 gap-y-8">
+          <nav
+            aria-label={nav.label}
+            className="flex flex-wrap gap-x-4 gap-y-4 text-caption"
+          >
+            {nav.links.map(([href, label]) => {
+              const active = pathname.startsWith(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  className={`rounded-pill px-11 py-4 transition-colors duration-200 ${
+                    active
+                      ? "bg-accent-soft font-semibold text-accent"
+                      : "text-muted hover:bg-tint hover:text-ink"
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+          {/* Đang hỏi /me: giữ chỗ trống để không nháy nút Đăng nhập. */}
+          {user === undefined ? (
+            <span className="min-w-120" aria-hidden="true" />
+          ) : user === null ? (
+            <div className="flex gap-11">
+              <Link href="/login" className={pillPrimary}>
+                Đăng nhập
               </Link>
-            );
-          })}
-        </nav>
-        {/* Đang hỏi /me: giữ chỗ trống để không nháy nút Đăng nhập. */}
-        {user === undefined ? (
-          <span className="min-w-120" aria-hidden="true" />
-        ) : user === null ? (
-          <div className="flex gap-11">
-            <Link href="/login" className={pillDark}>
-              Đăng nhập
-            </Link>
-            <Link href="/register" className={pillLine}>
-              Đăng ký
-            </Link>
-          </div>
-        ) : (
-          <UserMenu user={user} className={pillLine} />
-        )}
-      </div>
-    </header>
+              <Link href="/register" className={pillLine}>
+                Đăng ký
+              </Link>
+            </div>
+          ) : (
+            <UserMenu user={user} className={pillLine} />
+          )}
+        </div>
+      </header>
+    </div>
   );
 }

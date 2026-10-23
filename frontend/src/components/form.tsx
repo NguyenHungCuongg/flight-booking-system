@@ -11,16 +11,26 @@ import {
 import { ApiError } from "@/lib/api";
 import { Icon } from "./landing/icons";
 
-/** Nút pill theo DESIGN.md: nền #000d10 (đổi sang sáng ở chế độ tối), chữ 17px đậm, padding 15/22/16. */
-export const pillDark =
-  "inline-flex min-h-52 items-center justify-center gap-10 rounded-pill bg-btn px-22 pt-15 pb-16 text-caption leading-none font-bold whitespace-nowrap text-btn-fg transition-[background-color,transform] duration-200 ease-out hover:bg-btn-hover active:scale-[0.98] disabled:cursor-wait disabled:opacity-60";
+/** Nút chính theo DESIGN.md: pill nền đất nung, bóng cùng màu, nhích lên khi rê chuột và lún xuống khi bấm. */
+export const pillPrimary =
+  "inline-flex min-h-40 items-center justify-center gap-8 rounded-pill bg-accent px-18 py-10 text-caption leading-none font-semibold whitespace-nowrap text-accent-fg shadow-accent transition-[background-color,transform,box-shadow] duration-200 ease-out hover:-translate-y-1 hover:bg-accent-hover active:translate-y-0 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0";
+/** Nút phụ: pill nền thẻ, viền hairline đậm lên khi rê chuột. */
 export const pillLine =
-  "inline-flex min-h-52 items-center justify-center gap-10 rounded-pill border border-ink px-22 pt-15 pb-16 text-caption leading-none font-bold whitespace-nowrap text-ink transition-[background-color,color,transform] duration-200 ease-out hover:bg-ink hover:text-paper active:scale-[0.98] disabled:cursor-wait disabled:opacity-60";
+  "inline-flex min-h-40 items-center justify-center gap-8 rounded-pill border border-line-strong bg-surface px-18 py-10 text-caption leading-none font-semibold whitespace-nowrap text-ink transition-[background-color,border-color,transform] duration-200 ease-out hover:border-ink hover:bg-tint active:scale-[0.98] disabled:cursor-wait disabled:opacity-60";
+/** Nút cho thao tác không hoàn tác được (huỷ chuyến bay): viền và chữ đỏ, nền đỏ khi rê chuột. */
+export const pillDanger =
+  "inline-flex min-h-40 items-center justify-center gap-8 rounded-pill border border-danger bg-surface px-18 py-10 text-caption leading-none font-semibold whitespace-nowrap text-danger transition-[background-color,color,transform] duration-200 ease-out hover:bg-danger hover:text-surface active:scale-[0.98] disabled:cursor-wait disabled:opacity-60";
 export const textLink =
-  "font-bold underline decoration-line-strong underline-offset-4 transition-colors hover:decoration-ink";
+  "font-semibold underline decoration-accent/40 decoration-2 underline-offset-4 transition-colors hover:text-accent hover:decoration-accent";
+
+/** Ô nhập và ô chọn: khối bo 12px nền thẻ; focus viền đất nung kèm quầng nhạt, lỗi viền đỏ. */
+const inputBox = (invalid: boolean) =>
+  `flex min-w-0 rounded-inner border bg-surface transition-[border-color,box-shadow] duration-200 hover:border-ink-2/60 focus-within:border-accent focus-within:shadow-[0_0_0_4px_var(--color-accent-soft)] ${
+    invalid ? "border-danger" : "border-line-strong"
+  }`;
 
 const iconClass =
-  "size-18 shrink-0 fill-none stroke-current stroke-2 [stroke-linecap:round] [stroke-linejoin:round]";
+  "size-16 shrink-0 fill-none stroke-current stroke-2 [stroke-linecap:round] [stroke-linejoin:round]";
 
 type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
@@ -59,7 +69,7 @@ function Note({
       <p
         id={id}
         role="alert"
-        className="flex items-start gap-8 text-caption font-bold"
+        className="flex items-start gap-8 text-caption font-semibold text-danger"
       >
         <Icon name="alert" className={`${iconClass} mt-2`} />
         {message}
@@ -73,7 +83,7 @@ function Note({
   ) : null;
 }
 
-/** Nhãn trên ô, lỗi dưới ô (DESIGN.md: ô nhập là khối vuông viền hairline, không bo góc). */
+/** Nhãn trên ô, lỗi dưới ô (DESIGN.md: ô nhập bo 12px, viền hairline). */
 export function Field({
   label,
   error,
@@ -91,22 +101,18 @@ export function Field({
   const noteId = `${id}-note`;
 
   return (
-    <div className="grid gap-8">
-      <label htmlFor={id} className="text-caption font-bold">
+    <div className="grid gap-6">
+      <label htmlFor={id} className="text-caption font-semibold text-ink-2">
         {label}
       </label>
-      <div
-        className={`flex border bg-paper transition-colors focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-ink ${
-          message ? "border-ink" : "border-line-strong"
-        }`}
-      >
+      <div className={inputBox(!!message)}>
         <input
           {...input}
           id={id}
           type={isPassword && visible ? "text" : type}
           aria-invalid={message ? true : undefined}
           aria-describedby={message || hint ? noteId : undefined}
-          className="min-w-0 flex-1 bg-transparent px-16 py-13 text-body text-ink outline-none placeholder:text-muted read-only:text-muted"
+          className="min-w-0 flex-1 rounded-inner bg-transparent px-13 py-9 text-body text-ink outline-none placeholder:text-muted read-only:text-muted"
           onInvalid={(e) => {
             e.preventDefault();
             setOwn(describe(e.currentTarget, label, invalidMessage));
@@ -119,7 +125,7 @@ export function Field({
         {isPassword && (
           <button
             type="button"
-            className="px-16 text-caption font-bold text-muted transition-colors hover:text-ink"
+            className="px-13 text-caption font-semibold text-muted transition-colors hover:text-accent"
             aria-label={
               visible
                 ? `Ẩn ${label.toLowerCase()}`
@@ -159,21 +165,17 @@ export function SelectField({
   const noteId = `${id}-note`;
 
   return (
-    <div className="grid gap-8">
-      <label htmlFor={id} className="text-caption font-bold">
+    <div className="grid gap-6">
+      <label htmlFor={id} className="text-caption font-semibold text-ink-2">
         {label}
       </label>
-      <div
-        className={`flex border bg-paper transition-colors focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-ink ${
-          message ? "border-ink" : "border-line-strong"
-        }`}
-      >
+      <div className={inputBox(!!message)}>
         <select
           {...select}
           id={id}
           aria-invalid={message ? true : undefined}
           aria-describedby={message || hint ? noteId : undefined}
-          className="min-w-0 flex-1 bg-transparent h-55 px-16 text-body text-ink outline-none"
+          className="h-42 min-w-0 flex-1 cursor-pointer rounded-inner bg-transparent px-13 text-body text-ink outline-none"
           onInvalid={(e) => {
             e.preventDefault();
             setOwn(`Hãy chọn ${label.toLowerCase()}.`);
@@ -202,11 +204,13 @@ export function Notice({
   return (
     <div
       role={tone === "error" ? "alert" : "status"}
-      className="flex items-start gap-11 border border-line bg-tint px-16 py-13 text-caption"
+      className={`flex items-start gap-10 rounded-inner px-14 py-10 text-caption text-ink ${
+        tone === "error" ? "bg-danger-soft" : "bg-ok-soft"
+      }`}
     >
       <Icon
         name={tone === "error" ? "alert" : "check"}
-        className={`${iconClass} mt-2`}
+        className={`${iconClass} mt-2 ${tone === "error" ? "text-danger" : "text-ok"}`}
       />
       <div>{children}</div>
     </div>
@@ -216,14 +220,14 @@ export function Notice({
 /** Khung xương giữ chỗ cho form trong lúc chờ đọc tham số URL hoặc tải dữ liệu. */
 export function FormSkeleton({ rows }: { rows: number }) {
   return (
-    <div aria-hidden="true" className="grid gap-22 motion-safe:animate-pulse">
+    <div aria-hidden="true" className="grid gap-18 motion-safe:animate-pulse">
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="grid gap-8">
-          <div className="h-17 w-120 bg-tint" />
-          <div className="h-55 border border-line bg-tint" />
+          <div className="h-14 w-110 rounded-badge bg-tint" />
+          <div className="h-42 rounded-inner bg-tint" />
         </div>
       ))}
-      <div className="h-52 w-160 rounded-pill bg-tint" />
+      <div className="h-40 w-140 rounded-pill bg-tint" />
     </div>
   );
 }

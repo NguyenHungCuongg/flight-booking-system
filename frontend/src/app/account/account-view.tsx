@@ -8,7 +8,7 @@ import {
   Notice,
   PASSWORD_PATTERN,
   PASSWORD_RULE,
-  pillDark,
+  pillPrimary,
   text,
   useSubmit,
 } from "@/components/form";
@@ -34,7 +34,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="grid gap-22 border-t border-line pt-38 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:gap-80">
+    <section className="grid gap-16 border-t border-line pt-38 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:gap-80">
       <div className="grid content-start gap-8">
         <h2 className="text-subheading font-bold">{title}</h2>
         <p className="text-muted">{desc}</p>
@@ -69,7 +69,7 @@ function ProfileForm({
     <form
       onSubmit={onSubmit}
       onChange={() => setSaved(false)}
-      className="grid gap-22"
+      className="grid gap-16"
     >
       <Field
         label="Email"
@@ -99,8 +99,8 @@ function ProfileForm({
         error={errors.phone}
       />
       {formError && <Notice>{formError}</Notice>}
-      <div className="flex flex-wrap items-center gap-22">
-        <button type="submit" className={pillDark} disabled={pending}>
+      <div className="flex flex-wrap items-center gap-16">
+        <button type="submit" className={pillPrimary} disabled={pending}>
           {pending ? "Đang lưu..." : "Lưu hồ sơ"}
         </button>
         <p role="status" className="text-caption text-muted">
@@ -138,7 +138,7 @@ function PasswordForm() {
     <form
       onSubmit={onSubmit}
       onChange={() => setDone(false)}
-      className="grid gap-22"
+      className="grid gap-16"
     >
       <Field
         label="Mật khẩu hiện tại"
@@ -168,8 +168,8 @@ function PasswordForm() {
         error={errors.confirm}
       />
       {formError && <Notice>{formError}</Notice>}
-      <div className="flex flex-wrap items-center gap-22">
-        <button type="submit" className={pillDark} disabled={pending}>
+      <div className="flex flex-wrap items-center gap-16">
+        <button type="submit" className={pillPrimary} disabled={pending}>
           {pending ? "Đang đổi..." : "Đổi mật khẩu"}
         </button>
         <p role="status" className="text-caption text-muted">
@@ -194,17 +194,17 @@ export default function AccountView() {
   }, [router]);
 
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="min-h-dvh">
       <SiteHeader />
 
-      <main className="mx-auto grid max-w-page gap-53 px-16 pt-38 pb-119 sm:px-38">
+      <main className="mx-auto grid max-w-page gap-38 px-16 pt-38 pb-80 sm:px-38">
         {loadError ? (
           <Notice>{loadError}</Notice>
         ) : !user ? (
           <div
             aria-busy="true"
             aria-label="Đang tải tài khoản"
-            className="grid gap-53"
+            className="grid gap-38"
           >
             <div className="grid gap-13 motion-safe:animate-pulse">
               <div className="h-52 w-full max-w-440 bg-tint" />

@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { AdminModal, AdminPage, tableBox, td, th } from "../admin-ui";
-import { Field, FormSkeleton, Notice, pillDark, pillLine, textLink } from "@/components/form";
+import { Field, FormSkeleton, Notice, pillPrimary, pillLine, textLink } from "@/components/form";
 import { apiFetch, type ApiError, type Schemas } from "@/lib/api";
 import { errorText, SETTING_INFO, validateSettingValue, vnTime } from "@/lib/admin";
 import { useApi } from "@/lib/use-api";
@@ -139,7 +139,7 @@ export default function SettingsForm() {
             <button type="button" onClick={() => setEditSetting(null)} className={pillLine} disabled={loading}>
               Huỷ
             </button>
-            <button type="submit" className={pillDark} disabled={loading}>
+            <button type="submit" className={pillPrimary} disabled={loading}>
               {loading ? "Đang lưu..." : "Lưu giá trị mới"}
             </button>
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import StatusBadge from "@/components/status-badge";
 import { useParams, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { Section } from "@/app/bookings/[code]/booking-view";
@@ -9,7 +10,7 @@ import {
   Field,
   FormSkeleton,
   Notice,
-  pillDark,
+  pillPrimary,
   pillLine,
   text,
   textLink,
@@ -155,12 +156,10 @@ export default function RefundDetailView() {
         <>
           <section
             aria-label="Trạng thái"
-            className="flex flex-wrap items-center justify-between gap-16 border border-line p-22"
+            className="flex flex-wrap items-center justify-between gap-16 card p-16"
           >
             <div className="grid gap-4">
-              <p className="text-subheading font-bold">
-                {REFUND_STATUS[refund.status] ?? refund.status}
-              </p>
+              <StatusBadge large status={refund.status} label={REFUND_STATUS[refund.status] ?? refund.status} />
               <p className="text-caption text-muted">
                 {`${refund.direction && refund.direction in DIRECTION_LABEL ? DIRECTION_LABEL[refund.direction as keyof typeof DIRECTION_LABEL] : refund.direction || "Khoản thanh toán thừa"}, ${REFUND_SOURCE[refund.source] ?? refund.source}`}
               </p>
@@ -175,8 +174,8 @@ export default function RefundDetailView() {
             </div>
           </section>
 
-          <div className="grid gap-38 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
-            <div className="grid gap-38">
+          <div className="grid gap-28 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+            <div className="grid gap-28">
               <Section title="Xử lý">
                 {refund.reason && (
                   <p className="text-body">{`Lý do của khách: ${refund.reason}`}</p>
@@ -216,12 +215,12 @@ export default function RefundDetailView() {
 
               {(acts.approve || acts.reject || acts.settle) && (
                 <Section title="Thao tác">
-                  <div className="grid gap-22">
+                  <div className="grid gap-16">
                     {acts.approve && (
                       <div>
                         <button
                           type="button"
-                          className={pillDark}
+                          className={pillPrimary}
                           disabled={isWorking}
                           onClick={handleApprove}
                         >
@@ -255,11 +254,11 @@ export default function RefundDetailView() {
                     )}
 
                     {acts.settle && (
-                      <div className="grid gap-22">
+                      <div className="grid gap-16">
                         <div>
                           <button
                             type="button"
-                            className={pillDark}
+                            className={pillPrimary}
                             disabled={isWorking}
                             onClick={handleRetry}
                           >
@@ -296,7 +295,7 @@ export default function RefundDetailView() {
               )}
             </div>
 
-            <div className="grid gap-38">
+            <div className="grid gap-28">
               <Section title="Số tiền hoàn">
                 <PriceTable
                   rows={[

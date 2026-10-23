@@ -8,7 +8,7 @@ import {
   FormSkeleton,
   Notice,
   SelectField,
-  pillDark,
+  pillPrimary,
   pillLine,
   textLink,
 } from "@/components/form";
@@ -221,7 +221,7 @@ export default function FlightCreateForm() {
       {error && <Notice>{error}</Notice>}
 
       {createdResult ? (
-        <div className="border border-line bg-tint/30 p-22 grid gap-16">
+        <div className="card p-16 grid gap-16">
           <h2 className="text-subheading font-bold">Kết quả tạo chuyến bay:</h2>
           <div className="grid gap-8 text-caption">
             <p className="font-bold text-ink">
@@ -235,7 +235,7 @@ export default function FlightCreateForm() {
             )}
           </div>
           <div className="flex gap-11 mt-11">
-            <Link href="/admin/flights" className={pillDark}>
+            <Link href="/admin/flights" className={pillPrimary}>
               Xem danh sách chuyến bay
             </Link>
             <button
@@ -250,7 +250,7 @@ export default function FlightCreateForm() {
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="grid gap-22 max-w-720">
+        <form onSubmit={handleSubmit} className="grid gap-16 max-w-720">
           {/* Thông tin cơ bản */}
           <div className="grid gap-16 sm:grid-cols-2">
             <SelectField
@@ -325,9 +325,9 @@ export default function FlightCreateForm() {
           </div>
 
           {/* Lựa chọn Chuyến lẻ hay Định kỳ */}
-          <div className="border-t border-line pt-22 grid gap-16">
+          <div className="border-t border-line pt-16 grid gap-16">
             <span className="text-caption font-bold">Lịch bay</span>
-            <div className="flex gap-22">
+            <div className="flex gap-16">
               <label className="flex items-center gap-8 text-caption font-bold cursor-pointer">
                 <input
                   type="radio"
@@ -382,7 +382,7 @@ export default function FlightCreateForm() {
                           key={w.day}
                           type="button"
                           onClick={() => toggleDay(w.day)}
-                          className={checked ? pillDark : pillLine}
+                          className={checked ? pillPrimary : pillLine}
                         >
                           {w.label}
                         </button>
@@ -395,7 +395,7 @@ export default function FlightCreateForm() {
           </div>
 
           {/* Cấu hình kho ghế theo hạng */}
-          <div className="border-t border-line pt-22 grid gap-16">
+          <div className="border-t border-line pt-16 grid gap-16">
             <div>
               <span className="text-caption font-bold">
                 Số ghế từng hạng (BR-81)
@@ -437,7 +437,7 @@ export default function FlightCreateForm() {
           </div>
 
           {/* Cấu hình giá bán cho các gói giá của hãng */}
-          <div className="border-t border-line pt-22 grid gap-16">
+          <div className="border-t border-line pt-16 grid gap-16">
             <div>
               <span className="text-caption font-bold">
                 Giá vé cơ sở từng gói giá ({selectedAirline})
@@ -471,14 +471,14 @@ export default function FlightCreateForm() {
             )}
           </div>
 
-          <div className="flex justify-end gap-11 border-t border-line pt-22">
+          <div className="flex justify-end gap-11 border-t border-line pt-16">
             <Link href="/admin/flights" className={pillLine}>
               Huỷ bỏ
             </Link>
             <button
               type="submit"
               disabled={submitting || fareFamilies.length === 0}
-              className={pillDark}
+              className={pillPrimary}
             >
               {submitting ? "Đang tạo chuyến..." : "Phát hành chuyến bay"}
             </button>

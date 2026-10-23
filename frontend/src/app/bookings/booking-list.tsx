@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import StatusBadge from "@/components/status-badge";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import SiteHeader from "@/components/site-header";
@@ -61,7 +62,7 @@ export default function BookingList() {
     body = (
       <div aria-hidden="true" className="grid gap-16 motion-safe:animate-pulse">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="h-120 border border-line bg-tint" />
+          <div key={i} className="h-120 rounded-card bg-tint" />
         ))}
       </div>
     );
@@ -89,12 +90,16 @@ export default function BookingList() {
             <li key={b.code}>
               <Link
                 href={`/bookings/${b.code}`}
-                className="grid gap-8 border border-line p-22 transition-colors hover:border-ink sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+                className="grid gap-8 card p-16 transition-[box-shadow,transform] duration-200 ease-out hover:-translate-y-1 hover:shadow-card-hover sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
               >
                 <div className="grid gap-4">
-                  <p>
-                    <span className="font-bold">{b.code}</span>
-                    <span className="text-muted">{`, ${STATUS_LABEL[b.status]}`}</span>
+                  <p className="flex flex-wrap items-center gap-x-11 gap-y-4">
+                    <span className="font-bold tracking-wide">{b.code}</span>
+                    <span className="sr-only">, </span>
+                    <StatusBadge
+                      status={b.status}
+                      label={STATUS_LABEL[b.status]}
+                    />
                   </p>
                   {b.routes.map((r) => (
                     <p key={r.direction} className="text-caption">
@@ -107,7 +112,7 @@ export default function BookingList() {
                     </p>
                   )}
                 </div>
-                <p className="text-subheading font-bold">
+                <p className="text-subheading font-bold text-accent">
                   {vnd(b.totalAmount)}
                 </p>
               </Link>
@@ -117,7 +122,7 @@ export default function BookingList() {
         {meta.totalPages > 1 && (
           <nav
             aria-label="Phân trang"
-            className="flex items-center gap-22 text-caption"
+            className="flex items-center gap-16 text-caption"
           >
             {page > 1 && (
               <Link href={href(status, page - 1)} className={textLink}>
@@ -137,9 +142,9 @@ export default function BookingList() {
   }
 
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="min-h-dvh">
       <SiteHeader />
-      <main className="mx-auto grid max-w-page gap-38 px-16 pt-22 pb-119 sm:px-38">
+      <main className="mx-auto grid max-w-page gap-28 px-16 pt-16 pb-80 sm:px-38">
         <h1 className="text-heading-lg font-bold">Đặt chỗ của tôi.</h1>
         {params.get("payment") === "failed" && (
           <Notice>
@@ -149,7 +154,7 @@ export default function BookingList() {
         )}
         <nav
           aria-label="Lọc theo trạng thái"
-          className="flex flex-wrap gap-x-22 gap-y-8 text-caption"
+          className="flex flex-wrap gap-8 text-caption"
         >
           {["", ...STATUSES].map((s) => (
             <Link
@@ -158,8 +163,8 @@ export default function BookingList() {
               aria-current={s === status ? "page" : undefined}
               className={
                 s === status
-                  ? "font-bold underline underline-offset-4"
-                  : "text-muted transition-colors hover:text-ink"
+                  ? "rounded-pill border border-accent bg-accent-soft px-11 py-4 font-semibold text-accent"
+                  : "rounded-pill border border-line bg-surface px-11 py-4 text-muted transition-colors hover:border-line-strong hover:text-ink"
               }
             >
               {s ? STATUS_LABEL[s as BookingStatus] : "Tất cả"}

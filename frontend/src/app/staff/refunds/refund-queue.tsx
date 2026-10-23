@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import StatusBadge from "@/components/status-badge";
 import Form from "next/form";
 import { useSearchParams } from "next/navigation";
-import { FormSkeleton, Notice, SelectField, pillDark, textLink } from "@/components/form";
+import { FormSkeleton, Notice, SelectField, pillPrimary, textLink } from "@/components/form";
 import type { Schemas } from "@/lib/api";
 import { DIRECTION_LABEL, REFUND_SOURCE, REFUND_STATUS, at } from "@/lib/booking";
 import { listQuery } from "@/lib/staff";
@@ -43,7 +44,7 @@ export default function RefundQueue() {
       <Form
         action="/staff/refunds"
         key={params.toString()}
-        className="grid gap-16 sm:grid-cols-[220px_220px_auto] sm:items-end"
+        className="grid gap-16 sm:grid-cols-[220px_220px_auto] sm:items-end sm:justify-start"
       >
         <SelectField
           label="Trạng thái"
@@ -67,7 +68,7 @@ export default function RefundQueue() {
             </option>
           ))}
         </SelectField>
-        <button type="submit" className={pillDark}>
+        <button type="submit" className={pillPrimary}>
           Lọc
         </button>
       </Form>
@@ -132,7 +133,7 @@ export default function RefundQueue() {
                           </span>
                         </td>
                         <td className={td}>
-                          {REFUND_STATUS[r.status] ?? r.status}
+                          <StatusBadge status={r.status} label={REFUND_STATUS[r.status] ?? r.status} />
                         </td>
                         <td className={td}>{at(r.createdAt)}</td>
                       </tr>

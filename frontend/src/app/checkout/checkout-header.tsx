@@ -12,7 +12,7 @@ export default function CheckoutHeader({ backUrl }: { backUrl: string }) {
     </li>
   );
   return (
-    <header className="mx-auto flex max-w-page flex-wrap items-center justify-between gap-16 px-16 py-22 sm:px-38">
+    <header className="mx-auto flex max-w-page flex-wrap items-center justify-between gap-16 px-16 py-16 sm:px-38">
       <Brand />
       <nav aria-label="Các bước đặt vé">
         <ol className="flex flex-wrap items-center gap-x-11 gap-y-8 text-caption">
@@ -26,7 +26,10 @@ export default function CheckoutHeader({ backUrl }: { backUrl: string }) {
           </li>
           {sep}
           <li>
-            <span aria-current="step" className="font-bold">
+            <span
+              aria-current="step"
+              className="rounded-pill bg-accent-soft px-11 py-4 font-semibold text-accent"
+            >
               2. Thông tin hành khách
             </span>
           </li>

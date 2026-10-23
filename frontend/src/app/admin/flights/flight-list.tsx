@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import StatusBadge from "@/components/status-badge";
 import Form from "next/form";
 import { useSearchParams } from "next/navigation";
 import { AdminPage, tableBox, td, th } from "../admin-ui";
-import { Field, FormSkeleton, Notice, SelectField, pillDark, textLink } from "@/components/form";
+import { Field, FormSkeleton, Notice, SelectField, pillPrimary, textLink } from "@/components/form";
 import type { Schemas } from "@/lib/api";
 import { useAirports } from "@/lib/airports";
 import { clock, dmy } from "@/lib/booking";
@@ -58,7 +59,7 @@ export default function AdminFlightList() {
             Quản trị lịch bay, kho ghế và trạng thái vận hành của các chuyến (A-04).
           </p>
         </div>
-        <Link href="/admin/flights/new" className={pillDark}>
+        <Link href="/admin/flights/new" className={pillPrimary}>
           + Tạo chuyến bay
         </Link>
       </div>
@@ -100,7 +101,7 @@ export default function AdminFlightList() {
               </option>
             ))}
           </SelectField>
-          <button type="submit" className={pillDark}>
+          <button type="submit" className={pillPrimary}>
             Lọc
           </button>
         </Form>
@@ -136,15 +137,15 @@ export default function AdminFlightList() {
                         <td className={td}>{`${clock(f.departureTime)} ${dmy(f.departureTime)}`}</td>
                         <td className={td}>{`${clock(f.arrivalTime)} ${dmy(f.arrivalTime)}`}</td>
                         <td className={td}>{f.aircraftModel}</td>
-                        <td className={td}>{FLIGHT_STATUS[f.status] ?? f.status}</td>
+                        <td className={td}><StatusBadge status={f.status} label={FLIGHT_STATUS[f.status] ?? f.status} /></td>
                         <td className={td}>
                           {f.cabins.map((c) => (
-                            <p key={c.cabinClass} className="text-caption">
+                            <p key={c.cabinClass} className="whitespace-nowrap">
                               {`${cabinLabel(c.cabinClass)}: ${c.availableSeats}/${c.totalSeats}`}
                             </p>
                           ))}
                         </td>
-                        <td className={`${td} space-x-16`}>
+                        <td className={`${td} space-x-16 whitespace-nowrap`}>
                           <Link href={`/admin/flights/${f.id}`} className={textLink}>
                             Chi tiết
                           </Link>

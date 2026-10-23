@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import {
   Field,
   Notice,
-  pillDark,
+  pillPrimary,
   text,
   textLink,
   useSubmit,
@@ -33,7 +33,7 @@ export default function LoginForm() {
   });
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-22">
+    <form onSubmit={onSubmit} className="grid gap-16">
       {params.get("reset") === "1" && (
         <Notice tone="ok">
           Đã đặt lại mật khẩu. Hãy đăng nhập bằng mật khẩu mới.
@@ -63,7 +63,7 @@ export default function LoginForm() {
       </div>
       {formError && <Notice>{formError}</Notice>}
       <div className="mt-11 flex flex-wrap items-center gap-x-22 gap-y-16">
-        <button type="submit" className={pillDark} disabled={pending}>
+        <button type="submit" className={pillPrimary} disabled={pending}>
           {pending ? "Đang đăng nhập..." : "Đăng nhập"}
         </button>
         <p className="text-caption text-muted">

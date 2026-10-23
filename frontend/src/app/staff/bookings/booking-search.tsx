@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import StatusBadge from "@/components/status-badge";
 import Form from "next/form";
 import { useSearchParams } from "next/navigation";
-import { Field, FormSkeleton, Notice, SelectField, pillDark, textLink } from "@/components/form";
+import { Field, FormSkeleton, Notice, SelectField, pillPrimary, textLink } from "@/components/form";
 import type { Schemas } from "@/lib/api";
 import { DIRECTION_LABEL, STATUS_LABEL, at, clock, dmy } from "@/lib/booking";
 import { listQuery } from "@/lib/staff";
@@ -56,7 +57,7 @@ export default function BookingSearch() {
             </option>
           ))}
         </SelectField>
-        <button type="submit" className={pillDark}>
+        <button type="submit" className={pillPrimary}>
           Tìm
         </button>
       </Form>
@@ -99,7 +100,7 @@ export default function BookingSearch() {
                         </Link>
                       </td>
                       <td className={td}>
-                        {STATUS_LABEL[b.status] ?? b.status}
+                        <StatusBadge status={b.status} label={STATUS_LABEL[b.status] ?? b.status} />
                       </td>
                       <td className={td}>
                         <p className="font-bold">{b.contactName}</p>

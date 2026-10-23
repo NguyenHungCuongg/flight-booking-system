@@ -5,7 +5,7 @@ import { useId, useState } from "react";
 import { apiFetch, homeOf, type User } from "@/lib/api";
 
 const item =
-  "block px-16 py-11 text-caption text-ink transition-colors hover:bg-tint";
+  "block px-14 py-8 text-caption text-ink transition-colors hover:bg-tint";
 
 /** Đăng xuất rồi tải lại trang chủ, để mọi header đọc lại GET /me. Phiên đã hết hạn thì backend trả 401, vẫn coi là xong. */
 async function logout() {
@@ -56,9 +56,9 @@ export default function UserMenu({
         onClick={(e) =>
           (e.target as Element).closest("a") && e.currentTarget.hidePopover()
         }
-        className="fixed inset-auto m-0 w-260 border border-line-strong bg-paper py-8 text-caption text-ink"
+        className="fixed inset-auto m-0 w-240 overflow-hidden rounded-inner bg-surface py-8 text-caption text-ink shadow-card-hover"
       >
-        <div className="border-b border-line px-16 pt-4 pb-11">
+        <div className="border-b border-line px-14 pt-4 pb-8">
           <p className="text-caption font-bold break-words">{user.fullName}</p>
           <p className="text-caption break-words text-muted">{user.email}</p>
         </div>

@@ -11,7 +11,7 @@ import {
   PASSWORD_PATTERN,
   PASSWORD_RULE,
   SelectField,
-  pillDark,
+  pillPrimary,
   pillLine,
   textLink,
 } from "@/components/form";
@@ -111,7 +111,7 @@ export default function UserList() {
             setActionError(null);
             setCreateOpen(true);
           }}
-          className={pillDark}
+          className={pillPrimary}
         >
           + Tạo tài khoản Staff / Admin
         </button>
@@ -136,7 +136,7 @@ export default function UserList() {
           <option value="STAFF">Nhân viên</option>
           <option value="ADMIN">Quản trị viên</option>
         </SelectField>
-        <button type="submit" className={pillDark}>
+        <button type="submit" className={pillPrimary}>
           Tìm kiếm
         </button>
       </Form>
@@ -174,7 +174,7 @@ export default function UserList() {
                         {u.status === "ACTIVE" ? (
                           <span className="font-bold text-ink">Hoạt động</span>
                         ) : (
-                          <span className="text-clay-ember font-bold">Đã khoá</span>
+                          <span className="font-semibold text-danger">Đã khoá</span>
                         )}
                       </td>
                       <td className={td}>
@@ -256,7 +256,7 @@ export default function UserList() {
             <button type="button" onClick={() => setCreateOpen(false)} className={pillLine} disabled={loading}>
               Huỷ
             </button>
-            <button type="submit" className={pillDark} disabled={loading}>
+            <button type="submit" className={pillPrimary} disabled={loading}>
               {loading ? "Đang tạo..." : "Tạo tài khoản"}
             </button>
           </div>

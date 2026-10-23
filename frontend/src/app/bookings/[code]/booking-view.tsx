@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import StatusBadge from "@/components/status-badge";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import SiteHeader from "@/components/site-header";
 import {
   FormSkeleton,
   Notice,
-  pillDark,
+  pillPrimary,
   pillLine,
   textLink,
 } from "@/components/form";
@@ -48,7 +49,7 @@ export function Section({
   return (
     <section
       aria-label={title}
-      className="grid content-start gap-16 border-t border-line pt-22"
+      className="grid content-start gap-16 border-t border-line pt-16 first:border-t-0 first:pt-0"
     >
       <h2 className="text-subheading font-bold">{title}</h2>
       {children}
@@ -81,8 +82,8 @@ export function BookingBody({
   }
 
   return (
-    <div className="grid gap-38 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
-      <div className="grid gap-38">
+    <div className="grid gap-28 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+      <div className="grid gap-28">
         <Section title="Hành trình">
           {booking.journeys.map((j) => {
             const cabin =
@@ -93,7 +94,7 @@ export function BookingBody({
               <article
                 key={j.direction}
                 aria-label={DIRECTION_LABEL[j.direction]}
-                className="grid gap-8 border border-line p-22"
+                className="grid gap-8 card p-16"
               >
                 <p className="font-bold">
                   {DIRECTION_LABEL[j.direction]}
@@ -138,7 +139,7 @@ export function BookingBody({
         <Section title="Hành khách">
           <ul className="grid gap-16">
             {booking.passengers.map((p, i) => (
-              <li key={i} className="grid gap-4 border border-line p-22">
+              <li key={i} className="grid gap-4 card p-16">
                 <p className="font-bold">{`${p.lastName} ${p.firstName}`}</p>
                 <p className="text-caption text-muted">
                   {`${PASSENGER_LABEL[p.type]}, ${p.gender === "MALE" ? "nam" : "nữ"}, sinh ngày ${dmy(p.dateOfBirth)}`}
@@ -169,7 +170,7 @@ export function BookingBody({
         </Section>
       </div>
 
-      <div className="grid gap-38">
+      <div className="card grid gap-16 p-16 lg:sticky lg:top-80">
         <Section title="Bảng giá">
           <PriceTable rows={rows} total={booking.totalAmount} />
         </Section>
@@ -248,7 +249,7 @@ export function BookingBody({
                         {!staff && onPayReschedule && (
                           <button
                             type="button"
-                            className={`${pillDark} justify-self-start`}
+                            className={`${pillPrimary} justify-self-start`}
                             disabled={busy}
                             onClick={() => onPayReschedule(r.id)}
                           >
@@ -377,9 +378,9 @@ export default function BookingView() {
     );
 
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="min-h-dvh">
       <SiteHeader />
-      <main className="mx-auto grid max-w-page gap-38 px-16 pt-22 pb-119 sm:px-38">
+      <main className="mx-auto grid max-w-page gap-28 px-16 pt-16 pb-80 sm:px-38">
         <div className="grid gap-13">
           <Link href="/bookings" className={`${textLink} text-caption`}>
             Tất cả đặt chỗ
@@ -407,8 +408,8 @@ export default function BookingView() {
             {booking.status === "ISSUED" && rescheduleExpired
               ? "Đã nhận thanh toán nhưng lượt đổi chuyến đã hết hạn nên chưa đổi được. Khoản đã trả sẽ được hoàn lại, bạn có thể theo dõi ở mục yêu cầu hoàn."
               : booking.status === "ISSUED"
-              ? `Thanh toán thành công. Vé điện tử đã được gửi tới ${booking.contact.email}.`
-              : "Đã nhận kết quả từ VNPay, hệ thống đang xác nhận thanh toán. Hãy tải lại trang sau ít phút."}
+                ? `Thanh toán thành công. Vé điện tử đã được gửi tới ${booking.contact.email}.`
+                : "Đã nhận kết quả từ VNPay, hệ thống đang xác nhận thanh toán. Hãy tải lại trang sau ít phút."}
           </Notice>
         )}
         {booking && payment === "failed" && (
@@ -434,12 +435,14 @@ export default function BookingView() {
         {booking && (
           <section
             aria-label="Trạng thái"
-            className="grid gap-16 border border-ink p-22 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+            className="grid gap-16 card-hi p-16 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
           >
             <div className="grid gap-4">
-              <p className="text-subheading font-bold">
-                {STATUS_LABEL[booking.status]}
-              </p>
+              <StatusBadge
+                large
+                status={booking.status}
+                label={STATUS_LABEL[booking.status]}
+              />
               {canPay && <p>{`Còn ${countdown(left ?? 0)} để thanh toán`}</p>}
               {left !== null && !canPay && <p>Đã hết hạn giữ chỗ.</p>}
               {pending && (
@@ -458,7 +461,7 @@ export default function BookingView() {
                 {canPay && (
                   <button
                     type="button"
-                    className={pillDark}
+                    className={pillPrimary}
                     disabled={busy}
                     onClick={() =>
                       startPayment(

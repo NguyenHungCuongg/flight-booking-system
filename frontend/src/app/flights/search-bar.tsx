@@ -25,7 +25,7 @@ export default function SearchBar({
   return (
     <div className="grid gap-16">
       {summary !== null && (
-        <div className="flex flex-wrap items-center justify-between gap-16 border border-line p-16">
+        <div className="flex flex-wrap items-center justify-between gap-16 card p-16">
           {summary}
           <button
             type="button"

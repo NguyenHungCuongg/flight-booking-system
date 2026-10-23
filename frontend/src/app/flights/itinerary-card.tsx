@@ -1,6 +1,6 @@
 "use client";
 
-import { pillDark, pillLine } from "@/components/form";
+import { pillPrimary, pillLine } from "@/components/form";
 import {
   cheapest,
   dayShift,
@@ -53,12 +53,18 @@ export default function ItineraryCard({
   return (
     <article
       aria-label={`${a.airline.name} ${numbers}`}
-      className="border border-line bg-paper"
+      className="card transition-shadow duration-200 hover:shadow-card-hover"
     >
-      <div className="grid gap-16 p-22 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-38">
+      <div className="grid gap-16 p-16 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-28">
         <div className="grid gap-13">
-          <p className="text-caption text-muted">
-            <span className="font-bold text-ink">{a.airline.name}</span>
+          <p className="flex flex-wrap items-center gap-x-8 text-caption text-muted">
+            <span
+              aria-hidden="true"
+              className="inline-grid h-22 min-w-28 place-items-center rounded-badge bg-accent-soft px-5 text-badge font-bold text-accent"
+            >
+              {a.airline.code}
+            </span>
+            <span className="font-semibold text-ink">{a.airline.name}</span>
             {" · "}
             {numbers}
           </p>
@@ -66,7 +72,15 @@ export default function ItineraryCard({
             <Time t={a.departure} />
             <div className="grid flex-1 justify-items-center gap-4 text-caption text-muted">
               <span>{duration(itinerary.totalDurationMinutes)}</span>
-              <span aria-hidden="true" className="h-1 w-full bg-line-strong" />
+              {/* Đường bay: chấm rỗng ở nơi đi, nét đứt, chấm đất nung ở nơi đến. */}
+              <span
+                aria-hidden="true"
+                className="flex w-full items-center gap-4"
+              >
+                <span className="size-8 shrink-0 rounded-pill border-2 border-line-strong" />
+                <span className="flex-1 border-t-2 border-dashed border-line-strong" />
+                <span className="size-8 shrink-0 rounded-pill bg-accent" />
+              </span>
               <span>
                 {itinerary.stops === 0
                   ? "Bay thẳng"
@@ -79,7 +93,7 @@ export default function ItineraryCard({
         <div className="flex items-center justify-between gap-16 md:grid md:justify-items-end">
           <p className="grid md:justify-items-end">
             <span className="text-caption text-muted">Từ</span>
-            <span className="text-subheading font-bold">
+            <span className="text-subheading font-bold text-accent">
               {vnd(cheapest(itinerary))}
             </span>
             <span className="text-caption text-muted">
@@ -88,7 +102,7 @@ export default function ItineraryCard({
           </p>
           <button
             type="button"
-            className={open ? pillLine : pillDark}
+            className={open ? pillLine : pillPrimary}
             aria-expanded={open}
             aria-controls={panelId}
             onClick={onToggle}
@@ -99,7 +113,7 @@ export default function ItineraryCard({
       </div>
 
       {open && (
-        <div id={panelId} className="grid gap-22 border-t border-line p-22">
+        <div id={panelId} className="grid gap-16 border-t border-line p-16">
           <ol className="grid gap-16">
             {segs.map((s, i) => (
               <li key={s.flightId} className="grid gap-4">
@@ -126,7 +140,7 @@ export default function ItineraryCard({
             {itinerary.fareOptions.map((f) => (
               <li
                 key={f.fareFamilyId}
-                className="grid content-start gap-13 border border-line p-22"
+                className="flex flex-col gap-13 rounded-inner border border-line bg-paper/60 p-16 transition-colors duration-200 hover:border-accent/60"
               >
                 <p className="text-subheading font-bold">{f.name}</p>
                 <ul className="grid gap-4 text-caption">
@@ -134,11 +148,11 @@ export default function ItineraryCard({
                     <li key={r}>{r}</li>
                   ))}
                 </ul>
-                <p className="grid">
+                <p className="mt-auto grid">
                   <span className="text-caption text-muted">
                     Tổng cho {passengers} khách
                   </span>
-                  <span className="text-subheading font-bold">
+                  <span className="text-subheading font-bold text-accent">
                     {vnd(f.totalPrice)}
                   </span>
                   <span className="text-caption text-muted">
@@ -147,7 +161,7 @@ export default function ItineraryCard({
                 </p>
                 <button
                   type="button"
-                  className={pillDark}
+                  className={pillPrimary}
                   aria-label={`Chọn gói ${f.name}`}
                   onClick={() => onChoose(f)}
                 >

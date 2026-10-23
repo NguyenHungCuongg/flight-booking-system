@@ -13,7 +13,7 @@ import {
   Field,
   FormSkeleton,
   Notice,
-  pillDark,
+  pillPrimary,
   pillLine,
   textLink,
 } from "@/components/form";
@@ -128,7 +128,7 @@ export default function AirportList() {
             setActionError(null);
             setModalState({ mode: "create" });
           }}
-          className={pillDark}
+          className={pillPrimary}
         >
           + Thêm sân bay
         </button>
@@ -276,7 +276,7 @@ export default function AirportList() {
             >
               Huỷ
             </button>
-            <button type="submit" className={pillDark} disabled={loading}>
+            <button type="submit" className={pillPrimary} disabled={loading}>
               {loading ? "Đang lưu..." : "Lưu sân bay"}
             </button>
           </div>

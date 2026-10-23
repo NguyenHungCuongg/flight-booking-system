@@ -62,11 +62,11 @@ export default function CheckoutView() {
   }, [airlines]);
 
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="min-h-dvh">
       <CheckoutHeader
         backUrl={selection ? flightsUrl(selection) : "/flights"}
       />
-      <main className="mx-auto grid max-w-page gap-38 px-16 pt-22 pb-119 sm:px-38">
+      <main className="mx-auto grid max-w-page gap-28 px-16 pt-16 pb-80 sm:px-38">
         {selection === null ? (
           <div className="grid gap-13">
             <h1 className="text-heading-lg font-bold break-words">

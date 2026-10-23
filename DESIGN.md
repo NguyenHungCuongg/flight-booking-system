@@ -1,240 +1,179 @@
 # SkyLine — Design System
 
-> Cockpit twilight over parchment. A pale dawn-sky meets a sans-serif wordmark the size of a fuselage, with one warm clay accent breaking the monochrome restraint.
+> Night sky over cool paper. A heavy sans-serif wordmark, blue-grey neutrals, and one warm terracotta accent that marks every action and every price.
 
-**Theme:** mixed
+**Theme:** auto (follows `prefers-color-scheme`; light and dark are both first-class)
 
-Visual direction (measurements, palette, layout) is inspired by the public website of Hyer Aviation. All brand names, copy, logos, fonts and imagery in this document are SkyLine's own or freely licensed — see [Assets & Licensing](#assets--licensing).
+Visual direction for the landing (measurements, layout) is inspired by the public website of Hyer Aviation. All brand names, copy, logos, fonts and imagery in this document are SkyLine's own or freely licensed — see [Assets & Licensing](#assets--licensing).
 
-SkyLine reads as a luxury travel editorial: a pale sky-bluish hero with a sculptural jet floats over a bright white canvas, anchored by near-black typography so heavy it feels cast in metal. The palette is deliberately austere — one warm terracotta accent punctuates an otherwise monochromatic system, appearing only in featured solution cards while the rest of the interface stays in deep ink and parchment. Typography is the brand's loudest voice: a single display face at 187px and 131px with extreme tight tracking dominates hero sections, while body text settles at 18px with generous 1.61 line-height for a calm, breathable rhythm. Every interactive element is a full pill (1000px+ radius) or a hard-edged panel, creating a tension between soft, inviting buttons and the architectural boldness of the headlines.
+SkyLine reads as a calm travel product: a night-sky hero with a sculptural jet, then app screens on a cool, blue-tinted paper canvas where white cards float on soft tinted shadows. The palette is one family of blue-grey neutrals plus a single terracotta accent. The accent is the brand's voice in the app: primary buttons, the active nav item, prices and totals, focus rings, selected states. Status (issued, waiting, cancelled) has its own small semantic palette so a list of bookings can be scanned by colour. Typography is Be Vietnam Pro, drawn for Vietnamese from the start, so stacked diacritics stay clean at display sizes.
+
+**Revision 2026-10-23.** The first version was strictly monochrome (ink on white, clay on one card per page, no shadows, square panels). In dark mode every app screen became navy-black with white text and nothing else, which made screens hard to scan. This revision promotes terracotta to the system accent, adds status colours, tinted surfaces with elevation, rounded cards and inputs, and swaps Inter for Be Vietnam Pro. The landing (C-01) keeps its own CSS (`landing.css`); only its dark palette and the main search button were aligned with these tokens.
 
 ## Tokens — Colors
 
-| Name          | Value     | Token                   | Role                                                                                                                                                    |
-| ------------- | --------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Deep Ink      | `#000d10` | `--color-deep-ink`      | Primary text, footer background, filled action buttons, icon strokes — the structural near-black carries the entire brand voice in type and CTAs        |
-| Pure White    | `#ffffff` | `--color-pure-white`    | Page canvas, card surfaces, button text on dark, nav backdrop — the quiet field against which everything else reads                                     |
-| Cool Ash      | `#8e8e95` | `--color-cool-ash`      | Secondary body text, nav items, muted helper labels — the only neutral that recedes deliberately behind primary copy                                    |
-| Pebble        | `#d5d3d4` | `--color-pebble`        | Hairline borders, dividers, subtle surface alternation between dark sections — visible only at edges                                                    |
-| Midnight Hull | `#0f0f1c` | `--color-midnight-hull` | Dark section backgrounds (Customer Support area) — slightly bluer than Deep Ink to differentiate stacked dark bands                                     |
-| Charcoal Deck | `#151623` | `--color-charcoal-deck` | Elevated dark panels and deep section backgrounds — the top of the dark surface stack with a faint indigo cast                                          |
-| Clay Ember    | `#bc7155` | `--color-clay-ember`    | Featured solution card background, decorative fills — the single warm note in an otherwise cold system, used sparingly to make one offering feel chosen |
+Role tokens live in `frontend/src/app/globals.css` (`@theme`, overridden under `prefers-color-scheme: dark`). Use the role names (`bg-surface`, `text-accent`…), never raw hex, in app code.
+
+| Role           | Light     | Dark           | Use                                                                     |
+| -------------- | --------- | -------------- | ----------------------------------------------------------------------- |
+| `ink`          | `#0e1726` | `#e8edf3`      | Primary text, headings                                                  |
+| `ink-2`        | `#3a4656` | `#c3ccd7`      | Form labels, table headers                                              |
+| `muted`        | `#5a6675` | `#94a1b2`      | Secondary text, hints, inactive nav (≥ 4.5:1 on paper and surface)      |
+| `paper`        | `#f3f5f8` | `#0a111c`      | Page background (with two faint glows at the top, sky left, clay right) |
+| `surface`      | `#ffffff` | `#111b29`      | Cards, inputs, menus, dialogs: anything that floats on paper            |
+| `tint`         | `#e9eef3` | `#172435`      | Hover fills, table header row, skeletons                                |
+| `line`         | `#dde3ea` | `#213044`      | Hairline dividers                                                       |
+| `line-strong`  | `#c2cbd5` | `#34465f`      | Input borders, secondary button borders                                 |
+| `accent`       | `#a85a3c` | `#e08a68`      | Primary buttons, active nav, prices and totals, focus ring, sliders     |
+| `accent-hover` | `#8f4a2f` | `#eba085`      | Primary button hover                                                    |
+| `accent-fg`    | `#ffffff` | `#0e1726`      | Text on accent (5.0:1 light, 7.0:1 dark)                                |
+| `accent-soft`  | `#f7ebe5` | accent at 14 % | Active nav pill, selected chip, input focus halo, airline code chip     |
+
+**Status colours** (badges and notices only; text colour on its own soft background):
+
+| Tone     | Light text / soft     | Dark text / soft | Statuses                                                      |
+| -------- | --------------------- | ---------------- | ------------------------------------------------------------- |
+| `ok`     | `#17704a` / `#e1f3e9` | `#6fd6a0` / 13 % | ISSUED, COMPLETED, SUCCESS                                    |
+| `warn`   | `#8a5300` / `#fcefd5` | `#f2bd5c` / 13 % | PENDING_PAYMENT, PENDING                                      |
+| `danger` | `#b4232f` / `#fbe6e7` | `#f58c94` / 13 % | CANCELLED, REJECTED, FAILED; form errors; destructive buttons |
+| `info`   | `#1f5a92` / `#e3edf8` | `#8dbcf0` / 13 % | SCHEDULED, APPROVED, REFUNDED                                 |
+| neutral  | `muted` on `tint`     | same             | EXPIRED and anything unknown                                  |
+
+The mapping lives in one place, `components/status-badge.tsx`. Status colours are semantic, not decoration: never use them for brand elements.
+
+**Brand constants** (logo, imagery, landing): Deep Ink `#000d10`, Clay Ember `#bc7155` (the wordmark dot and landing clay band; too light for white text, so the app uses `accent` instead).
 
 ## Tokens — Typography
 
-### Inter — Sole typeface across the system. The weight 700 at 187px with -0.02em tracking is the signature: it sets the wordmark and hero at near-architectural scale, turning headlines into physical objects. Weight 400 at 18px with 1.61 line-height handles all body copy, creating the most spacious text block in the type system. · `--font-sans`
+### Be Vietnam Pro — sole typeface · `--font-sans`
 
-- **License:** SIL Open Font License 1.1 — free for personal, academic and commercial use, including web embedding. Source: Google Fonts / rsms.me/inter.
-- **Why Inter:** closest free match to the reference's neo-grotesque display face; full Vietnamese diacritic coverage (required by NFR-09); variable `wght` and `opsz` axes, so display sizes automatically get the tighter display cut.
-- **Loading (Next.js):** `next/font/google` → `Inter({ subsets: ["latin", "vietnamese"], axes: ["opsz"], variable: "--font-sans" })`. Self-hosted at build time, no runtime request to Google.
-- **Substitute:** Inter Tight (OFL, display-only alternative — reduce tracking if used), system-ui
-- **Weights:** 400, 700
-- **Sizes:** 17px, 18px, 20px, 23px, 30px, 37px, 52px, 60px, 63px, 131px, 187px
-- **Line height:** 0.80 (display) → 1.00 (headings) → 1.61 (body)
-- **Letter spacing:** -3.74px at 187px, -2.62px at 131px, -1.26px at 63px, -0.52px at 52px, -0.37px at 37px, -0.23px at 23px, 0 at 18-20px
-- **OpenType features:** `normal`
-- **Vietnamese note:** at line-height 0.80–1.00, stacked diacritics on capitals (Ấ, Ở, Ữ) can collide with the line above. Keep display headlines short (1–2 words per line) or prefer lowercase for multi-line display text.
-- **Role:** Sole typeface across the system, including 17px weight 700 button/caption labels.
+- **License:** SIL Open Font License 1.1. Source: Google Fonts.
+- **Why:** designed for Vietnamese first, so stacked diacritics on capitals (Ấ, Ở, Ữ) have room at display sizes; a warmer, more distinctive grotesque than Inter while staying neutral enough for tables.
+- **Loading (Next.js):** `next/font/google` → `Be_Vietnam_Pro({ subsets: ["latin", "vietnamese"], weight: ["400","500","600","700","800"], variable: "--font-sans" })`. Not a variable font, so list every weight in use.
+- **Weights:** 400 body, 500 (rare), 600 labels/nav/buttons/table headers, 700 headings, prices, codes, 800 reserved for the landing.
+- **Numbers:** `font-variant-numeric: tabular-nums` on `body`, so prices, times and seat counts line up.
 
-### Type Scale
+### Type Scale (app)
 
-| Role       | Family | Weight | Size  | Line Height | Letter Spacing | Token               |
-| ---------- | ------ | ------ | ----- | ----------- | -------------- | ------------------- |
-| caption    | —      | —      | 17px  | 17          | 0px            | `--text-caption`    |
-| nav        | —      | —      | 20px  | 20          | 0px            | `--text-nav`        |
-| subheading | —      | —      | 23px  | 23          | -0.23px        | `--text-subheading` |
-| heading-sm | —      | —      | 30px  | 30          | 0px            | `--text-heading-sm` |
-| heading    | —      | —      | 37px  | 37          | -0.37px        | `--text-heading`    |
-| heading-lg | —      | —      | 52px  | 52          | -0.52px        | `--text-heading-lg` |
-| display    | —      | —      | 63px  | 63          | -1.26px        | `--text-display`    |
-| display-xl | —      | —      | 131px | 131         | -2.62px        | `--text-display-xl` |
-| hero       | —      | —      | 187px | 150         | -3.74px        | `--text-hero`       |
+| Role       | Size  | Line height | Letter spacing | Token               |
+| ---------- | ----- | ----------- | -------------- | ------------------- |
+| badge      | 12px  | 16px        | 0              | `--text-badge`      |
+| table      | 14px  | 20px        | 0              | `--text-table`      |
+| caption    | 14px  | 20px        | 0              | `--text-caption`    |
+| body       | 15px  | 24px        | 0              | `--text-body`       |
+| subheading | 18px  | 24px        | -0.2px         | `--text-subheading` |
+| heading-sm | 22px  | 28px        | -0.3px         | `--text-heading-sm` |
+| heading    | 28px  | 34px        | -0.5px         | `--text-heading`    |
+| heading-lg | 34px  | 40px        | -0.9px         | `--text-heading-lg` |
+| display    | 48px  | 54px        | -1.4px         | `--text-display`    |
+| display-xl | 131px | 131px       | -2.62px        | `--text-display-xl` |
+| hero       | 187px | 150px       | -3.74px        | `--text-hero`       |
+
+Page titles are `heading-lg` bold and end with a period ("Chọn chuyến bay."). Line heights are written in px (`--text-*--line-height`), never unitless.
 
 ## Tokens — Spacing & Shapes
 
-**Base unit:** 4px
+`--spacing: 1px`, so `p-16` is 16px. Common steps: 4, 6, 8, 10, 13, 16, 18, 28, 38, 80. The app is compact: card padding 16px, block gap 16–28px.
 
-**Density:** spacious
+| Shape                                | Radius | Token           |
+| ------------------------------------ | ------ | --------------- |
+| Buttons, nav items, chips            | 1000px | `rounded-pill`  |
+| Cards, dialogs                       | 14px   | `rounded-card`  |
+| Inputs, inner panels, menus, notices | 10px   | `rounded-inner` |
+| Badges, airline code chip            | 6px    | `rounded-badge` |
 
-### Spacing Scale
-
-| Name | Value | Token           |
-| ---- | ----- | --------------- |
-| 11   | 11px  | `--spacing-11`  |
-| 13   | 13px  | `--spacing-13`  |
-| 15   | 15px  | `--spacing-15`  |
-| 16   | 16px  | `--spacing-16`  |
-| 17   | 17px  | `--spacing-17`  |
-| 21   | 21px  | `--spacing-21`  |
-| 22   | 22px  | `--spacing-22`  |
-| 23   | 23px  | `--spacing-23`  |
-| 31   | 31px  | `--spacing-31`  |
-| 34   | 34px  | `--spacing-34`  |
-| 38   | 38px  | `--spacing-38`  |
-| 52   | 52px  | `--spacing-52`  |
-| 53   | 53px  | `--spacing-53`  |
-| 59   | 59px  | `--spacing-59`  |
-| 68   | 68px  | `--spacing-68`  |
-| 119  | 119px | `--spacing-119` |
-
-### Border Radius
-
-| Element     | Value  |
-| ----------- | ------ |
-| nav         | 1000px |
-| buttons     | 1000px |
-| decorative  | 45px   |
-| heroPanels  | 0px    |
-| iconButtons | 100%   |
+One rule, applied everywhere: **interactive = pill, containers = 14px, things inside containers = 10px, labels = 6px.** Nothing in the app is square.
 
 ### Layout
 
-- **Page max-width:** 1200px
-- **Section gap:** 80px
-- **Card padding:** 22px
-- **Element gap:** 16px
+- Page max-width 1200px (`max-w-page`), side padding 16px (mobile) / 38px.
+- Vertical gap between page blocks 28px; card padding 16px; bottom padding 80px.
+- Sticky header (from 640px up), about 60px tall, translucent paper with backdrop blur.
+- Sidebars (flight filters, C-09 price column) are cards that stick at `top-80` on desktop.
+
+## Elevation
+
+| Level | Token                 | Use                                                                 |
+| ----- | --------------------- | ------------------------------------------------------------------- |
+| 0     | none                  | Page (`paper`)                                                      |
+| 1     | `--shadow-card`       | Cards, tables. A 1px ink-tinted ring plus a soft drop; no `border`. |
+| 2     | `--shadow-card-hover` | Hovered clickable card, user menu, dialogs                          |
+| —     | `--shadow-accent`     | Primary button only (terracotta-tinted glow)                        |
+
+Shadows are tinted with ink (light) or near-black (dark) and fall from above. Never use pure-black `rgba(0,0,0,…)` shadows in light mode.
 
 ## Components
 
-### Filled Dark Pill Button
+Shared class strings live in `components/form.tsx`; utilities `card` and `card-hi` in `globals.css`.
 
-**Role:** Primary action trigger on light backgrounds
-
-Background #000d10, text #ffffff, 1000px border-radius, padding 15px 22px 16px 22px, font 17px weight 700. Used for CTAs like 'Tìm chuyến bay' and 'Quản lý đặt chỗ' that need to feel confident and terminal.
-
-### Ghost White Pill Button
-
-**Role:** Secondary action on dark surfaces
-
-Transparent background, text #ffffff, 1px white border, 1000px border-radius, same 15px 22px padding. Inverts the dark button for use on dark hero or footer contexts.
-
-### Circular Icon Button
-
-**Role:** Menu toggle and compact icon affordance
-
-100% border-radius, background #000d10, white icon, square hit area. Used for the hamburger nav toggle in the hero.
-
-### Featured Clay Card
-
-**Role:** Highlighted solution offering
-
-Hard-edged 0px radius rectangle, background #bc7155, white text, generous padding 53px 59px. The only warm block in the system — reserved for one product card per page to create focal asymmetry.
-
-### Standard White Card
-
-**Role:** Default content container
-
-White background on canvas, 0px radius, no border, no shadow. Relies on surrounding negative space and hairline #d5d3d4 dividers above titles to define its boundary.
-
-### Hero Wordmark
-
-**Role:** Brand mark at extreme scale
-
-SkyLine set at 131px weight 700, letter-spacing -2.62px, #000d10. No ® mark — the name is not a registered trademark. Sits flush-left of the hero viewport.
-
-### Hero Headline
-
-**Role:** Primary hero statement
-
-60-63px weight 700, letter-spacing -1.26px, #000d10, line-height 1.0. Two-line blocks like 'Cất / cánh.' with the period as a deliberate typographic stop.
-
-### Section Headline
-
-**Role:** Content section title
-
-37-52px weight 700, letter-spacing -0.37 to -0.52px, #000d10, four-line blocks max with line-height 1.0. Anchors every white content band.
-
-### Feature Block
-
-**Role:** Sub-section with title and description
-
-Title 23px weight 700 in #000d10, body 18px weight 400 in #8e8e95 with 1.61 line-height, separated from the next block by a 1px #d5d3d4 hairline rule. Arranged in 2-column grids.
-
-### Dark Content Section
-
-**Role:** Full-bleed dark band for contrast content
-
-Background #0f0f1c or #151623, white heading at 30-37px, white body at 18px, content right-aligned in a single column. Language list with flag emoji is the only chromatic content within.
-
-### Footer Terminal
-
-**Role:** Page-end navigation and identity
-
-Full-bleed #000d10 background, large white wordmark, nav links in #8e8e95 at 20px, multi-column layout with social and legal rows.
-
-### Top Navigation
-
-**Role:** Primary site navigation
-
-Transparent over hero, sticky or absolute positioned. Items at 20px weight 400, #000d10 on light, with 13px vertical gap between stacked items in mobile.
+- **Primary button (`pillPrimary`):** pill, `accent` background, `accent-fg` text, 14px semibold, min-height 40px, padding 10px 18px, accent shadow. Hover lifts 1px and darkens; press scales to 0.98. One per view region.
+- **Secondary button (`pillLine`):** pill, `surface` background, `line-strong` border, ink text; hover darkens the border and tints the fill.
+- **Danger button (`pillDanger`):** pill, `danger` border and text, fills red on hover. Only for irreversible actions (cancel a flight).
+- **Text link (`textLink`):** semibold ink with a 2px accent underline at 40 %; hover turns text and underline fully accent.
+- **Card (`card`):** `surface`, 14px radius, `shadow-card`. Clickable cards add `hover:-translate-y-1 hover:shadow-card-hover`.
+- **Highlighted card (`card-hi`):** a card with a 1.5px accent ring. For the one block per page that needs attention: booking status on C-09, chosen outbound flight on C-02, the total on C-07.
+- **Input / select (`Field`, `SelectField`):** label above (14px semibold `ink-2`), 42px-tall 10px-radius box on `surface` with `line-strong` border; focus turns the border accent with a 4px `accent-soft` halo; errors turn it `danger` with the message below in `danger`. Never placeholder-as-label.
+- **Status badge (`StatusBadge`):** 6px radius, 12px semibold, tone text on tone soft. `large` variant (18px bold, 10px radius) heads detail screens. Keep the status words in the DOM text (E2E reads them).
+- **Notice:** 10px radius, `danger-soft` (error) or `ok-soft` (done) background, icon in the tone colour.
+- **Navigation (`SiteHeader`):** items are pills; the active one is `accent-soft` with accent text, inactive ones are muted and get a `tint` fill on hover.
+- **Filter chips (C-08):** pills on `surface` with a `line` border; selected = accent border, `accent-soft` fill, accent text.
+- **Table (`tableBox`, `th`, `td`):** wrapped in a card; header row on `tint`, 14px semibold `ink-2`; body cells 14px with a hairline between rows; rows tint on hover.
+- **Flight card:** airline code chip (accent-soft), times 18px bold, a route line (hollow dot, dashed line, accent dot), price 18px bold accent, primary "Chọn".
 
 ## Do's and Don'ts
 
 ### Do
 
-- Set display headlines at 60-187px weight 700 with letter-spacing between -1.26px and -3.74px — the tightness is what makes the type read as architectural, not decorative.
-- Use #000d10 for all primary text, filled buttons, icon strokes, and footer — treat it as the single structural color of the system.
-- Reserve #bc7155 clay for one featured card per page — the restraint is the point, not the warmth.
-- Use 1000px border-radius on every button and nav pill — no square buttons, no partial rounding, the pill is the action shape.
-- Set body copy at 18px with line-height 29 (1.61 ratio) — the generous leading is what makes the dense editorial layout breathe.
-- Alternate between white canvas sections and #0f0f1c/#151623 dark bands to create vertical contrast — the page should oscillate, not stay flat.
-- End every hero headline with a period — 'Cất cánh.' is the signature punctuation pattern.
+- Use `accent` for every primary action and every money total, so the eye learns "terracotta = act / pay".
+- Put content on `surface` cards over the `paper` canvas; let elevation, not borders, separate blocks.
+- Show every status through `StatusBadge`, never as plain text.
+- Keep one `card-hi` per page at most.
+- Test every screen in both colour schemes.
+- End page titles with a period.
 
 ### Don't
 
-- Don't apply shadows to cards or buttons — the system defines elevation through surface color shifts (white → clay → dark slate), not drop shadows.
-- Don't introduce additional accent hues — the system is monochrome with one warm note; adding green, blue, or any secondary accent breaks the austere editorial voice.
-- Don't use #000d10 in the page background role on white sections — it is the text and button color, not a surface color, on the light canvas.
-- Don't round the featured clay card — it must remain 0px radius to contrast with every pill-shaped element around it.
-- Don't set body type below 18px — the spaciousness of 18/29 is a signature; smaller sizes break the breathing rhythm.
-- Don't use light or thin weights for headlines — weight 700 is non-negotiable from 23px upward; the weight IS the brand voice.
-- Don't place two #bc7155 elements on the same page — the accent is single-use per viewport.
+- Don't add a second brand accent (blue CTAs, green links…). Status colours are not accents.
+- Don't use `danger` red for anything that is not an error, a cancellation or a destructive action.
+- Don't use `clay-ember` (`#bc7155`) behind white text: it is 3.7:1. Use `accent`.
+- Don't put a `border` and a shadow on the same card; the ring is already inside `shadow-card`.
+- Don't use square corners or mix radii outside the shape rule above.
+- Don't set body copy below 14px; badges (12px) are the only exception. Don't scale buttons, inputs or cards back up: the compact sizes are deliberate (revision 2026-10-23).
 
 ## Surfaces
 
-| Level | Name          | Value     | Purpose                                                     |
-| ----- | ------------- | --------- | ----------------------------------------------------------- |
-| 0     | Canvas White  | `#ffffff` | Primary page background across all content sections         |
-| 1     | Card White    | `#ffffff` | Feature cards and content blocks sitting on canvas          |
-| 2     | Featured Clay | `#bc7155` | Highlighted solution card that breaks the monochrome rhythm |
-| 3     | Dark Slate    | `#151623` | Full-bleed dark content sections (Customer Support)         |
-| 4     | Footer Ink    | `#000d10` | Terminal dark band at the base of every page                |
-
-## Elevation
-
-- **No elevation system detected:** `Cards and buttons rely on surface color contrast and hairline borders, not box-shadow`
+| Level | Name       | Light     | Dark      | Purpose                         |
+| ----- | ---------- | --------- | --------- | ------------------------------- |
+| 0     | Paper      | `#f3f5f8` | `#0a111c` | Page background                 |
+| 1     | Surface    | `#ffffff` | `#111b29` | Cards, inputs, menus, dialogs   |
+| 2     | Tint       | `#e9eef3` | `#172435` | Hover, header rows, skeletons   |
+| —     | Footer Ink | `#000d10` | `#000d10` | Landing footer, overscroll area |
 
 ## Imagery
 
-Photography and 3D renders dominate the visual language, specifically a single hero image of a white commercial airliner, shown against a soft gradient sky transitioning from pale blue at top to warm cream at the horizon. The aircraft carries a plain white livery with no airline logos or markings — SkyLine sells tickets across many airlines and must not imply partnership with any one carrier. The aircraft is shown in a three-quarter banking pose, positioned left-of-center to leave room for the wordmark and headline. The image is hyper-clean, product-showcase style — no lifestyle context, no passengers, no airports. The aircraft IS the hero. Additional imagery (when used in content sections) follows the same product-crop logic: tight, isolated, on pure white. Iconography is minimal and always stroke-based in #000d10.
+Photography and 3D renders dominate the visual language, specifically a single hero image of a white commercial airliner against a night sky. The aircraft carries a plain white livery with no airline logos or markings — SkyLine sells tickets across many airlines and must not imply partnership with any one carrier. The image is hyper-clean, product-showcase style — no lifestyle context, no passengers, no airports. The aircraft IS the hero. The account screens (C-03–C-06) use one photo of the flag tower in Hà Nội with a dark scrim. Iconography is minimal and always stroke-based in the current text colour.
 
-## Layout
+## Layout (landing)
 
-Full-bleed sections that alternate between pale sky-tinged hero, white content bands, and dark midnight sections. The hero is the only asymmetric composition: wordmark flush-left at extreme scale, a right-side two-line headline, and the aircraft floating in the lower-center negative space. Content sections are right-aligned single-column (heading + 2×2 feature grid) on white, creating strong rightward gravity. Navigation is a single transparent row at the top with three text links and a circular menu button. Footer is a full-bleed dark terminal with large wordmark. Vertical rhythm is set by 80px section gaps with no visible dividers between most bands — the color shift itself separates them.
+Full-bleed sections: night-sky hero, white content bands, one clay band (after-sales), dark FAQ and final call. The hero is asymmetric: wordmark flush-left at extreme scale, a right-side two-line headline, the aircraft in the lower-centre negative space, and the search dock below it with the terracotta "Tìm chuyến bay" button. The footer is a full-bleed dark band. The landing keeps the Claude Design CSS verbatim in `landing.css` (scoped under `.sk`) so a changed mock can be diffed; it mirrors the app tokens through its own `--accent`, `--paper`, `--panel`… variables.
 
 ## Agent Prompt Guide
 
 **Quick Color Reference**
 
-- text: #000d10
-- background: #ffffff
-- border: #d5d3d4
-- accent: #bc7155 (featured card only)
-- primary action: #bc7155 (filled action)
-- dark surface: #0f0f1c / #151623
-- muted text: #8e8e95
+- text: `ink` (#0e1726 / #e8edf3)
+- page: `paper` (#f3f5f8 / #0a111c), cards: `surface` (#ffffff / #111b29)
+- accent, primary action, prices: `accent` (#a85a3c / #e08a68) with `accent-fg`
+- muted text: `muted` (#5a6675 / #94a1b2)
+- border: `line` / `line-strong`
+- status: `ok`, `warn`, `danger`, `info` with `-soft` backgrounds
 
 **Example Component Prompts**
 
-1. Create a Primary Action Button: #bc7155 background, #ffffff text, 9999px radius, compact pill padding. Use this filled treatment for the main CTA.
-
-2. Create a featured solution card: background #bc7155, text #ffffff, border-radius 0px, padding 53px 59px, title at 37px weight 700, description at 18px weight 400 line-height 29. This is the only warm block in the system — use it once per page for one highlighted offering.
-
-3. Create a hero section: pale blue-to-cream gradient sky background, wordmark 'SkyLine' at 131px weight 700 letter-spacing -2.62px in #000d10 flush-left, headline 'Cất cánh.' at 60px weight 700 in #000d10 right-aligned, unbranded white airliner image floating center-low, ghost pill button bottom-right with white border on transparent background.
-
-4. Create a feature block grid: 2-column layout on white canvas, each block has a 1px solid #d5d3d4 hairline above the title, title at 23px weight 700 in #000d10, body at 18px weight 400 in #8e8e95 with line-height 29. Gap between columns 80px.
-
-5. Create a dark content section: full-bleed background #0f0f1c, right-aligned content column at ~50% width, heading at 37px weight 700 in #ffffff, body at 18px weight 400 in #ffffff with line-height 29. Use this for support, contact, or contrast content that needs to feel terminal.
+1. Primary button: `className={pillPrimary}`. Terracotta pill, white text in light mode, dark text in dark mode, accent shadow, 1px lift on hover.
+2. A content block: `<section className="card p-16">`. White card on the paper canvas, 14px radius, tinted ring and soft shadow.
+3. A status: `<StatusBadge status={b.status} label={STATUS_LABEL[b.status]} />`.
+4. A data table: wrap in `<div className={tableBox}>`, use `th` / `td` from `admin-ui.tsx` or `staff-ui.tsx`.
 
 ## Assets & Licensing
 
@@ -242,180 +181,9 @@ SkyLine is a non-commercial, personal academic project. Every asset must still c
 
 | Asset                    | Choice                                                   | Status                                                                                           |
 | ------------------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Typeface                 | Inter (variable, `wght` + `opsz`)                        | Free — SIL OFL 1.1                                                                               |
+| Typeface                 | Be Vietnam Pro (static, 400–800)                         | Free — SIL OFL 1.1                                                                               |
+| Previous typeface        | Inter                                                    | Replaced 2026-10-23; still OFL if ever needed                                                    |
 | Reference typeface       | Helvetica Now Display (Monotype)                         | Not used — commercial license required, even for non-commercial web use                          |
-| Reference substitutes    | Neue Haas Grotesk Display, Helvetica Neue                | Not used — commercial (Neue Haas only via a paid Adobe Fonts subscription)                       |
 | Hero aircraft image      | Own render, or a photo/model under Unsplash, Pexels, CC0 | Must be free-licensed; keep the source URL in the repo. CC-BY models require visible attribution |
-| Icons                    | Any stroke-based OFL/MIT/ISC set (e.g. Lucide)           | Free                                                                                             |
+| Icons                    | Stroke-based icons in `components/landing/icons.tsx`     | Own                                                                                              |
 | Wordmark, copy, taglines | SkyLine's own                                            | Do not reuse the reference site's logo, copy, or imagery                                         |
-
-## Quick Start
-
-### CSS Custom Properties
-
-```css
-:root {
-  /* Colors */
-  --color-deep-ink: #000d10;
-  --color-pure-white: #ffffff;
-  --color-cool-ash: #8e8e95;
-  --color-pebble: #d5d3d4;
-  --color-midnight-hull: #0f0f1c;
-  --color-charcoal-deck: #151623;
-  --color-clay-ember: #bc7155;
-
-  /* Typography — Font Families */
-  --font-sans:
-    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, sans-serif;
-
-  /* Typography — Scale */
-  --text-caption: 17px;
-  --leading-caption: 17;
-  --tracking-caption: 0px;
-  --text-nav: 20px;
-  --leading-nav: 20;
-  --tracking-nav: 0px;
-  --text-subheading: 23px;
-  --leading-subheading: 23;
-  --tracking-subheading: -0.23px;
-  --text-heading-sm: 30px;
-  --leading-heading-sm: 30;
-  --tracking-heading-sm: 0px;
-  --text-heading: 37px;
-  --leading-heading: 37;
-  --tracking-heading: -0.37px;
-  --text-heading-lg: 52px;
-  --leading-heading-lg: 52;
-  --tracking-heading-lg: -0.52px;
-  --text-display: 63px;
-  --leading-display: 63;
-  --tracking-display: -1.26px;
-  --text-display-xl: 131px;
-  --leading-display-xl: 131;
-  --tracking-display-xl: -2.62px;
-  --text-hero: 187px;
-  --leading-hero: 150;
-  --tracking-hero: -3.74px;
-
-  /* Typography — Weights */
-  --font-weight-regular: 400;
-  --font-weight-bold: 700;
-
-  /* Spacing */
-  --spacing-unit: 4px;
-  --spacing-11: 11px;
-  --spacing-13: 13px;
-  --spacing-15: 15px;
-  --spacing-16: 16px;
-  --spacing-17: 17px;
-  --spacing-21: 21px;
-  --spacing-22: 22px;
-  --spacing-23: 23px;
-  --spacing-31: 31px;
-  --spacing-34: 34px;
-  --spacing-38: 38px;
-  --spacing-52: 52px;
-  --spacing-53: 53px;
-  --spacing-59: 59px;
-  --spacing-68: 68px;
-  --spacing-119: 119px;
-
-  /* Layout */
-  --page-max-width: 1200px;
-  --section-gap: 80px;
-  --card-padding: 22px;
-  --element-gap: 16px;
-
-  /* Border Radius */
-  --radius-3xl: 45px;
-  --radius-full: 1000px;
-  --radius-full-2: 9999px;
-
-  /* Named Radii */
-  --radius-nav: 1000px;
-  --radius-buttons: 1000px;
-  --radius-decorative: 45px;
-  --radius-heropanels: 0px;
-  --radius-iconbuttons: 100%;
-
-  /* Surfaces */
-  --surface-canvas-white: #ffffff;
-  --surface-card-white: #ffffff;
-  --surface-featured-clay: #bc7155;
-  --surface-dark-slate: #151623;
-  --surface-footer-ink: #000d10;
-}
-```
-
-### Tailwind v4
-
-```css
-@theme {
-  /* Colors */
-  --color-deep-ink: #000d10;
-  --color-pure-white: #ffffff;
-  --color-cool-ash: #8e8e95;
-  --color-pebble: #d5d3d4;
-  --color-midnight-hull: #0f0f1c;
-  --color-charcoal-deck: #151623;
-  --color-clay-ember: #bc7155;
-
-  /* Typography */
-  --font-sans:
-    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, sans-serif;
-
-  /* Typography — Scale */
-  --text-caption: 17px;
-  --leading-caption: 17;
-  --tracking-caption: 0px;
-  --text-nav: 20px;
-  --leading-nav: 20;
-  --tracking-nav: 0px;
-  --text-subheading: 23px;
-  --leading-subheading: 23;
-  --tracking-subheading: -0.23px;
-  --text-heading-sm: 30px;
-  --leading-heading-sm: 30;
-  --tracking-heading-sm: 0px;
-  --text-heading: 37px;
-  --leading-heading: 37;
-  --tracking-heading: -0.37px;
-  --text-heading-lg: 52px;
-  --leading-heading-lg: 52;
-  --tracking-heading-lg: -0.52px;
-  --text-display: 63px;
-  --leading-display: 63;
-  --tracking-display: -1.26px;
-  --text-display-xl: 131px;
-  --leading-display-xl: 131;
-  --tracking-display-xl: -2.62px;
-  --text-hero: 187px;
-  --leading-hero: 150;
-  --tracking-hero: -3.74px;
-
-  /* Spacing */
-  --spacing-11: 11px;
-  --spacing-13: 13px;
-  --spacing-15: 15px;
-  --spacing-16: 16px;
-  --spacing-17: 17px;
-  --spacing-21: 21px;
-  --spacing-22: 22px;
-  --spacing-23: 23px;
-  --spacing-31: 31px;
-  --spacing-34: 34px;
-  --spacing-38: 38px;
-  --spacing-52: 52px;
-  --spacing-53: 53px;
-  --spacing-59: 59px;
-  --spacing-68: 68px;
-  --spacing-119: 119px;
-
-  /* Border Radius */
-  --radius-3xl: 45px;
-  --radius-full: 1000px;
-  --radius-full-2: 9999px;
-}
-```

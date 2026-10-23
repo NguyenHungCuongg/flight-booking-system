@@ -2,22 +2,23 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import SiteHeader from "@/components/site-header";
-import { pillDark, pillLine } from "@/components/form";
+import { pillPrimary, pillLine } from "@/components/form";
 
-export const tableBox = "overflow-x-auto";
+export const tableBox =
+  "card overflow-x-auto [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-tint/60";
 export const th =
-  "py-11 pr-16 text-left text-caption font-bold border-b border-line whitespace-nowrap";
+  "bg-tint/60 px-8 py-9 text-left text-table font-semibold whitespace-nowrap text-ink-2 first:pl-16 last:pr-16";
 export const td =
-  "py-11 pr-16 text-left text-caption border-b border-line align-top";
+  "border-t border-line px-8 py-9 text-left text-table align-top first:pl-16 last:pr-16";
 
 /**
  * Khung giao diện chuẩn cho tất cả các màn hình Admin (A-01–A-10).
  */
 export function AdminPage({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-dvh bg-paper text-ink">
+    <div className="min-h-dvh text-ink">
       <SiteHeader area="admin" />
-      <main className="mx-auto grid max-w-page gap-38 px-16 pt-22 pb-119 sm:px-38">
+      <main className="mx-auto grid max-w-page gap-28 px-16 pt-16 pb-80 sm:px-38">
         {children}
       </main>
     </div>
@@ -37,7 +38,7 @@ export function AdminTabs({
   onChange: (key: string) => void;
 }) {
   return (
-    <div role="tablist" className="flex border-b border-line gap-22">
+    <div role="tablist" className="flex border-b border-line gap-16">
       {tabs.map((tab) => {
         const active = tab.key === activeKey;
         return (
@@ -49,7 +50,7 @@ export function AdminTabs({
             onClick={() => onChange(tab.key)}
             className={`pb-11 text-caption font-bold transition-colors ${
               active
-                ? "border-b-2 border-ink text-ink"
+                ? "border-b-2 border-accent text-ink"
                 : "text-muted hover:text-ink"
             }`}
           >
@@ -113,7 +114,7 @@ function ModalDialog({
         e.preventDefault();
         onClose();
       }}
-      className="m-auto w-[calc(100%-32px)] max-w-560 border border-line-strong bg-paper p-22 text-ink shadow-lg backdrop:bg-deep-ink/40 backdrop:backdrop-blur-xs"
+      className="m-auto w-[calc(100%-32px)] max-w-560 rounded-card bg-surface p-16 text-ink shadow-card-hover backdrop:bg-deep-ink/50 backdrop:backdrop-blur-xs"
     >
       <div className="flex items-center justify-between border-b border-line pb-16 mb-22">
         <h2 className="text-subheading font-bold">{title}</h2>
@@ -153,7 +154,7 @@ export function ConfirmModal({
 }) {
   return (
     <AdminModal title={title} isOpen={isOpen} onClose={onClose}>
-      <div className="grid gap-22">
+      <div className="grid gap-16">
         <p className="text-caption text-ink leading-relaxed">{message}</p>
         <div className="flex justify-end gap-11">
           <button
@@ -168,7 +169,7 @@ export function ConfirmModal({
             type="button"
             onClick={onConfirm}
             disabled={isLoading}
-            className={pillDark}
+            className={pillPrimary}
           >
             {isLoading ? "Đang xử lý..." : confirmLabel}
           </button>

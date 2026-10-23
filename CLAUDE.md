@@ -12,7 +12,7 @@ Design docs in `docs/` are the source of truth; read the relevant one before imp
 - `TDD.md` — architecture, module boundaries, auth, technical flows, API list, error codes.
 - `APP_FLOW.md` — screens, user flows, state machines, sequence diagrams.
 - `BACKEND_SCHEMA.md` — DDL (used verbatim as Flyway `V1__init.sql`), key queries (`Q-xx`), seed data.
-- `DESIGN.md` (repo root, not `docs/`) — "SkyLine" frontend design system: tokens, typography (Inter with Vietnamese subset), components.
+- `DESIGN.md` (repo root, not `docs/`) — "SkyLine" frontend design system: tokens, typography (Be Vietnam Pro), components.
 
 Docs, code comments and user-facing error messages are in Vietnamese; keep new ones in Vietnamese too.
 
@@ -55,9 +55,9 @@ Spring Modulith monolith rooted at `vn.edu.uit.flightbooking`; each direct subpa
 
 ## Frontend notes
 
-- UI design follows `DESIGN.md` (tokens, components, do's and don'ts); read it before building any screen. Known conflicts, resolved in roadmap §7.3–7.4: primary buttons are `#000d10` (ignore the Agent Prompt Guide's `#bc7155`), clay is for one featured card per page only; write line-heights in px; `--spacing: 1px` so `p-N` = N px.
+- UI design follows `DESIGN.md` (tokens, components, do's and don'ts); read it before building any screen. Use role tokens (`paper`, `surface`, `ink`, `muted`, `accent`, `ok`/`warn`/`danger`/`info`), never raw hex; light and dark values both live in `globals.css`. Blocks are `card` (or `card-hi` for the one block that needs attention), buttons are `pillPrimary`/`pillLine`/`pillDanger` from `components/form.tsx`, statuses go through `components/status-badge.tsx`. Write line-heights in px; `--spacing: 1px` so `p-N` = N px.
 - Next.js 16 runs with Cache Components: never call `new Date()`, `Date.now()` or `Math.random()` while rendering, Client Components included (prerender fails). Read time-dependent values after hydration, e.g. `useSyncExternalStore` with a `null` server snapshot (`landing/search-context.tsx`).
-- The landing keeps the Claude Design CSS verbatim in `src/components/landing/landing.css` (scoped under `.sk`) so a changed mock can be diffed against it. Images live in `public/assets/images/`.
+- The landing keeps the Claude Design CSS verbatim in `src/components/landing/landing.css` (scoped under `.sk`) so a changed mock can be diffed against it; the only local edits are its dark palette (navy, matching `globals.css`), the `--accent*` variables and the terracotta `.go` search button. Images live in `public/assets/images/`.
 - `suppressHydrationWarning` on `<html>` in the root layout is intentional: browser extensions (Dark Reader) inject attributes before hydration.
 
 ## Agent tooling

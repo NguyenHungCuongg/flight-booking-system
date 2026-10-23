@@ -6,20 +6,21 @@ import SiteHeader from "@/components/site-header";
 import { textLink } from "@/components/form";
 import { pageHref, pageOf } from "@/lib/staff";
 
-export const tableBox = "overflow-x-auto";
+export const tableBox =
+  "card overflow-x-auto [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-tint/60";
 export const th =
-  "py-11 pr-16 text-left text-caption font-bold border-b border-line";
+  "bg-tint/60 px-8 py-9 text-left text-table font-semibold whitespace-nowrap text-ink-2 first:pl-16 last:pr-16";
 export const td =
-  "py-11 pr-16 text-left text-caption border-b border-line align-top";
+  "border-t border-line px-8 py-9 text-left text-table align-top first:pl-16 last:pr-16";
 
 /**
  * Khung trang dùng chung cho các màn hình của Staff (S-01–S-06).
  */
 export function StaffPage({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="min-h-dvh">
       <SiteHeader area="staff" />
-      <main className="mx-auto grid max-w-page gap-38 px-16 pt-22 pb-119 sm:px-38">
+      <main className="mx-auto grid max-w-page gap-28 px-16 pt-16 pb-80 sm:px-38">
         {children}
       </main>
     </div>
@@ -44,7 +45,7 @@ export function Pager({
   return (
     <nav
       aria-label="Phân trang"
-      className="flex items-center gap-22 text-caption"
+      className="flex items-center gap-16 text-caption"
     >
       {page > 1 && (
         <Link

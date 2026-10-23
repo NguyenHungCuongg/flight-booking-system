@@ -80,7 +80,7 @@ export default function ReportsView() {
       />
 
       {/* Bộ lọc khoảng ngày và nhóm */}
-      <div className="grid gap-16 sm:grid-cols-[200px_200px_1fr] sm:items-end border-b border-line pb-22">
+      <div className="grid gap-16 sm:grid-cols-[200px_200px_1fr] sm:items-end border-b border-line pb-16">
         <Field
           label="Từ ngày"
           name="from"
@@ -174,23 +174,23 @@ function ReportBody({
   if (tab === "cash-flow") {
     const data = res.data as CashFlow;
     return (
-      <div className="grid gap-22">
+      <div className="grid gap-16">
         <div className="grid gap-16 sm:grid-cols-3">
-          <div className="border border-line p-16">
+          <div className="card p-16">
             <span className="text-caption text-muted">Tổng thu (Charged)</span>
             <p className="text-heading font-bold text-ink mt-4">
               {vnd(data.totalCharged)}
             </p>
           </div>
-          <div className="border border-line p-16">
+          <div className="card p-16">
             <span className="text-caption text-muted">
               Tổng hoàn (Refunded)
             </span>
-            <p className="text-heading font-bold text-clay-ember mt-4">
+            <p className="text-heading font-bold text-danger mt-4">
               {vnd(data.totalRefunded)}
             </p>
           </div>
-          <div className="border border-line p-16 bg-tint/30">
+          <div className="card p-16">
             <span className="text-caption text-muted">
               Doanh thu ròng (Net)
             </span>
@@ -220,7 +220,7 @@ function ReportBody({
                     {periodLabel(item.period, cashGroupBy)}
                   </td>
                   <td className={td}>{vnd(item.charged)}</td>
-                  <td className={`${td} text-clay-ember`}>
+                  <td className={`${td} text-danger`}>
                     {vnd(item.refunded)}
                   </td>
                   <td className={`${td} font-bold`}>{vnd(item.net)}</td>
@@ -236,9 +236,9 @@ function ReportBody({
   if (tab === "sales") {
     const data = res.data as Sales;
     return (
-      <div className="grid gap-22">
+      <div className="grid gap-16">
         <div className="grid gap-16 sm:grid-cols-2">
-          <div className="border border-line p-16">
+          <div className="card p-16">
             <span className="text-caption text-muted">
               Tổng số vé xuất kỳ này
             </span>
@@ -246,7 +246,7 @@ function ReportBody({
               {data.totalTickets.toLocaleString("vi-VN")} vé
             </p>
           </div>
-          <div className="border border-line p-16 bg-tint/30">
+          <div className="card p-16">
             <span className="text-caption text-muted">Tổng doanh thu vé</span>
             <p className="text-heading font-bold text-ink mt-4">
               {vnd(data.totalRevenue)}
@@ -288,8 +288,8 @@ function ReportBody({
 
   const data = res.data as LoadFactor;
   return (
-    <div className="grid gap-22">
-      <div className="border border-line p-16 bg-tint/30">
+    <div className="grid gap-16">
+      <div className="card p-16">
         <span className="text-caption text-muted">
           Tỉ lệ lấp đầy bình quân toàn bộ chuyến
         </span>

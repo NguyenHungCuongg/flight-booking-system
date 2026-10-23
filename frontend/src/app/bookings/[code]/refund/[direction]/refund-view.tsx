@@ -8,7 +8,7 @@ import {
   Field,
   FormSkeleton,
   Notice,
-  pillDark,
+  pillPrimary,
   pillLine,
   text,
   textLink,
@@ -93,9 +93,9 @@ export default function RefundView() {
   }
 
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="min-h-dvh">
       <SiteHeader />
-      <main className="mx-auto grid max-w-page gap-38 px-16 pt-22 pb-119 sm:px-38">
+      <main className="mx-auto grid max-w-page gap-28 px-16 pt-16 pb-80 sm:px-38">
         <div className="grid gap-13">
           <Link href={bookingHref} className={`${textLink} text-caption`}>
             {`Đặt chỗ ${code.toUpperCase()}`}
@@ -118,7 +118,7 @@ export default function RefundView() {
         )}
 
         {quote && (
-          <div className="grid max-w-[560px] gap-38">
+          <div className="grid max-w-[560px] gap-28">
             <Section title="Số tiền hoàn">
               <PriceTable
                 rows={[
@@ -134,7 +134,7 @@ export default function RefundView() {
               </p>
             </Section>
 
-            <form onSubmit={onSubmit} className="grid gap-22">
+            <form onSubmit={onSubmit} className="grid gap-16">
               <Field
                 label="Lý do hoàn vé"
                 name="reason"
@@ -144,7 +144,7 @@ export default function RefundView() {
               />
               {formError && <Notice>{formError}</Notice>}
               <div className="flex flex-wrap gap-13">
-                <button type="submit" className={pillDark} disabled={pending}>
+                <button type="submit" className={pillPrimary} disabled={pending}>
                   Gửi yêu cầu hoàn
                 </button>
                 <Link href={bookingHref} className={pillLine}>

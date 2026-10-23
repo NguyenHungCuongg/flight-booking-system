@@ -16,8 +16,11 @@
   --btn-fg: #ffffff;
   --btn-hover: #1d2b30;
   --focus: #000d10;
-  --deck: #151623;
+  --deck: #0f1828;
   --clay: #bc7155;
+  --accent: #a85a3c;
+  --accent-fg: #ffffff;
+  --accent-hover: #8f4a2f;
   --clay-ink: #000d10;
   --foot: #000d10;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -44,14 +47,14 @@
 }
 .sk.t-dark {
   --ink: #f2f3f6;
-  --ink-2: #c9cad3;
-  --paper: #0f0f1c;
-  --muted: #a3a4b0;
-  --line: #2c2d3d;
-  --line-strong: #4a4c60;
-  --tint: #141523;
-  --panel: #1b1c2b;
-  --range: #26283c;
+  --ink-2: #c3ccd7;
+  --paper: #0a111c;
+  --muted: #94a1b2;
+  --line: #24324a;
+  --line-strong: #3a4d68;
+  --tint: #172435;
+  --panel: #131d2c;
+  --range: #1f2d42;
   --sky-1: #090a14;
   --sky-2: #10111e;
   --sky-3: #1a1824;
@@ -60,18 +63,21 @@
   --btn-fg: #000d10;
   --btn-hover: #ffffff;
   --focus: #f2f3f6;
+  --accent: #e08a68;
+  --accent-fg: #0e1726;
+  --accent-hover: #eba085;
 }
 @media (prefers-color-scheme: dark) {
   .sk.t-auto {
     --ink: #f2f3f6;
-    --ink-2: #c9cad3;
-    --paper: #0f0f1c;
-    --muted: #a3a4b0;
-    --line: #2c2d3d;
-    --line-strong: #4a4c60;
-    --tint: #141523;
-    --panel: #1b1c2b;
-    --range: #26283c;
+    --ink-2: #c3ccd7;
+    --paper: #0a111c;
+    --muted: #94a1b2;
+    --line: #24324a;
+    --line-strong: #3a4d68;
+    --tint: #172435;
+    --panel: #131d2c;
+    --range: #1f2d42;
     --sky-1: #090a14;
     --sky-2: #10111e;
     --sky-3: #1a1824;
@@ -80,6 +86,9 @@
     --btn-fg: #000d10;
     --btn-hover: #ffffff;
     --focus: #f2f3f6;
+    --accent: #e08a68;
+    --accent-fg: #0e1726;
+    --accent-hover: #eba085;
   }
 }
 
@@ -496,17 +505,20 @@
 /* ---------- hero ---------- */
 .sk .hero {
   --ink: #f2f3f6;
-  --ink-2: #c9cad3;
-  --muted: #a3a4b0;
-  --line: #2c2d3d;
-  --line-strong: #4a4c60;
-  --tint: #141523;
-  --panel: #1b1c2b;
-  --range: #26283c;
+  --ink-2: #c3ccd7;
+  --muted: #94a1b2;
+  --line: #24324a;
+  --line-strong: #3a4d68;
+  --tint: #172435;
+  --panel: #131d2c;
+  --range: #1f2d42;
   --btn-bg: #f2f3f6;
   --btn-fg: #000d10;
   --btn-hover: #ffffff;
   --focus: #f2f3f6;
+  --accent: #e08a68;
+  --accent-fg: #0e1726;
+  --accent-hover: #eba085;
   position: relative;
   z-index: 5;
   padding-top: 72px;
@@ -894,7 +906,11 @@
   padding: 10px;
   border-left: 1px solid var(--line);
 }
+/* Nút tìm chính dùng màu nhấn đất nung như nút chính của các màn ứng dụng. */
 .sk .go {
+  --btn-bg: var(--accent);
+  --btn-fg: var(--accent-fg);
+  --btn-hover: var(--accent-hover);
   min-height: 64px;
   padding-inline: 28px;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import StatusBadge from "@/components/status-badge";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { BookingBody, Section } from "@/app/bookings/[code]/booking-view";
@@ -87,13 +88,10 @@ export default function StaffBookingView() {
 
           <section
             aria-label="Trạng thái"
-            className="flex flex-wrap items-center justify-between gap-16 border border-line p-22"
+            className="flex flex-wrap items-center justify-between gap-16 card p-16"
           >
             <div className="grid gap-4">
-              <p className="text-subheading font-bold">
-                {STATUS_LABEL[res.data.booking.status] ??
-                  res.data.booking.status}
-              </p>
+              <StatusBadge large status={res.data.booking.status} label={STATUS_LABEL[res.data.booking.status] ?? res.data.booking.status} />
               {res.data.booking.status === "PENDING_PAYMENT" && (
                 <p className="text-caption text-muted">
                   {`Giữ chỗ đến ${at(res.data.booking.holdExpiresAt)} (giờ Việt Nam)`}

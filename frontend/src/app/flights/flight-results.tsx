@@ -75,7 +75,7 @@ function Skeleton() {
   return (
     <div aria-hidden="true" className="grid gap-16 motion-safe:animate-pulse">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="h-140 border border-line bg-tint" />
+        <div key={i} className="h-140 rounded-card bg-tint" />
       ))}
     </div>
   );
@@ -259,20 +259,24 @@ export default function FlightResults() {
   }
 
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="min-h-dvh">
       <SiteHeader />
 
-      <main className="mx-auto grid max-w-page gap-38 px-16 pt-22 pb-119 sm:px-38">
+      <main className="mx-auto grid max-w-page gap-28 px-16 pt-16 pb-80 sm:px-38">
         <div className="grid gap-13">
           {returnDate && hasQuery && (
-            <ol className="flex gap-22 text-caption">
+            <ol className="flex gap-16 text-caption">
               {["Chiều đi", "Chiều về"].map((label, i) => {
                 const active = (i === 1) === step2;
                 return (
                   <li
                     key={label}
                     aria-current={active ? "step" : undefined}
-                    className={active ? "font-bold" : "text-muted"}
+                    className={
+                      active
+                        ? "rounded-pill bg-accent-soft px-11 py-4 font-semibold text-accent"
+                        : "px-11 py-4 text-muted"
+                    }
                   >
                     {i + 1}. {label}
                   </li>
@@ -314,7 +318,7 @@ export default function FlightResults() {
         {picked && (
           <section
             aria-label="Chiều đi đã chọn"
-            className="grid gap-16 border border-ink p-22 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+            className="grid gap-16 card-hi p-16 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
           >
             <div className="grid gap-4">
               <p className="text-caption text-muted">Chiều đi đã chọn</p>

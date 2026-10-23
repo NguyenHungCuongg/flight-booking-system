@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import StatusBadge from "@/components/status-badge";
 import Form from "next/form";
 import { useSearchParams } from "next/navigation";
-import { Field, FormSkeleton, Notice, SelectField, pillDark, textLink } from "@/components/form";
+import { Field, FormSkeleton, Notice, SelectField, pillPrimary, textLink } from "@/components/form";
 import type { Schemas } from "@/lib/api";
 import { useAirports } from "@/lib/airports";
 import { clock, dmy } from "@/lib/booking";
@@ -125,7 +126,7 @@ export default function FlightList() {
               </option>
             ))}
           </SelectField>
-          <button type="submit" className={pillDark}>
+          <button type="submit" className={pillPrimary}>
             Lọc
           </button>
         </Form>
@@ -175,11 +176,11 @@ export default function FlightList() {
                         </td>
                         <td className={td}>{f.aircraftModel}</td>
                         <td className={td}>
-                          {FLIGHT_STATUS[f.status] ?? f.status}
+                          <StatusBadge status={f.status} label={FLIGHT_STATUS[f.status] ?? f.status} />
                         </td>
                         <td className={td}>
                           {f.cabins.map((c) => (
-                            <p key={c.cabinClass} className="text-caption">
+                            <p key={c.cabinClass} className="whitespace-nowrap">
                               {`${cabinLabel(c.cabinClass)} ${c.availableSeats}/${c.totalSeats}`}
                             </p>
                           ))}

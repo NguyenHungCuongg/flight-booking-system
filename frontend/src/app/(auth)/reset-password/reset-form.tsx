@@ -8,7 +8,7 @@ import {
   Notice,
   PASSWORD_PATTERN,
   PASSWORD_RULE,
-  pillDark,
+  pillPrimary,
   textLink,
   useSubmit,
 } from "@/components/form";
@@ -55,7 +55,7 @@ export default function ResetForm() {
   if (!token || badToken) return <BadLink />;
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-22">
+    <form onSubmit={onSubmit} className="grid gap-16">
       <Field
         label="Mật khẩu mới"
         name="newPassword"
@@ -77,7 +77,7 @@ export default function ResetForm() {
       />
       {formError && <Notice>{formError}</Notice>}
       <div className="mt-11">
-        <button type="submit" className={pillDark} disabled={pending}>
+        <button type="submit" className={pillPrimary} disabled={pending}>
           {pending ? "Đang lưu..." : "Đặt mật khẩu mới"}
         </button>
       </div>
