@@ -213,3 +213,66 @@ test("A-04 & A-06: Admin lọc chuyến, sửa, huỷ hai bước rồi xoá chu
   await dialog.getByRole("button", { name: "Xoá vĩnh viễn" }).click();
   await expect(page).toHaveURL("/admin/flights");
 });
+
+test("A-05: Admin tạo chuyến lẻ rồi khách thấy chuyến đó trong kết quả tìm kiếm; tạo lại thì bị bỏ qua", async ({
+  page,
+}) => {
+  test.slow();
+  await loginAdmin(page);
+  await page.getByRole("link", { name: "+ Tạo chuyến bay" }).click();
+  await expect(page).toHaveURL("/admin/flights/new");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tạo chuyến bay mới.");
+
+  const flightNumber = `VN${String(Date.now() % 9000 + 1000)}`;
+  const date = day(10);
+  // Trang A-04 vừa rời vẫn nằm ẩn trong DOM (cũng có ô "Ngày bay"), nên chỉ tìm trong form tạo chuyến.
+  const form = page.locator("form", { has: page.getByRole("button", { name: "Phát hành chuyến bay" }) });
+  const basics = async () => {
+    await field(form, "Hãng hàng không").selectOption("VN");
+    await field(form, "Số hiệu chuyến bay").fill(flightNumber);
+    await field(form, "Sân bay đi").selectOption("HAN");
+    await field(form, "Sân bay đến").selectOption("PQC");
+    await field(form, "Giờ cất cánh (giờ địa phương)").fill("04:35");
+    await field(form, "Thời lượng bay (phút)").fill("120");
+    await field(form, "Loại máy bay").fill("Airbus A321");
+  };
+  const fill = async () => {
+    await basics();
+    await field(form, "Ngày bay").fill(date);
+    await form.getByRole("button", { name: "Phát hành chuyến bay" }).click();
+  };
+  await fill();
+  await expect(page.getByRole("heading", { level: 2 })).toHaveText("Kết quả tạo chuyến bay:");
+  await expect(page.getByText("Đã tạo thành công: 1 chuyến bay.")).toBeVisible();
+
+  // Định kỳ day(10)..day(16) trừ Chủ nhật: ngày day(10) đã có chuyến nên bị bỏ qua (BR-80).
+  await page.getByRole("button", { name: "Tiếp tục tạo chuyến khác" }).click();
+  await basics();
+  await form.getByText("Tạo lịch định kỳ hàng loạt").click();
+  await form.getByRole("button", { name: "Chủ nhật" }).click();
+  await field(form, "Từ ngày").fill(date);
+  await field(form, "Đến ngày (tối đa 180 ngày)").fill(day(16));
+  await form.getByRole("button", { name: "Phát hành chuyến bay" }).click();
+  const dates = Array.from({ length: 7 }, (_, i) => day(10 + i));
+  const flying = dates.filter((d) => new Date(`${d}T00:00Z`).getUTCDay() !== 0);
+  const firstFlies = flying.includes(date);
+  await expect(
+    page.getByText(`Đã tạo thành công: ${flying.length - (firstFlies ? 1 : 0)} chuyến bay.`),
+  ).toBeVisible();
+  if (firstFlies) await expect(page.getByText("Đã bỏ qua: 1 ngày")).toBeVisible();
+
+  await page.goto(
+    `/flights?from=HAN&to=PQC&date=${date}&adults=1&children=0&infants=0&cabin=ECONOMY`,
+  );
+  await expect(page.getByText(flightNumber).first()).toBeVisible();
+
+  // Dọn các chuyến vừa tạo (chưa có booking nên xoá được).
+  const headers = await csrfHeaders(page);
+  for (const d of dates) {
+    const res = await page.request.get(`/api/staff/flights?from=HAN&to=PQC&date=${d}&airline=VN&size=100`);
+    const { content } = (await res.json()) as Schemas["PagedModelFlightView"];
+    for (const f of content.filter((x) => x.flightNumber === flightNumber)) {
+      expect((await page.request.delete(`/api/admin/flights/${f.id}`, { headers })).ok()).toBe(true);
+    }
+  }
+});
