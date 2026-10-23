@@ -13,11 +13,7 @@ export const td =
 /**
  * Khung giao diện chuẩn cho tất cả các màn hình Admin (A-01–A-10).
  */
-export function AdminPage({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export function AdminPage({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh bg-paper text-ink">
       <SiteHeader area="admin" />
@@ -41,13 +37,15 @@ export function AdminTabs({
   onChange: (key: string) => void;
 }) {
   return (
-    <div className="flex border-b border-line gap-22">
+    <div role="tablist" className="flex border-b border-line gap-22">
       {tabs.map((tab) => {
         const active = tab.key === activeKey;
         return (
           <button
             key={tab.key}
             type="button"
+            role="tab"
+            aria-selected={active}
             onClick={() => onChange(tab.key)}
             className={`pb-11 text-caption font-bold transition-colors ${
               active

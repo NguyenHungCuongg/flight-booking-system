@@ -59,3 +59,84 @@ test("A-01: Admin thêm, sửa, xoá sân bay; sân bay đã có chuyến thì k
   await dialog.getByRole("button", { name: "Xoá sân bay" }).click();
   await expect(row).toHaveCount(0);
 });
+
+test("A-02: Admin thêm, sửa, xoá hãng bay; hãng đã có chuyến thì không xoá được", async ({
+  page,
+}) => {
+  await loginAdmin(page);
+  await page.goto("/admin/airlines");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Hãng bay.");
+  const table = page.getByRole("table", { name: "Bảng hãng bay" });
+  await expect(table.getByText("Bamboo Airways")).toBeVisible();
+
+  await rowOf(table, "QH").getByRole("button", { name: "Xoá" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Xoá hãng" }).click();
+  await expect(page.getByRole("alert").first()).toContainText("không thể xoá");
+
+  const code = letters(2);
+  const prefix = String(Date.now() % 900 + 100);
+  await page.getByRole("button", { name: "+ Thêm hãng bay" }).click();
+  const dialog = page.getByRole("dialog");
+  await field(dialog, "Mã IATA (2 ký tự)").fill(code);
+  await field(dialog, "Mã số vé (3 chữ số duy nhất)").fill(prefix);
+  await field(dialog, "Tên hãng hàng không").fill("Hãng Thử nghiệm");
+  await dialog.getByRole("button", { name: "Lưu hãng bay" }).click();
+  const row = rowOf(table, code);
+  await expect(row).toContainText(prefix);
+
+  await row.getByRole("button", { name: "Sửa" }).click();
+  await field(dialog, "Tên hãng hàng không").fill("Hãng Thử nghiệm Mới");
+  await dialog.getByRole("button", { name: "Lưu hãng bay" }).click();
+  await expect(row).toContainText("Hãng Thử nghiệm Mới");
+
+  await row.getByRole("button", { name: "Xoá" }).click();
+  await dialog.getByRole("button", { name: "Xoá hãng" }).click();
+  await expect(row).toHaveCount(0);
+});
+
+test("A-03: Admin quản lý gói giá và bảng giá hành lý của hãng", async ({ page }) => {
+  await loginAdmin(page);
+  await page.goto("/admin/airlines");
+  await rowOf(page.getByRole("table", { name: "Bảng hãng bay" }), "QH")
+    .getByRole("link", { name: "Gói giá & Bảng giá hành lý →" })
+    .click();
+  await expect(page).toHaveURL("/admin/airlines/QH");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Hãng QH.");
+  await expect(page.getByRole("tab", { name: "Gói giá (Fare Families)" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  const dialog = page.getByRole("dialog");
+
+  // Gói giá: tạo, sửa (hạng ghế khoá), xoá.
+  const fare = `E2E ${Date.now()}`;
+  await page.getByRole("button", { name: "+ Thêm gói giá" }).click();
+  await field(dialog, "Tên gói giá").fill(fare);
+  await field(dialog, "Hạng ghế").selectOption("BUSINESS");
+  await dialog.getByRole("button", { name: "Lưu gói giá" }).click();
+  const fares = page.getByRole("table", { name: "Bảng gói giá" });
+  const fareRow = rowOf(fares, fare);
+  await expect(fareRow).toContainText("Thương gia");
+
+  await fareRow.getByRole("button", { name: "Sửa" }).click();
+  await expect(field(dialog, "Hạng ghế")).toHaveCount(0);
+  await field(dialog, "Hành lý ký gửi (kg)").fill("30");
+  await dialog.getByRole("button", { name: "Lưu gói giá" }).click();
+  await expect(fareRow).toContainText("30 kg");
+
+  await fareRow.getByRole("button", { name: "Xoá" }).click();
+  await dialog.getByRole("button", { name: "Xoá mục này" }).click();
+  await expect(fareRow).toHaveCount(0);
+
+  // Hành lý: tạo rồi xoá một mức cân lạ.
+  await page.getByRole("tab", { name: "Bảng giá hành lý (Baggage Options)" }).click();
+  await page.getByRole("button", { name: "+ Thêm mức hành lý" }).click();
+  await field(dialog, "Trọng lượng mua thêm (kg)").fill("97");
+  await field(dialog, "Giá bán (₫)").fill("990000");
+  await dialog.getByRole("button", { name: "Lưu mức hành lý" }).click();
+  const bagRow = rowOf(page.getByRole("table", { name: "Bảng giá hành lý" }), "97 kg");
+  await expect(bagRow).toContainText("990.000");
+  await bagRow.getByRole("button", { name: "Xoá" }).click();
+  await dialog.getByRole("button", { name: "Xoá mục này" }).click();
+  await expect(bagRow).toHaveCount(0);
+});
