@@ -3,8 +3,22 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { AdminModal, AdminPage, ConfirmModal, tableBox, td, th } from "../../admin-ui";
-import { Field, FormSkeleton, Notice, pillDark, pillLine, textLink } from "@/components/form";
+import {
+  AdminModal,
+  AdminPage,
+  ConfirmModal,
+  tableBox,
+  td,
+  th,
+} from "../../admin-ui";
+import {
+  Field,
+  FormSkeleton,
+  Notice,
+  pillDark,
+  pillLine,
+  textLink,
+} from "@/components/form";
 import { apiFetch, type ApiError, type Schemas } from "@/lib/api";
 import { vnd } from "@/app/flights/itineraries";
 import { errorText } from "@/lib/admin";
@@ -53,12 +67,20 @@ export default function FlightDetailView() {
     try {
       await apiFetch(`/admin/flights/${id}`, {
         method: "PUT",
-        body: { departureTime, arrivalTime, aircraftModel, cabins, fares } satisfies Schemas["FlightChanges"],
+        body: {
+          departureTime,
+          arrivalTime,
+          aircraftModel,
+          cabins,
+          fares,
+        } satisfies Schemas["FlightChanges"],
       });
       setEditOpen(false);
       reload();
     } catch (err: unknown) {
-      setActionError(errorText(err as ApiError) || "Không thể cập nhật chuyến bay.");
+      setActionError(
+        errorText(err as ApiError) || "Không thể cập nhật chuyến bay.",
+      );
     } finally {
       setLoading(false);
     }
@@ -96,7 +118,10 @@ export default function FlightDetailView() {
   return (
     <AdminPage>
       <div className="flex items-center gap-16">
-        <Link href="/admin/flights" className={`${textLink} text-caption text-muted hover:text-ink`}>
+        <Link
+          href="/admin/flights"
+          className={`${textLink} text-caption text-muted hover:text-ink`}
+        >
           ← Danh sách chuyến bay
         </Link>
       </div>
@@ -106,26 +131,46 @@ export default function FlightDetailView() {
       {detailRes === undefined ? (
         <FormSkeleton rows={4} />
       ) : "error" in detailRes ? (
-        <Notice>{detailRes.error.detail}</Notice>
+        <>
+          <h1 className="text-heading-lg font-bold">
+            {detailRes.error.status === 404
+              ? "Không tìm thấy chuyến bay."
+              : "Chi tiết chuyến bay."}
+          </h1>
+          {detailRes.error.status !== 404 && (
+            <Notice>{detailRes.error.detail}</Notice>
+          )}
+        </>
       ) : (
         <>
           {/* Header & Thao tác */}
           <div className="flex flex-wrap items-center justify-between gap-16 border-b border-line pb-22">
             <div>
               <span className="text-caption font-bold text-muted">
-                {detailRes.data.flight.departureAirport} → {detailRes.data.flight.arrivalAirport}
+                {detailRes.data.flight.departureAirport} →{" "}
+                {detailRes.data.flight.arrivalAirport}
               </span>
               <h1 className="text-heading-lg font-bold">
                 Chuyến bay {detailRes.data.flight.flightNumber}.
               </h1>
             </div>
             <div className="flex flex-wrap gap-11">
-              <Link href={`/staff/flights/${id}/passengers`} className={pillLine}>
+              <Link
+                href={`/staff/flights/${id}/passengers`}
+                className={pillLine}
+              >
                 Danh sách hành khách (Manifest)
               </Link>
               {detailRes.data.flight.status === "SCHEDULED" && (
                 <>
-                  <button type="button" onClick={() => { setActionError(null); setEditOpen(true); }} className={pillLine}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionError(null);
+                      setEditOpen(true);
+                    }}
+                    className={pillLine}
+                  >
                     Sửa chuyến bay
                   </button>
                   <button
@@ -154,29 +199,40 @@ export default function FlightDetailView() {
             <div className="border border-line p-16 bg-tint/30">
               <span className="text-caption text-muted">Trạng thái</span>
               <p className="text-subheading font-bold mt-4">
-                {FLIGHT_STATUS[detailRes.data.flight.status] ?? detailRes.data.flight.status}
+                {FLIGHT_STATUS[detailRes.data.flight.status] ??
+                  detailRes.data.flight.status}
               </p>
             </div>
             <div className="border border-line p-16">
-              <span className="text-caption text-muted">Cất cánh ({detailRes.data.flight.departureAirport})</span>
+              <span className="text-caption text-muted">
+                Cất cánh ({detailRes.data.flight.departureAirport})
+              </span>
               <p className="text-subheading font-bold mt-4">
                 {clock(detailRes.data.flight.departureTime)}
               </p>
-              <p className="text-caption text-muted">{dmy(detailRes.data.flight.departureTime)}</p>
+              <p className="text-caption text-muted">
+                {dmy(detailRes.data.flight.departureTime)}
+              </p>
             </div>
             <div className="border border-line p-16">
-              <span className="text-caption text-muted">Hạ cánh ({detailRes.data.flight.arrivalAirport})</span>
+              <span className="text-caption text-muted">
+                Hạ cánh ({detailRes.data.flight.arrivalAirport})
+              </span>
               <p className="text-subheading font-bold mt-4">
                 {clock(detailRes.data.flight.arrivalTime)}
               </p>
-              <p className="text-caption text-muted">{dmy(detailRes.data.flight.arrivalTime)}</p>
+              <p className="text-caption text-muted">
+                {dmy(detailRes.data.flight.arrivalTime)}
+              </p>
             </div>
             <div className="border border-line p-16">
               <span className="text-caption text-muted">Số lượt đặt chỗ</span>
               <p className="text-subheading font-bold mt-4">
                 {detailRes.data.bookingCount} đơn
               </p>
-              <p className="text-caption text-muted">Loại máy bay: {detailRes.data.flight.aircraftModel}</p>
+              <p className="text-caption text-muted">
+                Loại máy bay: {detailRes.data.flight.aircraftModel}
+              </p>
             </div>
           </div>
 
@@ -196,13 +252,20 @@ export default function FlightDetailView() {
                 <tbody>
                   {detailRes.data.flight.cabins.map((c) => {
                     const booked = c.totalSeats - c.availableSeats;
-                    const percent = c.totalSeats > 0 ? ((booked / c.totalSeats) * 100).toFixed(1) : "0.0";
+                    const percent =
+                      c.totalSeats > 0
+                        ? ((booked / c.totalSeats) * 100).toFixed(1)
+                        : "0.0";
                     return (
                       <tr key={c.cabinClass}>
-                        <td className={`${td} font-bold`}>{cabinLabel(c.cabinClass)}</td>
+                        <td className={`${td} font-bold`}>
+                          {cabinLabel(c.cabinClass)}
+                        </td>
                         <td className={td}>{c.totalSeats} ghế</td>
                         <td className={td}>{c.availableSeats} ghế</td>
-                        <td className={td}>{booked}/{c.totalSeats} ({percent}%)</td>
+                        <td className={td}>
+                          {booked}/{c.totalSeats} ({percent}%)
+                        </td>
                       </tr>
                     );
                   })}
@@ -215,7 +278,10 @@ export default function FlightDetailView() {
           <section className="grid gap-16">
             <h2 className="text-subheading font-bold">Giá vé theo gói</h2>
             <div className={tableBox}>
-              <table aria-label="Giá vé theo gói" className="w-full border-collapse">
+              <table
+                aria-label="Giá vé theo gói"
+                className="w-full border-collapse"
+              >
                 <thead>
                   <tr>
                     <th className={th}>Gói giá</th>
@@ -242,7 +308,10 @@ export default function FlightDetailView() {
             isOpen={editOpen}
             onClose={() => setEditOpen(false)}
           >
-            <form onSubmit={handleUpdate} className="grid gap-16 max-h-[75vh] overflow-y-auto pr-8">
+            <form
+              onSubmit={handleUpdate}
+              className="grid gap-16 max-h-[75vh] overflow-y-auto pr-8"
+            >
               {actionError && <Notice>{actionError}</Notice>}
               <Field
                 label="Loại máy bay"
@@ -256,7 +325,10 @@ export default function FlightDetailView() {
                   type="datetime-local"
                   name="departureTime"
                   required
-                  defaultValue={detailRes.data.flight.departureTime.slice(0, 16)}
+                  defaultValue={detailRes.data.flight.departureTime.slice(
+                    0,
+                    16,
+                  )}
                 />
                 <Field
                   label="Giờ hạ cánh (giờ địa phương)"
@@ -268,7 +340,9 @@ export default function FlightDetailView() {
               </div>
 
               <div className="border-t border-line pt-16 grid gap-11">
-                <span className="text-caption font-bold">Cập nhật tổng số ghế (BR-82: không giảm dưới số ghế đã bán)</span>
+                <span className="text-caption font-bold">
+                  Cập nhật tổng số ghế (BR-82: không giảm dưới số ghế đã bán)
+                </span>
                 {detailRes.data.flight.cabins.map((c) => {
                   const minSeats = c.totalSeats - c.availableSeats;
                   return (
@@ -286,7 +360,9 @@ export default function FlightDetailView() {
               </div>
 
               <div className="border-t border-line pt-16 grid gap-11">
-                <span className="text-caption font-bold">Cập nhật giá bán theo gói (BR-86)</span>
+                <span className="text-caption font-bold">
+                  Cập nhật giá bán theo gói (BR-86)
+                </span>
                 {detailRes.data.fares.map((f) => (
                   <Field
                     key={f.fareFamilyId}
@@ -302,7 +378,12 @@ export default function FlightDetailView() {
               </div>
 
               <div className="flex justify-end gap-11 mt-11">
-                <button type="button" onClick={() => setEditOpen(false)} className={pillLine} disabled={loading}>
+                <button
+                  type="button"
+                  onClick={() => setEditOpen(false)}
+                  className={pillLine}
+                  disabled={loading}
+                >
                   Huỷ
                 </button>
                 <button type="submit" className={pillDark} disabled={loading}>

@@ -24,6 +24,16 @@ const PROTECTED = [
   "/staff/flights/0/passengers",
   "/staff/refunds",
   "/staff/refunds/0",
+  "/admin/flights",
+  "/admin/flights/new",
+  "/admin/flights/0",
+  "/admin/airports",
+  "/admin/airlines",
+  "/admin/airlines/QH",
+  "/admin/vouchers",
+  "/admin/users",
+  "/admin/settings",
+  "/admin/reports",
 ];
 
 async function expectRenders(page: Page, path: string) {

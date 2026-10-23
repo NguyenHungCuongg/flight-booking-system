@@ -403,3 +403,19 @@ test("A-10: Admin xem ba báo cáo dòng tiền, doanh số và tỉ lệ lấp 
   await expect(page.getByRole("table", { name: "Báo cáo tỉ lệ lấp đầy" })).toBeVisible();
   await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
 });
+
+test("Phân quyền: khách vãng lai và Staff không dùng được /admin/**", async ({ page }) => {
+  await page.goto("/admin/flights");
+  await expect(page).toHaveURL("/login?next=%2Fadmin%2Fflights");
+
+  await field(page, "Email").fill("staff@demo.local");
+  await field(page, "Mật khẩu").fill("Demo@1234");
+  await page.getByRole("button", { name: "Đăng nhập" }).click();
+  await expect(page).toHaveURL("/admin/flights");
+  // Staff có phiên nhưng không có ROLE_ADMIN: trang vẫn có tiêu đề, dữ liệu báo 403 của backend.
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Chuyến bay.");
+  await page.goto("/admin/users");
+  await expect(page.getByRole("main").getByRole("alert").first()).toContainText(
+    "Bạn không có quyền thực hiện thao tác này",
+  );
+});
