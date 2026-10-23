@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
+import { ApiError } from "../src/lib/api";
 import {
+  errorText,
   validateSettingValue,
   WEEKDAY_OPTIONS,
   VOUCHER_TYPE_LABEL,
@@ -25,5 +27,15 @@ test.describe("admin.ts pure helpers", () => {
     expect(validateSettingValue("booking.hold_minutes", 70)).toBe(
       "Giá trị phải từ 5 đến 60",
     );
+  });
+  test("errorText prefers field messages over the generic detail", () => {
+    expect(
+      errorText(
+        new ApiError(400, "VALIDATION_FAILED", "Dữ liệu không hợp lệ", [
+          { field: "departureTime", message: "Giờ cất cánh phải sau thời điểm hiện tại" },
+        ]),
+      ),
+    ).toBe("Giờ cất cánh phải sau thời điểm hiện tại");
+    expect(errorText(new ApiError(409, "RESOURCE_IN_USE", "Đang được dùng"))).toBe("Đang được dùng");
   });
 });

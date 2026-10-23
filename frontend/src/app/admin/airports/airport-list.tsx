@@ -18,6 +18,7 @@ import {
   textLink,
 } from "@/components/form";
 import { apiFetch, type ApiError, type Schemas } from "@/lib/api";
+import { errorText } from "@/lib/admin";
 import { useApi } from "@/lib/use-api";
 
 type Airport = Schemas["AirportResponse"];
@@ -81,7 +82,7 @@ export default function AirportList() {
       reload();
     } catch (err: unknown) {
       const apiErr = err as ApiError;
-      setActionError(apiErr.detail || "Không thể lưu sân bay.");
+      setActionError(errorText(apiErr) || "Không thể lưu sân bay.");
     } finally {
       setLoading(false);
     }
@@ -104,7 +105,7 @@ export default function AirportList() {
           `Sân bay ${deleteTarget.code} đã có chuyến bay sử dụng nên không thể xoá. Hãy chọn Sửa và tắt Hoạt động.`,
         );
       } else {
-        setActionError(apiErr.detail || "Không thể xoá sân bay.");
+        setActionError(errorText(apiErr) || "Không thể xoá sân bay.");
       }
       setDeleteTarget(null);
     } finally {
@@ -133,7 +134,7 @@ export default function AirportList() {
         </button>
       </div>
 
-      {actionError && <Notice>{actionError}</Notice>}
+      {actionError && modalState === null && <Notice>{actionError}</Notice>}
 
       {airportsRes === undefined ? (
         <FormSkeleton rows={3} />
@@ -210,6 +211,7 @@ export default function AirportList() {
         onClose={() => setModalState(null)}
       >
         <form onSubmit={handleSave} className="grid gap-16">
+          {actionError && <Notice>{actionError}</Notice>}
           {modalState?.mode === "create" && (
             <Field
               label="Mã IATA (3 chữ cái)"

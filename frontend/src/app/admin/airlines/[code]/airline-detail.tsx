@@ -7,6 +7,7 @@ import { AdminModal, AdminPage, AdminTabs, ConfirmModal, tableBox, td, th } from
 import { Field, FormSkeleton, Notice, SelectField, pillDark, pillLine, textLink } from "@/components/form";
 import { apiFetch, type ApiError, type Schemas } from "@/lib/api";
 import { vnd } from "@/app/flights/itineraries";
+import { errorText } from "@/lib/admin";
 import { cabinLabel } from "@/lib/staff";
 import { useApi } from "@/lib/use-api";
 
@@ -74,7 +75,7 @@ export default function AirlineDetail() {
       setFareModal(null);
       setFaresVersion((v) => v + 1);
     } catch (err: unknown) {
-      setActionError((err as ApiError).detail || "Không thể lưu gói giá.");
+      setActionError(errorText(err as ApiError) || "Không thể lưu gói giá.");
     } finally {
       setLoading(false);
     }
@@ -107,7 +108,7 @@ export default function AirlineDetail() {
       setBaggageModal(null);
       setBaggageVersion((v) => v + 1);
     } catch (err: unknown) {
-      setActionError((err as ApiError).detail || "Không thể lưu mức hành lý.");
+      setActionError(errorText(err as ApiError) || "Không thể lưu mức hành lý.");
     } finally {
       setLoading(false);
     }
@@ -131,7 +132,7 @@ export default function AirlineDetail() {
       if (apiErr.code === "RESOURCE_IN_USE") {
         setActionError(`Mục "${deleteTarget.name}" đã được sử dụng nên không thể xoá. Hãy sửa và tắt trạng thái Hoạt động.`);
       } else {
-        setActionError(apiErr.detail || "Không thể xoá.");
+        setActionError(errorText(apiErr) || "Không thể xoá.");
       }
       setDeleteTarget(null);
     } finally {
@@ -170,7 +171,7 @@ export default function AirlineDetail() {
         </button>
       </div>
 
-      {actionError && <Notice>{actionError}</Notice>}
+      {actionError && !fareModal && !baggageModal && <Notice>{actionError}</Notice>}
 
       <AdminTabs
         activeKey={tab}
@@ -323,6 +324,7 @@ export default function AirlineDetail() {
         onClose={() => setFareModal(null)}
       >
         <form onSubmit={handleSaveFare} className="grid gap-16">
+          {actionError && <Notice>{actionError}</Notice>}
           <Field
             label="Tên gói giá"
             name="name"
@@ -427,6 +429,7 @@ export default function AirlineDetail() {
         onClose={() => setBaggageModal(null)}
       >
         <form onSubmit={handleSaveBaggage} className="grid gap-16">
+          {actionError && <Notice>{actionError}</Notice>}
           <Field
             label="Trọng lượng mua thêm (kg)"
             name="weightKg"

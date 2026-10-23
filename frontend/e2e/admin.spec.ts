@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { field } from "./helpers";
+import type { Schemas } from "../src/lib/api";
+import { csrfHeaders, day, field } from "./helpers";
 
 // E2E màn Admin A-01–A-10. Trình duyệt ở múi giờ New York (TDD §7).
 test.use({ timezoneId: "America/New_York" });
@@ -37,6 +38,15 @@ test("A-01: Admin thêm, sửa, xoá sân bay; sân bay đã có chuyến thì k
   await rowOf(table, "HAN").getByRole("button", { name: "Xoá" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Xoá sân bay" }).click();
   await expect(page.getByRole("alert").first()).toContainText("không thể xoá");
+
+  // Mã trùng: lỗi hiện ngay trong hộp thoại đang mở, không bị lớp phủ che.
+  await page.getByRole("button", { name: "+ Thêm sân bay" }).click();
+  await field(page.getByRole("dialog"), "Mã IATA (3 chữ cái)").fill("HAN");
+  await field(page.getByRole("dialog"), "Tên sân bay").fill("Trùng mã");
+  await field(page.getByRole("dialog"), "Thành phố").fill("Hà Nội");
+  await page.getByRole("dialog").getByRole("button", { name: "Lưu sân bay" }).click();
+  await expect(page.getByRole("dialog").getByRole("alert")).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Huỷ" }).click();
 
   const code = letters(3);
   await page.getByRole("button", { name: "+ Thêm sân bay" }).click();
@@ -139,4 +149,67 @@ test("A-03: Admin quản lý gói giá và bảng giá hành lý của hãng", a
   await bagRow.getByRole("button", { name: "Xoá" }).click();
   await dialog.getByRole("button", { name: "Xoá mục này" }).click();
   await expect(bagRow).toHaveCount(0);
+});
+
+test("A-04 & A-06: Admin lọc chuyến, sửa, huỷ hai bước rồi xoá chuyến chưa có booking", async ({
+  page,
+}) => {
+  await loginAdmin(page);
+  const headers = await csrfHeaders(page);
+  const faresRes = await page.request.get("/api/admin/airlines/QH/fare-families");
+  const fares = (await faresRes.json()) as Schemas["FareFamilyResponse"][];
+  const economy = fares.filter((f) => f.cabinClass === "ECONOMY" && f.active);
+  const date = day(20);
+  const flightNumber = `QH${String(Date.now() % 9000 + 1000)}`;
+  const createRes = await page.request.post("/api/admin/flights", {
+    headers,
+    data: {
+      airlineCode: "QH",
+      flightNumber,
+      departureAirport: "HAN",
+      arrivalAirport: "SGN",
+      departureTime: "05:15",
+      durationMinutes: 130,
+      fromDate: date,
+      toDate: date,
+      daysOfWeek: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"],
+      aircraftModel: "Airbus A320",
+      cabins: [{ cabinClass: "ECONOMY", totalSeats: 120 }],
+      fares: economy.map((f) => ({ fareFamilyId: f.id, price: 1_200_000 })),
+    } satisfies Schemas["NewFlights"],
+  });
+  expect(createRes.ok()).toBe(true);
+  const { flightIds } = (await createRes.json()) as Schemas["CreatedFlights"];
+
+  await page.goto(`/admin/flights?airline=QH&date=${date}`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Chuyến bay.");
+  const list = page.getByRole("table", { name: "Danh sách chuyến bay" });
+  await rowOf(list, flightNumber).getByRole("link", { name: "Chi tiết" }).click();
+  await expect(page).toHaveURL(`/admin/flights/${flightIds[0]}`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(`Chuyến bay ${flightNumber}.`);
+  await expect(page.getByText("05:15").first()).toBeVisible();
+
+  const dialog = page.getByRole("dialog");
+  await page.getByRole("button", { name: "Sửa chuyến bay" }).click();
+  await field(dialog, "Loại máy bay").fill("Boeing 787");
+  await field(dialog, "Giờ cất cánh (giờ địa phương)").fill(`${date}T06:40`);
+  await field(dialog, "Giờ hạ cánh (giờ địa phương)").fill(`${date}T06:00`);
+  await dialog.getByRole("button", { name: "Lưu thay đổi" }).click();
+  // Hạ cánh trước cất cánh: câu báo theo trường của backend, không phải "Dữ liệu không hợp lệ".
+  await expect(page.getByRole("alert").first()).toContainText("Giờ hạ cánh phải sau giờ cất cánh");
+  await field(dialog, "Giờ hạ cánh (giờ địa phương)").fill(`${date}T08:50`);
+  await dialog.getByRole("button", { name: "Lưu thay đổi" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByText("Loại máy bay: Boeing 787")).toBeVisible();
+  await expect(page.getByText("06:40").first()).toBeVisible();
+
+  await page.getByRole("button", { name: "Huỷ chuyến" }).click();
+  await expect(dialog).toContainText("FLIGHT_CANCELLED");
+  await dialog.getByRole("button", { name: "Xác nhận huỷ chuyến" }).click();
+  await expect(page.getByText("Đã huỷ", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sửa chuyến bay" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Xoá chuyến" }).click();
+  await dialog.getByRole("button", { name: "Xoá vĩnh viễn" }).click();
+  await expect(page).toHaveURL("/admin/flights");
 });

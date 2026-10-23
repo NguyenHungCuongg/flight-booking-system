@@ -2,6 +2,8 @@
  * Tiện ích và hằng số dùng chung cho toàn bộ các màn hình Quản trị Admin (A-01–A-10).
  */
 
+import type { ApiError } from "./api";
+
 export const VOUCHER_TYPE_LABEL: Record<string, string> = {
   PERCENT: "Phần trăm (%)",
   FIXED: "Số tiền cố định",
@@ -66,7 +68,8 @@ export const SETTING_INFO: Record<string, SettingDefinition> = {
     unit: "giờ",
     min: 0,
     max: 168,
-    description: "Thời hạn tối thiểu trước giờ cất cánh để yêu cầu hoàn hoặc đổi vé.",
+    description:
+      "Thời hạn tối thiểu trước giờ cất cánh để yêu cầu hoàn hoặc đổi vé.",
   },
   "search.min_connection_minutes": {
     name: "Nối chuyến tối thiểu",
@@ -84,11 +87,21 @@ export const SETTING_INFO: Record<string, SettingDefinition> = {
   },
 };
 
-export function validateSettingValue(key: string, value: number): string | null {
+export function validateSettingValue(
+  key: string,
+  value: number,
+): string | null {
   const meta = SETTING_INFO[key];
   if (!meta) return null;
   if (!Number.isFinite(value) || value < meta.min || value > meta.max) {
     return `Giá trị phải từ ${meta.min} đến ${meta.max}`;
   }
   return null;
+}
+
+/** Câu báo lỗi cho Admin: lỗi theo trường (VALIDATION_FAILED chỉ có detail chung "Dữ liệu không hợp lệ") rồi mới tới detail. */
+export function errorText(err: ApiError): string {
+  return err.errors.length > 0
+    ? err.errors.map((e) => e.message).join(" ")
+    : err.detail;
 }
