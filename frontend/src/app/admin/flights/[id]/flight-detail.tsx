@@ -22,7 +22,7 @@ import {
 import { apiFetch, type ApiError, type Schemas } from "@/lib/api";
 import { vnd } from "@/app/flights/itineraries";
 import { errorText } from "@/lib/admin";
-import { clock, dmy } from "@/lib/booking";
+import { clock, dmy, useNow } from "@/lib/booking";
 import { cabinLabel, FLIGHT_STATUS } from "@/lib/staff";
 import { useApi } from "@/lib/use-api";
 
@@ -41,6 +41,8 @@ export default function FlightDetailView() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // BR-87: chuyến đã cất cánh không sửa, không huỷ được. Giờ chỉ đọc sau khi hydrate (server: null).
+  const now = useNow();
   const reload = () => setVersion((v) => v + 1);
 
   const handleUpdate = async (e: FormEvent<HTMLFormElement>) => {
@@ -161,7 +163,9 @@ export default function FlightDetailView() {
               >
                 Danh sách hành khách (Manifest)
               </Link>
-              {detailRes.data.flight.status === "SCHEDULED" && (
+              {detailRes.data.flight.status === "SCHEDULED" &&
+                now !== null &&
+                Date.parse(detailRes.data.flight.departureTime) > now && (
                 <>
                   <button
                     type="button"

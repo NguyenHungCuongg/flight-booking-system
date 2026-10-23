@@ -44,4 +44,8 @@ test.describe("admin.ts pure helpers", () => {
     expect(vnTime("2026-10-09T13:06:09.166956Z")).toBe("20:06 09/10/2026");
     expect(vnTime("2026-12-31T20:30:00Z")).toBe("03:30 01/01/2027");
   });
+
+  test("errorText gives a generic message for errors that are not ApiError", () => {
+    expect(errorText(new TypeError("Failed to fetch"))).toBe("Đã có lỗi xảy ra. Hãy thử lại.");
+  });
 });

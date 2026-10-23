@@ -2,7 +2,7 @@
  * Tiện ích và hằng số dùng chung cho toàn bộ các màn hình Quản trị Admin (A-01–A-10).
  */
 
-import type { ApiError } from "./api";
+import { ApiError } from "./api";
 
 export const VOUCHER_TYPE_LABEL: Record<string, string> = {
   PERCENT: "Phần trăm (%)",
@@ -99,8 +99,9 @@ export function validateSettingValue(
   return null;
 }
 
-/** Câu báo lỗi cho Admin: lỗi theo trường (VALIDATION_FAILED chỉ có detail chung "Dữ liệu không hợp lệ") rồi mới tới detail. */
-export function errorText(err: ApiError): string {
+/** Câu báo lỗi cho Admin (lỗi khác ApiError, VD TypeError khi mất mạng, thì báo chung): lỗi theo trường (VALIDATION_FAILED chỉ có detail chung "Dữ liệu không hợp lệ") rồi mới tới detail. */
+export function errorText(err: unknown): string {
+  if (!(err instanceof ApiError)) return "Đã có lỗi xảy ra. Hãy thử lại.";
   return err.errors.length > 0
     ? err.errors.map((e) => e.message).join(" ")
     : err.detail;

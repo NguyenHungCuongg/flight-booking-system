@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import SiteHeader from "@/components/site-header";
 import { pillDark, pillLine } from "@/components/form";
 
@@ -76,29 +76,58 @@ export function AdminModal({
   children: ReactNode;
 }) {
   if (!isOpen) return null;
+  return (
+    <ModalDialog title={title} onClose={onClose}>
+      {children}
+    </ModalDialog>
+  );
+}
+
+/** `<dialog>` gốc mở bằng showModal(): focus vào trong, nền phía sau không bấm được, Escape đóng; đóng thì trả focus. */
+function ModalDialog({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  // Nút đã mở hộp thoại, đọc một lần lúc mở (chỉ render ở trình duyệt, sau một thao tác của người dùng).
+  const [opener] = useState(() => document.activeElement as HTMLElement | null);
+  useEffect(() => {
+    const dialog = ref.current;
+    dialog?.showModal();
+    return () => {
+      dialog?.close();
+      opener?.focus();
+    };
+  }, [opener]);
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      ref={ref}
       aria-label={title}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-deep-ink/40 p-16 backdrop-blur-xs"
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
+      className="m-auto w-[calc(100%-32px)] max-w-560 border border-line-strong bg-paper p-22 text-ink shadow-lg backdrop:bg-deep-ink/40 backdrop:backdrop-blur-xs"
     >
-      <div className="w-full max-w-560 border border-line-strong bg-paper p-22 shadow-lg">
-        <div className="flex items-center justify-between border-b border-line pb-16 mb-22">
-          <h2 className="text-subheading font-bold">{title}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Đóng"
-            className="text-muted hover:text-ink text-caption font-bold"
-          >
-            ✕
-          </button>
-        </div>
-        {children}
+      <div className="flex items-center justify-between border-b border-line pb-16 mb-22">
+        <h2 className="text-subheading font-bold">{title}</h2>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Đóng"
+          className="text-muted hover:text-ink text-caption font-bold"
+        >
+          ✕
+        </button>
       </div>
-    </div>
+      {children}
+    </dialog>
   );
 }
 

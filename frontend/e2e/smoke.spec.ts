@@ -61,6 +61,7 @@ for (const path of PROTECTED) {
 test("route cần đăng nhập hiển thị được sau khi đăng nhập", async ({
   page,
 }) => {
+  test.slow(); // Mở lần lượt mọi route trong PROTECTED (gồm 10 route Admin).
   // Tài khoản demo của seed V105 (profile dev).
   await page.goto("/login");
   await page.getByLabel("Email", { exact: true }).fill("customer@demo.local");

@@ -419,3 +419,28 @@ test("Phân quyền: khách vãng lai và Staff không dùng được /admin/**"
     "Bạn không có quyền thực hiện thao tác này",
   );
 });
+
+test("Hộp thoại Admin: focus vào hộp thoại, Escape đóng và trả focus về nút mở", async ({ page }) => {
+  await loginAdmin(page);
+  await page.goto("/admin/airports");
+  const open = page.getByRole("button", { name: "+ Thêm sân bay" });
+  await open.click();
+  const dialog = page.getByRole("dialog", { name: "Thêm sân bay mới" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator(":focus")).toHaveCount(1);
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(open).toBeFocused();
+});
+
+test("A-06: chuyến đã cất cánh không còn nút sửa và huỷ (BR-87)", async ({ page }) => {
+  await loginAdmin(page);
+  const res = await page.request.get(`/api/staff/flights?date=${day(-1)}&status=SCHEDULED&size=1`);
+  const { content } = (await res.json()) as Schemas["PagedModelFlightView"];
+  expect(content.length).toBe(1);
+  await page.goto(`/admin/flights/${content[0].id}`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(`Chuyến bay ${content[0].flightNumber}.`);
+  await expect(page.getByRole("link", { name: "Danh sách hành khách (Manifest)" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sửa chuyến bay" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Huỷ chuyến" })).toHaveCount(0);
+});
