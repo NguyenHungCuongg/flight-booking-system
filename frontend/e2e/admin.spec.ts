@@ -1,0 +1,61 @@
+import { expect, test, type Locator, type Page } from "@playwright/test";
+import { field } from "./helpers";
+
+// E2E màn Admin A-01–A-10. Trình duyệt ở múi giờ New York (TDD §7).
+test.use({ timezoneId: "America/New_York" });
+
+/** Bỏ phiên hiện tại rồi đăng nhập Admin của seed V105: trang mặc định là A-04 (APP_FLOW §1). */
+export async function loginAdmin(page: Page) {
+  await page.context().clearCookies();
+  await page.goto("/login");
+  await field(page, "Email").fill("admin@demo.local");
+  await field(page, "Mật khẩu").fill("Demo@1234");
+  await page.getByRole("button", { name: "Đăng nhập" }).click();
+  await expect(page).toHaveURL("/admin/flights");
+}
+
+/** Dòng bảng có một ô đúng bằng `text` (mã sân bay, hãng...). */
+const rowOf = (table: Locator, text: string) =>
+  table.getByRole("row").filter({ has: table.page().getByRole("cell", { name: text, exact: true }) });
+
+/** Chuỗi n chữ in hoa khác nhau giữa các lần chạy, cho mã sân bay/hãng tạo mới. */
+const letters = (n: number) =>
+  Array.from({ length: n }, (_, i) =>
+    String.fromCharCode(65 + (Math.floor(Date.now() / 26 ** i) % 26)),
+  ).join("");
+
+test("A-01: Admin thêm, sửa, xoá sân bay; sân bay đã có chuyến thì không xoá được", async ({
+  page,
+}) => {
+  await loginAdmin(page);
+  await page.goto("/admin/airports");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Sân bay.");
+  const table = page.getByRole("table", { name: "Bảng sân bay" });
+  await expect(table.getByRole("cell", { name: "HAN", exact: true })).toBeVisible();
+
+  // HAN đã có chuyến bay (seed V106): backend trả 409 RESOURCE_IN_USE.
+  await rowOf(table, "HAN").getByRole("button", { name: "Xoá" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Xoá sân bay" }).click();
+  await expect(page.getByRole("alert").first()).toContainText("không thể xoá");
+
+  const code = letters(3);
+  await page.getByRole("button", { name: "+ Thêm sân bay" }).click();
+  const dialog = page.getByRole("dialog");
+  await field(dialog, "Mã IATA (3 chữ cái)").fill(code);
+  await field(dialog, "Tên sân bay").fill("Sân bay Thử nghiệm");
+  await field(dialog, "Thành phố").fill("Đà Lạt");
+  await dialog.getByRole("button", { name: "Lưu sân bay" }).click();
+  const row = rowOf(table, code);
+  await expect(row).toContainText("Hoạt động");
+
+  await row.getByRole("button", { name: "Sửa" }).click();
+  await field(dialog, "Thành phố").fill("Lâm Đồng");
+  await dialog.getByText("Đang hoạt động").click();
+  await dialog.getByRole("button", { name: "Lưu sân bay" }).click();
+  await expect(row).toContainText("Lâm Đồng");
+  await expect(row).toContainText("Ngừng kích hoạt");
+
+  await row.getByRole("button", { name: "Xoá" }).click();
+  await dialog.getByRole("button", { name: "Xoá sân bay" }).click();
+  await expect(row).toHaveCount(0);
+});
