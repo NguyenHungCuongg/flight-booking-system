@@ -276,3 +276,39 @@ test("A-05: Admin tạo chuyến lẻ rồi khách thấy chuyến đó trong k�
     }
   }
 });
+
+test("A-07: Admin tạo và sửa voucher; mã trùng bị từ chối", async ({ page }) => {
+  await loginAdmin(page);
+  await page.goto("/admin/vouchers");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Voucher khuyến mãi.");
+  const table = page.getByRole("table", { name: "Bảng voucher" });
+  await expect(table.getByRole("cell", { name: "WELCOME10", exact: true })).toBeVisible();
+
+  const dialog = page.getByRole("dialog");
+  const fill = async (code: string) => {
+    await page.getByRole("button", { name: "+ Thêm voucher" }).click();
+    await field(dialog, "Mã voucher (in hoa, duy nhất)").fill(code);
+    await field(dialog, "Mô tả").fill("Giảm 15% cho khách thử nghiệm");
+    await field(dialog, "Giá trị giảm (% hoặc ₫)").fill("15");
+    await field(dialog, "Mức giảm tối đa (₫)").fill("300000");
+    await field(dialog, "Hiệu lực từ (giờ Việt Nam)").fill(`${day(0)}T00:00`);
+    await field(dialog, "Hiệu lực đến (giờ Việt Nam)").fill(`${day(30)}T23:59`);
+    await dialog.getByRole("button", { name: "Lưu voucher" }).click();
+  };
+
+  await fill("WELCOME10");
+  await expect(dialog.getByRole("alert")).toContainText("Mã voucher đã tồn tại");
+  await dialog.getByRole("button", { name: "Huỷ" }).click();
+
+  const code = `E2E${letters(6)}`;
+  await fill(code);
+  const row = rowOf(table, code);
+  await expect(row).toContainText("15%");
+  await expect(row).toContainText("0 / ∞");
+
+  await row.getByRole("button", { name: "Sửa" }).click();
+  await expect(field(dialog, "Hiệu lực đến (giờ Việt Nam)")).toHaveValue(`${day(30)}T23:59`);
+  await dialog.getByText("Đang kích hoạt").click();
+  await dialog.getByRole("button", { name: "Lưu voucher" }).click();
+  await expect(row).toContainText("Đã tắt");
+});
