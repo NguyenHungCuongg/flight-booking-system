@@ -378,3 +378,28 @@ test("A-09: Admin sửa tham số trong khoảng hợp lệ và thấy người 
   await save(original);
   await expect(row.getByRole("cell").nth(1)).toHaveText(`${original} phút`);
 });
+
+test("A-10: Admin xem ba báo cáo dòng tiền, doanh số và tỉ lệ lấp đầy", async ({ page }) => {
+  await loginAdmin(page);
+  await page.goto("/admin/reports");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Báo cáo & Thống kê.");
+  // Mặc định 30 ngày gần nhất theo giờ Việt Nam.
+  await expect(field(page, "Từ ngày")).toHaveValue(day(-30));
+  await expect(field(page, "Đến ngày")).toHaveValue(day(0));
+  await expect(page.getByText("Tổng thu (Charged)")).toBeVisible();
+  await expect(page.getByText("Tổng hoàn (Refunded)")).toBeVisible();
+  await expect(page.getByRole("table", { name: "Báo cáo dòng tiền" })).toBeVisible();
+  await field(page, "Nhóm theo").selectOption("MONTH");
+  await expect(page.getByRole("table", { name: "Báo cáo dòng tiền" })).toBeVisible();
+
+  await page.getByRole("tab", { name: "Doanh số vé (Sales)" }).click();
+  await expect(page.getByText("Tổng doanh thu vé")).toBeVisible();
+  await field(page, "Nhóm theo").selectOption("ROUTE");
+  await expect(page.getByRole("columnheader", { name: "Tuyến bay" })).toBeVisible();
+
+  await page.getByRole("tab", { name: "Tỉ lệ lấp đầy (Load Factor)" }).click();
+  await field(page, "Lọc theo hãng bay").selectOption("QH");
+  await expect(page.getByText("Tỉ lệ lấp đầy bình quân toàn bộ chuyến")).toBeVisible();
+  await expect(page.getByRole("table", { name: "Báo cáo tỉ lệ lấp đầy" })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
+});
