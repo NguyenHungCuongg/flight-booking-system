@@ -312,3 +312,40 @@ test("A-07: Admin tạo và sửa voucher; mã trùng bị từ chối", async (
   await dialog.getByRole("button", { name: "Lưu voucher" }).click();
   await expect(row).toContainText("Đã tắt");
 });
+
+test("A-08: Admin tìm, tạo tài khoản Staff, khoá và mở khoá; không tự khoá chính mình (BR-105)", async ({
+  page,
+}) => {
+  await loginAdmin(page);
+  await page.goto("/admin/users");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Người dùng & Tài khoản.");
+  const table = page.getByRole("table", { name: "Bảng người dùng" });
+
+  await field(page, "Tìm kiếm theo Email hoặc Họ tên").fill("admin@demo.local");
+  await page.getByRole("button", { name: "Tìm kiếm" }).click();
+  await expect(page).toHaveURL(/q=admin%40demo.local/);
+  const me = rowOf(table, "admin@demo.local");
+  await expect(me).toContainText("(Chính bạn)");
+  await expect(me.getByRole("button")).toHaveCount(0);
+
+  const email = `staff-${Date.now()}@example.com`;
+  await page.getByRole("button", { name: "+ Tạo tài khoản Staff / Admin" }).click();
+  const dialog = page.getByRole("dialog");
+  await field(dialog, "Họ và tên").fill("Lê Văn Trực");
+  await field(dialog, "Email đăng nhập").fill(email);
+  await field(dialog, "Số điện thoại").fill("0987654321");
+  await field(dialog, "Mật khẩu khởi tạo").fill("matkhau1");
+  await dialog.getByRole("button", { name: "Tạo tài khoản" }).click();
+  await expect(dialog).toHaveCount(0);
+
+  await field(page, "Tìm kiếm theo Email hoặc Họ tên").fill(email);
+  await page.getByRole("button", { name: "Tìm kiếm" }).click();
+  const row = rowOf(table, email);
+  await expect(row).toContainText("Nhân viên");
+  await row.getByRole("button", { name: "Khoá tài khoản" }).click();
+  await dialog.getByRole("button", { name: "Khoá tài khoản" }).click();
+  await expect(row).toContainText("Đã khoá");
+  await row.getByRole("button", { name: "Mở khoá" }).click();
+  await dialog.getByRole("button", { name: "Mở khoá" }).click();
+  await expect(row).toContainText("Hoạt động");
+});
