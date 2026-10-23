@@ -349,3 +349,32 @@ test("A-08: Admin tìm, tạo tài khoản Staff, khoá và mở khoá; không t
   await dialog.getByRole("button", { name: "Mở khoá" }).click();
   await expect(row).toContainText("Hoạt động");
 });
+
+test("A-09: Admin sửa tham số trong khoảng hợp lệ và thấy người sửa", async ({ page }) => {
+  await loginAdmin(page);
+  await page.goto("/admin/settings");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tham số hệ thống.");
+  const table = page.getByRole("table", { name: "Bảng tham số hệ thống" });
+  await expect(table.getByText("Khoảng cách đặt vé tối thiểu")).toBeVisible();
+  const row = rowOf(table, "Thời gian giữ chỗ");
+  await expect(row).toContainText("5 – 60");
+  const original = (await row.getByRole("cell").nth(1).innerText()).split(" ")[0];
+  const changed = original === "16" ? "17" : "16";
+
+  const dialog = page.getByRole("dialog");
+  const save = async (value: string) => {
+    await row.getByRole("button", { name: "Sửa" }).click();
+    await field(dialog, "Giá trị mới (phút)").fill(value);
+    await dialog.getByRole("button", { name: "Lưu giá trị mới" }).click();
+  };
+  await save("70");
+  await expect(dialog.getByRole("alert")).toContainText("Giá trị phải từ 5 đến 60");
+  await dialog.getByRole("button", { name: "Huỷ" }).click();
+
+  await save(changed);
+  await expect(row.getByRole("cell").nth(1)).toHaveText(`${changed} phút`);
+  // updatedByName là họ tên của Admin seed V105, thời điểm sửa theo giờ Việt Nam.
+  await expect(row.getByRole("cell").nth(4)).not.toHaveText("Hệ thống");
+  await save(original);
+  await expect(row.getByRole("cell").nth(1)).toHaveText(`${original} phút`);
+});

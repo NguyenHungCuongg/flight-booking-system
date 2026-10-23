@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { ApiError } from "../src/lib/api";
 import {
   errorText,
+  vnTime,
   validateSettingValue,
   WEEKDAY_OPTIONS,
   VOUCHER_TYPE_LABEL,
@@ -37,5 +38,10 @@ test.describe("admin.ts pure helpers", () => {
       ),
     ).toBe("Giờ cất cánh phải sau thời điểm hiện tại");
     expect(errorText(new ApiError(409, "RESOURCE_IN_USE", "Đang được dùng"))).toBe("Đang được dùng");
+  });
+
+  test("vnTime shows a UTC instant in Vietnam time like at()", () => {
+    expect(vnTime("2026-10-09T13:06:09.166956Z")).toBe("20:06 09/10/2026");
+    expect(vnTime("2026-12-31T20:30:00Z")).toBe("03:30 01/01/2027");
   });
 });

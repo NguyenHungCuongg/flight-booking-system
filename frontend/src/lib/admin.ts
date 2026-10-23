@@ -105,3 +105,19 @@ export function errorText(err: ApiError): string {
     ? err.errors.map((e) => e.message).join(" ")
     : err.detail;
 }
+
+const vnParts = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Ho_Chi_Minh",
+  hour: "2-digit",
+  minute: "2-digit",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hourCycle: "h23",
+});
+
+/** Thời điểm UTC (VD updatedAt của tham số) theo giờ Việt Nam, cùng dạng `at()`: "20:06 09/10/2026". */
+export function vnTime(iso: string): string {
+  const p = Object.fromEntries(vnParts.formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
+  return `${p.hour}:${p.minute} ${p.day}/${p.month}/${p.year}`;
+}
