@@ -110,7 +110,7 @@ export default function Routes() {
 
                 <div className="mt-auto flex items-center justify-between border-t border-line pt-14 text-caption font-bold text-accent">
                   <span>Điền vào ô tìm</span>
-                  <span className="inline-grid size-28 place-items-center rounded-inner bg-cta text-cta-fg transition-transform duration-200 group-hover:translate-x-2">
+                  <span className="inline-grid size-28 place-items-center rounded-full bg-cta text-cta-fg transition-transform duration-200 group-hover:translate-x-2">
                     <Icon name="arrow" className="size-16 shrink-0" />
                   </span>
                 </div>

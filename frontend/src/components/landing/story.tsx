@@ -93,7 +93,8 @@ export default function Story() {
                 id="story-h"
                 className="text-[clamp(28px,3.2vw,42px)] leading-[1.05] font-black tracking-[-0.028em] text-ink"
               >
-                Giữ chỗ trước, thanh toán sau<span className="text-accent">.</span>
+                Giữ chỗ trước, thanh toán sau
+                <span className="text-accent">.</span>
               </h2>
               <p className="max-w-[48ch] text-body text-muted">
                 Từ lúc tìm chuyến tới khi nhận vé điện tử, mọi bước đều hiển thị
@@ -117,7 +118,9 @@ export default function Story() {
                       <span
                         aria-hidden="true"
                         className={`absolute top-36 bottom-6 left-15 w-2 transition-colors duration-300 ${
-                          isDone ? "bg-accent" : "border-l border-dashed border-line-strong"
+                          isDone
+                            ? "bg-accent"
+                            : "border-l border-dashed border-line-strong"
                         }`}
                       />
                     )}
@@ -145,7 +148,9 @@ export default function Story() {
                       <div className="grid gap-6">
                         <span
                           className={`text-subheading font-bold transition-colors ${
-                            isActive || isDone ? "text-ink" : "text-muted group-hover:text-ink"
+                            isActive || isDone
+                              ? "text-ink"
+                              : "text-muted group-hover:text-ink"
                           }`}
                         >
                           {title}
@@ -167,11 +172,11 @@ export default function Story() {
 
           {/* Right: Sticky Live Booking Preview Card */}
           <div className="lg:sticky lg:top-96 lg:col-span-5">
-            <div className="rounded-[20px] border border-line bg-tint p-20 sm:p-28">
+            <div className=" border border-line bg-tint p-20 sm:p-28">
               <div
                 id="bk-card"
                 aria-live="polite"
-                className="card grid min-h-360 content-start gap-16 p-22"
+                className="card-square grid min-h-360 content-start gap-16 p-22"
               >
                 <div className="flex items-start justify-between gap-16">
                   <div>
@@ -200,10 +205,14 @@ export default function Story() {
 
                 {step === 0 && (
                   <div className="grid gap-10 border-t border-line pt-14">
-                    <p className="text-badge font-semibold text-muted">Gói giá</p>
+                    <p className="text-badge font-semibold text-muted">
+                      Gói giá
+                    </p>
                     <div className="flex items-center justify-between rounded-inner border border-line bg-paper/50 px-14 py-10">
                       <span className="grid">
-                        <b className="text-body font-bold text-ink">Tiết kiệm</b>
+                        <b className="text-body font-bold text-ink">
+                          Tiết kiệm
+                        </b>
                         <small className="text-badge text-muted">
                           Không hoàn, đổi có phí
                         </small>
@@ -279,8 +288,8 @@ export default function Story() {
                       <div className="h-full w-1/2 animate-pulse rounded-inner bg-cta" />
                     </div>
                     <p className="text-badge leading-relaxed text-muted">
-                      Thanh toán lỗi hoặc bị huỷ giữa chừng, bạn vẫn thử lại được
-                      trong hạn giữ chỗ.
+                      Thanh toán lỗi hoặc bị huỷ giữa chừng, bạn vẫn thử lại
+                      được trong hạn giữ chỗ.
                     </p>
                   </div>
                 )}

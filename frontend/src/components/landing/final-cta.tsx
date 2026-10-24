@@ -9,9 +9,17 @@ export default function FinalCta() {
   const { focusSearch } = useSearch();
 
   return (
-    <section aria-labelledby="final-h" className="pb-56 sm:pb-88">
+    <section
+      aria-labelledby="final-h"
+      className="relative isolate overflow-hidden pb-56 sm:pb-88"
+    >
+      {/* Quả địa cầu chấm (render sẵn bằng Three.js) dùng làm mask để đổi màu theo theme; chỉ lộ nửa trên. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-0 left-1/2 -z-10 aspect-square w-[min(1040px,140vw)] -translate-x-1/2 translate-y-[68%] bg-accent opacity-[0.16] mask-[url(/assets/images/globe-dots.webp)] mask-contain mask-no-repeat"
+      />
       <div className="mx-auto max-w-page px-16 sm:px-38">
-        <div className="grid justify-items-center gap-24 rounded-[28px] border border-line bg-tint px-24 py-48 text-center sm:px-48 sm:py-68">
+        <div className="grid justify-items-center gap-24 rounded-[28px] px-24 py-48 text-center sm:px-48 sm:py-68">
           <h2
             id="final-h"
             className="max-w-[20ch] text-[clamp(30px,4.2vw,52px)] leading-[1.04] font-black tracking-[-0.03em] text-ink"

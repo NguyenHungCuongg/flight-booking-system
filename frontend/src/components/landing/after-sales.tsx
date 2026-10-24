@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { Icon } from "./icons";
 
@@ -29,9 +30,21 @@ export default function AfterSales() {
   const pane = PANES[tab];
 
   return (
-    <section id="doi-hoan" aria-labelledby="after-h" className="py-40 sm:py-68">
-      <div className="mx-auto max-w-page px-16 sm:px-38">
-        <div className="grid gap-32 rounded-[28px] border border-lime-voltage/20 bg-forest-ink p-24 text-pure-white sm:p-44 lg:grid-cols-12 lg:items-center lg:gap-48 lg:p-56">
+    <section
+      id="doi-hoan"
+      aria-labelledby="after-h"
+      className="isolate overflow-hidden bg-forest-ink text-pure-white"
+    >
+      <div className="relative mx-auto max-w-page px-16 py-48 sm:px-38 sm:py-68 lg:py-96">
+        {/* Nền: mạng đường bay render sẵn bằng Three.js, chuyến cũ nét đứt và chuyến mới kèm máy bay; bám theo khung nội dung để máy bay luôn nằm trên thẻ bên phải, hai mép mờ dần vào nền */}
+        <Image
+          src="/assets/images/after-sales-flight.webp"
+          alt=""
+          fill
+          sizes="(min-width: 1400px) 1320px, 100vw"
+          className="pointer-events-none -z-10 hidden object-cover object-bottom mask-x-from-85% lg:block"
+        />
+        <div className="grid gap-32 lg:grid-cols-12 lg:items-center lg:gap-48">
           {/* Left: Headline + Segmented Switch */}
           <div className="grid content-start gap-20 lg:col-span-6">
             <h2

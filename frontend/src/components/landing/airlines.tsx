@@ -28,8 +28,8 @@ export default function Airlines() {
       <div className="mx-auto max-w-page px-16 sm:px-38">
         <div className="grid gap-36 lg:grid-cols-12 lg:items-center lg:gap-48">
           {/* Left: Visual Fare Transparency Preview */}
-          <div className="rounded-[20px] border border-line bg-tint p-20 sm:p-28 lg:col-span-5">
-            <div className="card grid gap-16 p-20">
+          <div className="border border-line bg-tint p-20 sm:p-28 lg:col-span-5">
+            <div className="card-square grid gap-16 p-20">
               <div className="flex items-center justify-between gap-12 border-b border-line pb-14">
                 <span className="text-caption font-bold text-ink">
                   Vietnam Airlines · VN213

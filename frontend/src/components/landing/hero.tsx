@@ -26,7 +26,7 @@ export default function Hero() {
             >
               <span className="sr-only">SkyLine. </span>
               <span className="block">Tìm một giây.</span>
-              <span className="mt-4 inline-block rounded-inner bg-cta px-18 py-4 text-cta-fg">
+              <span className="mt-4 inline-block bg-cta px-18 py-4 text-cta-fg">
                 Bay vạn dặm.
               </span>
             </h1>

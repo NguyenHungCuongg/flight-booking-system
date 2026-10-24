@@ -11,7 +11,7 @@
     "gen:api": "openapi-typescript http://localhost:8080/v3/api-docs --properties-required-by-default -o src/lib/api-types.ts"
   },
   "dependencies": {
-    "next": "16.4.0",
+    "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
@@ -22,7 +22,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.4.0",
+    "eslint-config-next": "16.4.3",
     "openapi-typescript": "7.13.0",
     "prettier": "3.7.4",
     "tailwindcss": "^4",

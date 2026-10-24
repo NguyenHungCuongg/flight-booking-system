@@ -227,6 +227,13 @@ html[data-theme="dark"] {
     0 12px 32px -16px rgb(22 51 0 / 0.28);
 }
 
+/* Thẻ vuông: như card nhưng không bo góc. */
+@utility card-square {
+  border-radius: 0;
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
 /* Nền tối Forest Ink để vùng kéo quá đáy trang liền với footer (#163300 theo NEW_DESIGN.md). */
 html {
   background: #163300;
