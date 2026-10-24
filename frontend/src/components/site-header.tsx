@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useCurrentUser } from "@/lib/use-current-user";
 import { Brand } from "./auth-shell";
 import { pillPrimary, pillLine } from "./form";
+import { ThemeToggle } from "./theme-toggle";
 import UserMenu from "./user-menu";
 
 const NAV: Record<
@@ -40,7 +41,7 @@ const NAV: Record<
   },
 };
 
-/** Đầu trang chung của khu khách hàng, nhân viên và quản trị viên: mục đang mở được đánh dấu, bên phải là menu tên. */
+/** Đầu trang chung của khu khách hàng, nhân viên và quản trị viên: mục đang mở được đánh dấu, bên phải là nút đổi giao diện sáng/tối và menu tài khoản. */
 export default function SiteHeader({
   area = "customer",
 }: {
@@ -51,11 +52,10 @@ export default function SiteHeader({
   const nav = NAV[area];
 
   return (
-    // Dính đầu trang khi cuộn (từ 640px; trên điện thoại header xuống dòng nên cao, để trôi theo trang); nền trong mờ.
-    <div className="z-10 border-b border-line/70 bg-paper/80 backdrop-blur-md sm:sticky sm:top-0">
+    <div className="z-10 border-b border-line bg-paper/85 backdrop-blur-md sm:sticky sm:top-0">
       <header className="mx-auto flex max-w-page flex-wrap items-center justify-between gap-16 px-16 py-10 sm:px-38">
         <Brand />
-        <div className="flex flex-wrap items-center gap-x-16 gap-y-8">
+        <div className="flex flex-wrap items-center gap-x-12 gap-y-8">
           <nav
             aria-label={nav.label}
             className="flex flex-wrap gap-x-4 gap-y-4 text-caption"
@@ -67,7 +67,7 @@ export default function SiteHeader({
                   key={href}
                   href={href}
                   aria-current={active ? "page" : undefined}
-                  className={`rounded-pill px-11 py-4 transition-colors duration-200 ${
+                  className={`rounded-pill px-12 py-5 transition-colors duration-200 ${
                     active
                       ? "bg-accent-soft font-semibold text-accent"
                       : "text-muted hover:bg-tint hover:text-ink"
@@ -78,6 +78,7 @@ export default function SiteHeader({
               );
             })}
           </nav>
+          <ThemeToggle />
           {/* Đang hỏi /me: giữ chỗ trống để không nháy nút Đăng nhập. */}
           {user === undefined ? (
             <span className="min-w-120" aria-hidden="true" />

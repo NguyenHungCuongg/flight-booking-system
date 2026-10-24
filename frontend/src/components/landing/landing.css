@@ -1,28 +1,39 @@
+/*
+ * NEW_DESIGN.md — Wise Style System cho trang chủ SkyLine (C-01) và SearchDock (/flights).
+ * Bảng màu chủ đạo:
+ * - Forest Ink (#163300): nền thương hiệu đậm, chữ tiêu đề phụ, khối thẻ tối lớn.
+ * - Lime Voltage (#9fe870): nút CTA chính, tab đang chọn, điểm nhấn năng lượng cao trên nền tối.
+ * - Spruce (#054d28): xanh rừng thứ cấp tạo chiều sâu phân lớp.
+ * - Linen Mist (#e2f6d5): nền xanh nhạt dịu cho trạng thái chọn / hover.
+ * - Obsidian (#0e0f0c), Charcoal (#454745), Slate (#6a6c6a), Pebble (#868685), Fog (#e8ebe6), Paper (#ffffff).
+ */
 .sk {
-  --ink: #000d10;
-  --ink-2: #3b444b;
+  --ink: #0e0f0c;
+  --ink-2: #454745;
   --paper: #ffffff;
-  --muted: #64646c;
-  --line: #d5d3d4;
-  --line-strong: #b4b2b4;
-  --tint: #eef3f6;
+  --muted: #6a6c6a;
+  --line: #dce2d8;
+  --line-strong: #868685;
+  --tint: #e8ebe6;
   --panel: #ffffff;
-  --range: #e2e9ee;
-  --sky-1: #c4d6e2;
-  --sky-2: #d9e4eb;
-  --sky-3: #e9ecec;
-  --sky-4: #f3eee6;
-  --btn-bg: #000d10;
-  --btn-fg: #ffffff;
-  --btn-hover: #1d2b30;
-  --focus: #000d10;
-  --deck: #0f1828;
-  --clay: #bc7155;
-  --accent: #a85a3c;
-  --accent-fg: #ffffff;
-  --accent-hover: #8f4a2f;
-  --clay-ink: #000d10;
-  --foot: #000d10;
+  --range: #e2f6d5;
+  --sky-1: #163300;
+  --sky-2: #054d28;
+  --sky-3: #e2f6d5;
+  --sky-4: #f4f7f2;
+  --btn-bg: #9fe870;
+  --btn-fg: #163300;
+  --btn-hover: #8cd95c;
+  --focus: #163300;
+  --deck: #054d28;
+  --clay: #9fe870;
+  --accent-mark: #163300;
+  --accent: #9fe870;
+  --accent-fg: #163300;
+  --accent-hover: #8cd95c;
+  --clay-bg: #163300;
+  --clay-ink: #e2f6d5;
+  --foot: #163300;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-io: cubic-bezier(0.65, 0, 0.35, 1);
@@ -45,50 +56,67 @@
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
-.sk.t-dark {
-  --ink: #f2f3f6;
-  --ink-2: #c3ccd7;
-  --paper: #0a111c;
-  --muted: #94a1b2;
-  --line: #24324a;
-  --line-strong: #3a4d68;
-  --tint: #172435;
-  --panel: #131d2c;
-  --range: #1f2d42;
-  --sky-1: #090a14;
-  --sky-2: #10111e;
-  --sky-3: #1a1824;
-  --sky-4: #2a2027;
-  --btn-bg: #f2f3f6;
-  --btn-fg: #000d10;
-  --btn-hover: #ffffff;
-  --focus: #f2f3f6;
-  --accent: #e08a68;
-  --accent-fg: #0e1726;
-  --accent-hover: #eba085;
+
+.sk.t-dark,
+html[data-theme="dark"] .sk {
+  --ink: #f2f7ef;
+  --ink-2: #cfe0c9;
+  --paper: #0b1507;
+  --muted: #98b092;
+  --line: #233b1b;
+  --line-strong: #3c5e31;
+  --tint: #182d11;
+  --panel: #12220c;
+  --range: #1e3b14;
+  --sky-1: #071004;
+  --sky-2: #0e1d09;
+  --sky-3: #163300;
+  --sky-4: #054d28;
+  --btn-bg: #9fe870;
+  --btn-fg: #163300;
+  --btn-hover: #b2f289;
+  --focus: #9fe870;
+  --deck: #0e1d09;
+  --clay: #9fe870;
+  --accent-mark: #9fe870;
+  --accent: #9fe870;
+  --accent-fg: #163300;
+  --accent-hover: #b2f289;
+  --clay-bg: #14290d;
+  --clay-ink: #cfe0c9;
+  --foot: #071004;
+  --logo-ring: rgba(159, 232, 112, 0.28);
 }
+
 @media (prefers-color-scheme: dark) {
-  .sk.t-auto {
-    --ink: #f2f3f6;
-    --ink-2: #c3ccd7;
-    --paper: #0a111c;
-    --muted: #94a1b2;
-    --line: #24324a;
-    --line-strong: #3a4d68;
-    --tint: #172435;
-    --panel: #131d2c;
-    --range: #1f2d42;
-    --sky-1: #090a14;
-    --sky-2: #10111e;
-    --sky-3: #1a1824;
-    --sky-4: #2a2027;
-    --btn-bg: #f2f3f6;
-    --btn-fg: #000d10;
-    --btn-hover: #ffffff;
-    --focus: #f2f3f6;
-    --accent: #e08a68;
-    --accent-fg: #0e1726;
-    --accent-hover: #eba085;
+  html:not([data-theme="light"]) .sk:not(.t-light) {
+    --ink: #f2f7ef;
+    --ink-2: #cfe0c9;
+    --paper: #0b1507;
+    --muted: #98b092;
+    --line: #233b1b;
+    --line-strong: #3c5e31;
+    --tint: #182d11;
+    --panel: #12220c;
+    --range: #1e3b14;
+    --sky-1: #071004;
+    --sky-2: #0e1d09;
+    --sky-3: #163300;
+    --sky-4: #054d28;
+    --btn-bg: #9fe870;
+    --btn-fg: #163300;
+    --btn-hover: #b2f289;
+    --focus: #9fe870;
+    --deck: #0e1d09;
+    --clay: #9fe870;
+    --accent-mark: #9fe870;
+    --accent: #9fe870;
+    --accent-fg: #163300;
+    --accent-hover: #b2f289;
+    --clay-bg: #14290d;
+    --clay-ink: #cfe0c9;
+    --foot: #071004;
+    --logo-ring: rgba(159, 232, 112, 0.28);
   }
 }
 
@@ -152,7 +180,7 @@
   outline-offset: 3px;
 }
 .sk .on-dark :focus-visible {
-  outline-color: #ffffff;
+  outline-color: #9fe870;
 }
 .sk .skip {
   position: absolute;
@@ -160,7 +188,7 @@
   top: -120px;
   z-index: 60;
   padding: 10px 18px;
-  border-radius: 1000px;
+  border-radius: 9999px;
   background: var(--btn-bg);
   color: var(--btn-fg);
   font-size: 14px;
@@ -193,28 +221,28 @@
   stroke-linejoin: round;
 }
 
-/* ---------- type ---------- */
+/* ---------- type (Wise Display Authority) ---------- */
 .sk .h-hero {
-  font-size: clamp(30px, 3.4vw, 50px);
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  font-weight: 700;
+  font-size: clamp(32px, 3.6vw, 52px);
+  line-height: 1.06;
+  letter-spacing: -0.028em;
+  font-weight: 900;
 }
-/* Điểm nhấn cam: dấu chấm của wordmark và tiêu đề. */
+/* Điểm nhấn Lime Voltage: dấu chấm của wordmark và tiêu đề. */
 .sk .dot {
   color: var(--clay);
 }
 .sk .h-sec {
-  font-size: clamp(26px, 2.8vw, 40px);
-  line-height: 1.06;
-  letter-spacing: -0.01em;
-  font-weight: 700;
+  font-size: clamp(28px, 3vw, 44px);
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  font-weight: 900;
   text-wrap: balance;
 }
 .sk .h-sub {
   font-size: 18px;
   line-height: 1.22;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   font-weight: 700;
 }
 .sk .body {
@@ -240,8 +268,8 @@
   justify-content: center;
   gap: 10px;
   min-height: 44px;
-  padding: 11px 20px 12px;
-  border-radius: 1000px;
+  padding: 11px 22px 12px;
+  border-radius: 9999px;
   border: 1px solid transparent;
   font-size: 15px;
   font-weight: 700;
@@ -275,12 +303,12 @@
 .sk .pill-line {
   background: transparent;
   color: var(--ink);
-  border-color: var(--ink);
+  border-color: var(--line-strong);
 }
 .sk .pill-ghost {
   background: transparent;
   color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(226, 246, 213, 0.75);
 }
 .sk .icon-btn {
   display: inline-grid;
@@ -289,7 +317,7 @@
   width: 44px;
   height: 44px;
   padding: 0;
-  border-radius: 100%;
+  border-radius: 9999px;
   border: 1px solid var(--line-strong);
   background: transparent;
   color: var(--ink);
@@ -322,13 +350,16 @@
   .sk .pill-line:hover {
     background: var(--ink);
     color: var(--paper);
+    border-color: var(--ink);
   }
   .sk .pill-ghost:hover {
-    background: #ffffff;
-    color: #000d10;
+    background: #9fe870;
+    color: #163300;
+    border-color: #9fe870;
   }
   .sk .icon-btn:hover:not(:disabled) {
     border-color: var(--ink);
+    background: var(--tint);
   }
 }
 
@@ -355,10 +386,10 @@
   opacity: 1;
 }
 .sk .nav:not(.is-solid):not(:has(.menu.is-open)) {
-  --ink: #f2f3f6;
-  --btn-bg: #f2f3f6;
-  --btn-fg: #000d10;
-  --btn-hover: #ffffff;
+  --ink: #f2f7ef;
+  --btn-bg: #9fe870;
+  --btn-fg: #163300;
+  --btn-hover: #b2f289;
 }
 .sk .nav-in {
   position: relative;
@@ -379,25 +410,18 @@
   width: 40px;
   height: 40px;
   border-radius: 9px;
-  outline: 1px solid var(--logo-ring, transparent);
-}
-.sk.t-dark {
-  --logo-ring: rgba(255, 255, 255, 0.2);
-}
-@media (prefers-color-scheme: dark) {
-  .sk.t-auto {
-    --logo-ring: rgba(255, 255, 255, 0.2);
-  }
+  outline: 1px solid var(--logo-ring, rgba(159, 232, 112, 0.22));
 }
 .sk .nav-links {
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 24px;
 }
 .sk .nav-link {
   position: relative;
   padding: 8px 0;
   font-size: 15px;
+  font-weight: 600;
   line-height: 1;
   color: var(--ink);
   text-decoration: none;
@@ -418,6 +442,34 @@
   min-height: 40px;
   padding: 8px 18px 9px;
   font-size: 14px;
+}
+.sk .nav-theme-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background-color 0.2s var(--ease-out),
+    border-color 0.2s var(--ease-out),
+    transform 0.2s var(--ease-out);
+}
+.sk .nav-theme-btn:hover {
+  border-color: var(--clay);
+  background: color-mix(in srgb, var(--clay) 18%, transparent);
+}
+.sk .nav-theme-btn:active {
+  transform: scale(0.95);
+}
+.sk .nav-mobile-actions {
+  display: none;
+  align-items: center;
+  gap: 10px;
 }
 .sk .menu-btn {
   display: none;
@@ -466,8 +518,8 @@
   padding: 6px 0;
   font-size: 24px;
   line-height: 1.25;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 800;
+  letter-spacing: -0.015em;
   text-decoration: none;
   opacity: 0;
   transform: translateY(14px);
@@ -494,6 +546,9 @@
   .sk .nav-links {
     display: none;
   }
+  .sk .nav-mobile-actions {
+    display: inline-flex;
+  }
   .sk .menu-btn {
     display: inline-grid;
   }
@@ -504,23 +559,23 @@
   }
 }
 
-/* ---------- hero ---------- */
+/* ---------- hero (Deep Forest Ink #163300 + Lime Voltage #9fe870) ---------- */
 .sk .hero {
-  --ink: #f2f3f6;
-  --ink-2: #c3ccd7;
-  --muted: #94a1b2;
-  --line: #24324a;
-  --line-strong: #3a4d68;
-  --tint: #172435;
-  --panel: #131d2c;
-  --range: #1f2d42;
-  --btn-bg: #f2f3f6;
-  --btn-fg: #000d10;
-  --btn-hover: #ffffff;
-  --focus: #f2f3f6;
-  --accent: #e08a68;
-  --accent-fg: #0e1726;
-  --accent-hover: #eba085;
+  --ink: #f2f7ef;
+  --ink-2: #d4e6cd;
+  --muted: #9ab593;
+  --line: #27451d;
+  --line-strong: #416834;
+  --tint: #1b3312;
+  --panel: #13250c;
+  --range: #214016;
+  --btn-bg: #9fe870;
+  --btn-fg: #163300;
+  --btn-hover: #b2f289;
+  --focus: #9fe870;
+  --accent: #9fe870;
+  --accent-fg: #163300;
+  --accent-hover: #b2f289;
   position: relative;
   z-index: 5;
   min-height: 90vh;
@@ -529,7 +584,7 @@
   flex-direction: column;
   padding-top: 72px;
   overflow: visible;
-  background: #090a14;
+  background: #163300;
   color: var(--ink);
 }
 .sk .hero-bg {
@@ -542,17 +597,22 @@
 .sk .hero-bg-img {
   object-fit: cover;
   object-position: center;
+  mix-blend-mode: luminosity;
+  opacity: 0.42;
 }
 .sk .hero-bg-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(9, 10, 20, 0.45) 0%,
-    rgba(9, 10, 20, 0.15) 35%,
-    rgba(9, 10, 20, 0.5) 70%,
-    var(--paper) 100%
-  );
+  background:
+    radial-gradient(900px 420px at 18% 18%, rgba(159, 232, 112, 0.16), transparent),
+    radial-gradient(800px 400px at 85% 24%, rgba(5, 77, 40, 0.55), transparent),
+    linear-gradient(
+      180deg,
+      rgba(22, 51, 0, 0.72) 0%,
+      rgba(5, 77, 40, 0.38) 42%,
+      rgba(22, 51, 0, 0.82) 76%,
+      var(--paper) 100%
+    );
 }
 .sk .sentinel {
   position: absolute;
@@ -586,9 +646,9 @@
   display: block;
   padding-bottom: 0.14em;
   font-size: clamp(56px, 10vw, 142px);
-  line-height: 0.8;
-  letter-spacing: -0.02em;
-  font-weight: 700;
+  line-height: 0.82;
+  letter-spacing: -0.032em;
+  font-weight: 900;
   white-space: nowrap;
 }
 .sk .wm-ch {
@@ -613,6 +673,9 @@
 }
 .sk .hl-line {
   display: block;
+}
+.sk .hl-line + .hl-line {
+  color: #9fe870;
 }
 .sk .hero-sub {
   max-width: 42ch;
@@ -699,15 +762,18 @@
   position: relative;
   display: grid;
   gap: 12px;
-  padding: 12px;
+  padding: 14px;
+  border-radius: 14px;
   background: var(--panel);
   border: 1px solid var(--line);
+  box-shadow: 0 12px 32px -12px rgba(14, 15, 12, 0.18);
 }
 .sk .dock::after {
   content: "";
   position: absolute;
   inset: -1px;
-  border: 2px solid var(--ink);
+  border-radius: 14px;
+  border: 2px solid var(--focus);
   opacity: 0;
   pointer-events: none;
 }
@@ -732,8 +798,9 @@
   display: inline-grid;
   grid-template-columns: 1fr 1fr;
   padding: 4px;
-  border-radius: 1000px;
+  border-radius: 9999px;
   border: 1px solid var(--line);
+  background: var(--tint);
 }
 .sk .seg-ind {
   position: absolute;
@@ -741,7 +808,7 @@
   bottom: 4px;
   left: 4px;
   width: calc(50% - 4px);
-  border-radius: 1000px;
+  border-radius: 9999px;
   background: var(--btn-bg);
   transition: transform 0.55s var(--ease-spring);
 }
@@ -754,7 +821,7 @@
   min-height: 38px;
   padding: 8px 16px;
   border: 0;
-  border-radius: 1000px;
+  border-radius: 9999px;
   background: transparent;
   color: var(--ink);
   font-size: 14px;
@@ -775,14 +842,14 @@
   gap: 10px;
   min-height: 44px;
   padding: 0 16px;
-  border-radius: 1000px;
-  border: 1px solid var(--line);
+  border-radius: 9999px;
+  border: 1px solid var(--line-strong);
   background: transparent;
   font-size: 14px;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color 0.25s, background-color 0.25s;
 }
 .sk .chip .chev {
   width: 18px;
@@ -805,6 +872,7 @@
 .sk .fields {
   display: grid;
   grid-template-columns: minmax(0, 2.5fr) minmax(0, 2fr) auto;
+  border-radius: 10px;
   border: 1px solid var(--line);
 }
 .sk .f-route {
@@ -832,6 +900,7 @@
   height: 100%;
   padding: 12px 16px 13px;
   border: 0;
+  border-radius: 8px;
   background: transparent;
   text-align: left;
   cursor: pointer;
@@ -850,8 +919,8 @@
   overflow: hidden;
   font-size: 22px;
   line-height: 1.15;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 800;
+  letter-spacing: -0.015em;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -872,7 +941,7 @@
   text-overflow: ellipsis;
 }
 .sk .field.has-err .field-btn {
-  box-shadow: inset 0 -3px 0 var(--ink);
+  box-shadow: inset 0 -3px 0 #cb272f;
 }
 .sk .field.has-err .f-label {
   color: var(--ink);
@@ -902,28 +971,30 @@
   width: 38px;
   height: 38px;
   padding: 0;
-  border-radius: 100%;
+  border-radius: 9999px;
   border: 1px solid var(--line-strong);
   background: var(--panel);
   color: var(--ink);
   cursor: pointer;
   transition:
     transform 0.7s var(--ease-spring),
-    border-color 0.25s;
+    border-color 0.25s,
+    background-color 0.25s;
 }
 .sk .go-cell {
   display: flex;
   padding: 10px;
   border-left: 1px solid var(--line);
 }
-/* Nút tìm chính dùng màu nhấn đất nung như nút chính của các màn ứng dụng. */
+/* Nút tìm chính: Lime Voltage (#9fe870) + chữ Forest Ink (#163300) theo NEW_DESIGN.md */
 .sk .go {
   --btn-bg: var(--accent);
   --btn-fg: var(--accent-fg);
   --btn-hover: var(--accent-hover);
   min-height: 52px;
-  padding-inline: 22px;
+  padding-inline: 24px;
   font-size: 15px;
+  font-weight: 700;
 }
 .sk .go-icon {
   position: relative;
@@ -952,12 +1023,14 @@
 @media (hover: hover) {
   .sk .chip:hover {
     border-color: var(--ink);
+    background: var(--tint);
   }
   .sk .field-btn:hover {
     background: var(--tint);
   }
   .sk .swap:hover {
     border-color: var(--ink);
+    background: var(--tint);
   }
 }
 @media (max-width: 1099px) {
@@ -1015,9 +1088,10 @@
   width: 400px;
   max-width: min(92vw, 440px);
   padding: 18px;
+  border-radius: 14px;
   background: var(--panel);
   border: 1px solid var(--line-strong);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
   text-align: left;
   transform-origin: top left;
 }
@@ -1057,19 +1131,19 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 52px;
+  min-height: 48px;
   padding: 0 16px;
-  border-radius: 1000px;
+  border-radius: 10px;
   border: 1px solid var(--line-strong);
 }
 .sk .q-wrap:focus-within {
-  border-color: var(--ink);
-  box-shadow: inset 0 0 0 1px var(--ink);
+  border-color: var(--focus);
+  box-shadow: inset 0 0 0 1px var(--focus);
 }
 .sk .q {
   flex: 1;
   min-width: 0;
-  padding: 12px 0;
+  padding: 10px 0;
   border: 0;
   outline: 0;
   background: transparent;
@@ -1096,6 +1170,7 @@
   min-height: 58px;
   padding: 8px 10px;
   border: 0;
+  border-radius: 8px;
   background: transparent;
   text-align: left;
   cursor: pointer;
@@ -1103,11 +1178,11 @@
 }
 .sk .opt.is-hi {
   background: var(--tint);
-  box-shadow: inset 2px 0 0 var(--ink);
+  box-shadow: inset 3px 0 0 var(--focus);
 }
 .sk .ap-code {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.01em;
 }
 .sk .ap-txt {
@@ -1174,7 +1249,7 @@
   height: 44px;
   padding: 0;
   border: 0;
-  border-radius: 100%;
+  border-radius: 9999px;
   background: transparent;
   font-size: 14px;
   font-weight: 700;
@@ -1278,7 +1353,7 @@
 .sk .opt-pill {
   min-height: 38px;
   padding: 8px 14px;
-  border-radius: 1000px;
+  border-radius: 9999px;
   border: 1px solid var(--line-strong);
   background: transparent;
   font-size: 14px;
@@ -1334,6 +1409,7 @@
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: clamp(264px, 25vw, 312px);
+  gap: 16px;
   margin-top: 48px;
   padding-inline: max(clamp(16px, 4vw, 40px), calc((100% - 1200px) / 2));
   overflow-x: auto;
@@ -1350,22 +1426,22 @@
   gap: 16px;
   min-height: 304px;
   padding: 26px 24px 24px;
-  border: 0;
-  border-left: 1px solid var(--line);
-  background: transparent;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel);
   text-align: left;
   cursor: pointer;
   scroll-snap-align: start;
-  transition: background-color 0.35s var(--ease-out);
-}
-.sk .route:last-child {
-  border-right: 1px solid var(--line);
+  transition:
+    background-color 0.35s var(--ease-out),
+    border-color 0.35s var(--ease-out),
+    transform 0.3s var(--ease-out);
 }
 .sk .r-code {
   font-size: 38px;
   line-height: 1;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 900;
+  letter-spacing: -0.025em;
 }
 .sk .r-to {
   justify-self: end;
@@ -1396,7 +1472,7 @@
   right: 0;
   width: 22px;
   height: 22px;
-  color: var(--clay);
+  color: var(--accent-mark);
 }
 .sk .route:focus-visible .r-run {
   transform: translateX(0);
@@ -1419,19 +1495,25 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: var(--range);
+  color: var(--accent-mark);
 }
 .sk .r-act .ic {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   transition: transform 0.45s var(--ease-out);
 }
 .sk .r-tag {
-  font-weight: 400;
+  font-weight: 500;
   color: var(--muted);
 }
 @media (hover: hover) {
   .sk .route:hover {
     background: var(--tint);
+    border-color: var(--accent-mark);
+    transform: translateY(-2px);
   }
   .sk .route:hover .r-run {
     transform: translateX(0);
@@ -1539,8 +1621,8 @@
   left: -1px;
   top: 0;
   bottom: 0;
-  width: 1px;
-  background: var(--clay);
+  width: 2px;
+  background: var(--accent-mark);
   transform: scaleY(0);
   transform-origin: top center;
   transition: transform 0.7s var(--ease-out);
@@ -1571,7 +1653,7 @@
   place-items: center;
   width: 28px;
   height: 28px;
-  border-radius: 100%;
+  border-radius: 9999px;
   border: 1px solid var(--line-strong);
   background: var(--paper);
   color: var(--btn-fg);
@@ -1582,7 +1664,7 @@
 .sk .step-mark .ic {
   width: 16px;
   height: 16px;
-  stroke-width: 2;
+  stroke-width: 2.2;
   opacity: 0;
   transform: scale(0.4);
   transition:
@@ -1594,16 +1676,16 @@
   position: absolute;
   width: 8px;
   height: 8px;
-  border-radius: 100%;
+  border-radius: 9999px;
   background: currentColor;
   opacity: 0;
   transition: opacity 0.3s;
 }
 .sk .st.is-done .step-mark,
 .sk .st.is-active .step-mark {
-  background: var(--clay);
-  border-color: var(--clay);
-  color: #ffffff;
+  background: var(--btn-bg);
+  border-color: var(--btn-bg);
+  color: var(--btn-fg);
 }
 .sk .st.is-done .step-mark .ic {
   opacity: 1;
@@ -1616,7 +1698,7 @@
   padding-top: 1px;
   font-size: 18px;
   line-height: 1.25;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.01em;
   color: var(--muted);
   transition: color 0.4s var(--ease-out);
@@ -1625,7 +1707,7 @@
   grid-column: 2;
   max-width: 44ch;
   font-size: 15px;
-  line-height: 29px;
+  line-height: 26px;
   color: var(--muted);
   transition: color 0.4s var(--ease-out);
 }
@@ -1638,6 +1720,7 @@
 }
 .sk .stage {
   padding: clamp(20px, 3vw, 34px);
+  border-radius: 20px;
   background: var(--tint);
 }
 .sk .bk {
@@ -1646,6 +1729,8 @@
   gap: 14px;
   min-height: 392px;
   padding: 24px 24px 26px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
   background: var(--panel);
 }
 .sk .bk-top {
@@ -1662,7 +1747,7 @@
 .sk .bk-code {
   font-size: 18px;
   line-height: 1.3;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.04em;
 }
 .sk .chip-st {
@@ -1670,7 +1755,7 @@
   align-items: center;
   min-height: 34px;
   padding: 6px 14px;
-  border-radius: 1000px;
+  border-radius: 9999px;
   border: 1px solid var(--line-strong);
   font-size: 13px;
   font-weight: 700;
@@ -1687,8 +1772,8 @@
   border-top: 1px solid var(--line);
   font-size: 26px;
   line-height: 1.05;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 800;
+  letter-spacing: -0.015em;
 }
 .sk .bk-meta {
   font-size: 13px;
@@ -1707,10 +1792,12 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
+  border-radius: 10px;
   border: 1px solid var(--line);
 }
 .sk .fare.is-on {
-  border-color: var(--ink);
+  border-color: var(--accent-mark);
+  background: var(--range);
 }
 .sk .fare b {
   display: block;
@@ -1725,7 +1812,7 @@
 }
 .sk .bk-pax {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.02em;
 }
 .sk .bk-row {
@@ -1741,14 +1828,15 @@
 .sk .bk-timer {
   font-size: 46px;
   line-height: 1;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 900;
+  letter-spacing: -0.025em;
   font-variant-numeric: tabular-nums;
 }
 .sk .hold-line {
   display: block;
-  height: 2px;
-  background: var(--clay);
+  height: 3px;
+  border-radius: 9999px;
+  background: var(--accent-mark);
   transform-origin: left center;
   transition: transform 1s linear;
 }
@@ -1763,12 +1851,13 @@
   gap: 10px;
   font-size: 18px;
   line-height: 1.3;
-  font-weight: 700;
+  font-weight: 800;
 }
 .sk .shimmer {
   position: relative;
   display: block;
   height: 10px;
+  border-radius: 9999px;
   overflow: hidden;
   background: var(--tint);
 }
@@ -1809,21 +1898,24 @@
   }
 }
 
-/* ---------- after-sales (featured clay) ---------- */
-/* Khối cam tràn hết chiều ngang; lề trái chuyển vào padding của .clay để chữ vẫn thẳng hàng với .wrap. */
+/* ---------- after-sales (NEW_DESIGN.md Dark Section Card: Forest Ink #163300 + Lime Voltage #9fe870) ---------- */
 .sk .after {
-  padding-left: 0;
+  padding-inline: clamp(16px, 4vw, 40px);
 }
 .sk .clay {
   position: relative;
+  max-width: 1320px;
+  margin-inline: auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   column-gap: clamp(32px, 5vw, 80px);
-  min-height: 560px;
-  padding: 53px max(59px, calc((100vw - 1200px) / 2)) 59px
-    calc(max(clamp(16px, 4vw, 40px), calc((100% - 1200px) / 2)) + 59px);
-  background: var(--clay);
+  min-height: 540px;
+  padding: clamp(40px, 5vw, 64px) clamp(24px, 5vw, 64px);
+  border-radius: 28px;
+  background: var(--clay-bg);
+  border: 1px solid rgba(159, 232, 112, 0.18);
   color: #ffffff;
+  overflow: hidden;
 }
 .sk .clay-copy {
   position: relative;
@@ -1834,11 +1926,11 @@
   max-width: 540px;
 }
 .sk .clay-h {
-  font-size: clamp(26px, 2.8vw, 40px);
-  line-height: 1.06;
-  letter-spacing: -0.01em;
-  font-weight: 700;
-  color: #ffffff;
+  font-size: clamp(28px, 3vw, 44px);
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  font-weight: 900;
+  color: #9fe870;
 }
 .sk .clay-p {
   max-width: 44ch;
@@ -1854,22 +1946,24 @@
 }
 .sk .clay-tab {
   min-height: 40px;
-  padding: 8px 16px 9px;
-  border-radius: 1000px;
-  border: 1px solid var(--clay-ink);
+  padding: 8px 18px 9px;
+  border-radius: 9999px;
+  border: 1px solid rgba(226, 246, 213, 0.4);
   background: transparent;
-  color: var(--clay-ink);
+  color: #ffffff;
   font-size: 14px;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
   transition:
-    background-color 0.3s,
-    color 0.3s;
+    background-color 0.25s,
+    color 0.25s,
+    border-color 0.25s;
 }
 .sk .clay-tab.is-on {
-  background: var(--clay-ink);
-  color: #ffffff;
+  background: #9fe870;
+  border-color: #9fe870;
+  color: #163300;
 }
 .sk .clay-right {
   position: relative;
@@ -1878,10 +1972,10 @@
 }
 .sk .eng-wrap {
   position: absolute;
-  top: -170px;
-  right: calc(-1 * max(59px, calc((100vw - 1200px) / 2)));
+  top: -130px;
+  right: -80px;
   z-index: 1;
-  width: 128%;
+  width: 120%;
   pointer-events: none;
 }
 .sk .eng-img {
@@ -1902,9 +1996,9 @@
 .sk .clay-formula {
   font-size: clamp(20px, 2vw, 28px);
   line-height: 1.15;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: #ffffff;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  color: #9fe870;
 }
 .sk .clay-facts {
   display: grid;
@@ -1915,7 +2009,7 @@
   padding-left: 30px;
   font-size: 15px;
   line-height: 24px;
-  color: var(--clay-ink);
+  color: #ffffff;
 }
 .sk .clay-facts .ic {
   position: absolute;
@@ -1923,21 +2017,23 @@
   top: 4px;
   width: 20px;
   height: 20px;
+  color: #9fe870;
 }
 @media (hover: hover) {
   .sk .clay-tab:hover:not(.is-on) {
-    background: rgba(0, 13, 16, 0.08);
+    background: rgba(159, 232, 112, 0.14);
+    border-color: #9fe870;
   }
 }
 @media (max-width: 899px) {
   .sk .after {
-    padding-left: 0;
+    padding-inline: 16px;
   }
   .sk .clay {
     grid-template-columns: minmax(0, 1fr);
     row-gap: 28px;
     min-height: 0;
-    padding: 40px clamp(16px, 4vw, 40px) 44px;
+    padding: 36px 22px 40px;
   }
   .sk .eng-wrap {
     position: relative;
@@ -1951,7 +2047,7 @@
   }
 }
 
-/* ---------- support (dark band) ---------- */
+/* ---------- support (Spruce #054d28 dark band) ---------- */
 .sk .support {
   background: var(--deck);
   color: #ffffff;
@@ -1974,7 +2070,7 @@
 }
 .sk .sup-p {
   max-width: 40ch;
-  color: #c3c4cd;
+  color: #d3e5cb;
 }
 .sk .sup-r {
   grid-column: 7 / span 6;
@@ -1983,14 +2079,14 @@
   margin-bottom: 18px;
   font-size: 18px;
   line-height: 1.22;
-  font-weight: 700;
-  color: #ffffff;
+  font-weight: 800;
+  color: #9fe870;
 }
 .sk .faq-item {
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-top: 1px solid rgba(226, 246, 213, 0.18);
 }
 .sk .faq-item:last-child {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 1px solid rgba(226, 246, 213, 0.18);
 }
 .sk .faq-q {
   display: flex;
@@ -2014,24 +2110,25 @@
   flex: none;
   width: 40px;
   height: 40px;
-  border-radius: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 9999px;
+  border: 1px solid rgba(226, 246, 213, 0.35);
   transition:
     transform 0.55s var(--ease-spring),
     background-color 0.3s,
-    color 0.3s;
+    color 0.3s,
+    border-color 0.3s;
 }
 .sk .faq-item.is-open .faq-ic {
   transform: rotate(45deg);
-  background: var(--clay);
-  border-color: var(--clay);
-  color: #ffffff;
+  background: #9fe870;
+  border-color: #9fe870;
+  color: #163300;
 }
 .sk .faq-a {
   padding: 0 64px 26px 0;
   font-size: 15px;
   line-height: 24px;
-  color: #c3c4cd;
+  color: #d3e5cb;
 }
 @media (max-width: 899px) {
   .sk .sup-l,
@@ -2045,18 +2142,11 @@
 
 /* ---------- final call ---------- */
 .sk .final {
-  --btn-bg: #f2f3f6;
-  --btn-fg: #000d10;
-  --btn-hover: #ffffff;
+  --btn-bg: #9fe870;
+  --btn-fg: #163300;
+  --btn-hover: #b2f289;
   position: relative;
-  background: linear-gradient(
-    180deg,
-    var(--paper) 0%,
-    var(--sky-4) 24%,
-    var(--sky-3) 46%,
-    var(--sky-2) 72%,
-    var(--sky-1) 100%
-  );
+  background: #163300;
 }
 .sk .final-in {
   position: relative;
@@ -2078,7 +2168,6 @@
   width: 100%;
   height: auto;
 }
-/* Ảnh nền hoàng hôn: chữ luôn trắng (cả hai chế độ), bóng tối giữ chữ tách khỏi thân máy bay. */
 .sk .final-bg {
   position: absolute;
   inset: 0;
@@ -2089,33 +2178,39 @@
 .sk .final-bg-img {
   object-fit: cover;
   object-position: center;
+  mix-blend-mode: luminosity;
+  opacity: 0.35;
 }
 .sk .final-bg-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(21, 22, 35, 1) 0%,
-    rgba(21, 22, 35, 0.2) 48%,
-    rgba(0, 13, 16, 1) 100%,
-    rgba(0, 13, 16, 1) 200%
-  );
+  background:
+    radial-gradient(800px 360px at 50% 35%, rgba(159, 232, 112, 0.16), transparent),
+    linear-gradient(
+      180deg,
+      rgba(5, 77, 40, 0.92) 0%,
+      rgba(22, 51, 0, 0.55) 48%,
+      rgba(22, 51, 0, 1) 100%
+    );
 }
 .sk .final-h {
   position: relative;
   z-index: 2;
   color: #ffffff;
-  font-size: clamp(28px, 4vw, 54px);
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  font-weight: 700;
+  font-size: clamp(30px, 4.2vw, 56px);
+  line-height: 1.06;
+  letter-spacing: -0.028em;
+  font-weight: 900;
   text-wrap: balance;
   text-shadow:
-    0 2px 6px rgba(26, 20, 36, 0.25),
-    0 2px 32px rgba(26, 20, 36, 0.27);
+    0 2px 6px rgba(11, 21, 7, 0.35),
+    0 2px 32px rgba(11, 21, 7, 0.45);
 }
 .sk .final-h span {
   display: block;
+}
+.sk .final-h span + span {
+  color: #9fe870;
 }
 .sk .final-cta {
   position: relative;
@@ -2127,16 +2222,16 @@
   margin-top: clamp(28px, 4vw, 48px);
 }
 .sk .final .pill-line {
-  background: rgba(15, 15, 28, 0.6);
+  background: rgba(22, 51, 0, 0.65);
   color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.4);
+  border-color: rgba(226, 246, 213, 0.45);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
 .sk .final .pill-line:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-  border-color: #ffffff;
+  background: rgba(226, 246, 213, 0.18);
+  color: #9fe870;
+  border-color: #9fe870;
 }
 @media (max-width: 767px) {
   .sk .final-in {
@@ -2152,7 +2247,7 @@
   }
 }
 
-/* ---------- footer ---------- */
+/* ---------- footer (Forest Ink #163300) ---------- */
 .sk .foot {
   padding-top: clamp(80px, 9vw, 120px);
   padding-bottom: 40px;
@@ -2164,8 +2259,8 @@
   margin-bottom: clamp(48px, 6vw, 80px);
   font-size: clamp(48px, 8vw, 96px);
   line-height: 0.85;
-  letter-spacing: -0.02em;
-  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-weight: 900;
   white-space: nowrap;
 }
 .sk .fch {
@@ -2177,12 +2272,12 @@
   gap: 40px 32px;
 }
 .sk .foot .logo-svg {
-  outline-color: rgba(255, 255, 255, 0.2);
+  outline-color: rgba(159, 232, 112, 0.28);
 }
 .sk .foot-blurb {
   max-width: 30ch;
   margin-top: 18px;
-  color: #c3c4cd;
+  color: #cfe0c9;
 }
 .sk .foot-col {
   display: grid;
@@ -2193,13 +2288,13 @@
   margin-bottom: 8px;
   font-size: 14px;
   font-weight: 700;
-  color: #ffffff;
+  color: #9fe870;
 }
 .sk .foot-col a {
   justify-self: start;
   font-size: 15px;
   line-height: 1.6;
-  color: #8e8e95;
+  color: #a8bf9f;
   text-decoration: none;
   transition: color 0.25s;
 }
@@ -2210,14 +2305,14 @@
   gap: 12px 32px;
   margin-top: clamp(56px, 7vw, 88px);
   padding-top: 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid rgba(226, 246, 213, 0.16);
   font-size: 13px;
   line-height: 1.45;
-  color: #8e8e95;
+  color: #98b092;
 }
 @media (hover: hover) {
   .sk .foot-col a:hover {
-    color: #ffffff;
+    color: #9fe870;
   }
 }
 @media (max-width: 899px) {

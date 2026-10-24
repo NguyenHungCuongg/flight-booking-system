@@ -1,59 +1,83 @@
 @import "tailwindcss";
 
 /*
- * Token của DESIGN.md (SkyLine). Landing (C-01) không dùng các token này mà giữ CSS riêng trong landing.css.
- * Lệch có chủ đích so với DESIGN.md (lộ trình §7.3, §7.4):
- * - --spacing: 1px nên p-22 = 22px, khớp mọi bước của thang spacing (11, 13, 22, 53, 119...).
- * - line-height viết bằng px (DESIGN.md ghi số không đơn vị, CSS sẽ hiểu là bội số cỡ chữ).
+ * Token của NEW_DESIGN.md (SkyLine — Wise Style System: Forest Ink #163300 & Lime Voltage #9fe870).
+ * Hỗ trợ chuyển đổi Sáng / Tối qua thuộc tính html[data-theme="light" | "dark"] và tự động theo
+ * prefers-color-scheme khi người dùng chưa khóa chế độ.
  */
 @theme {
-  /* Màu gốc của DESIGN.md (logo, ảnh, landing). Màn ứng dụng dùng màu theo vai trò bên dưới. */
-  --color-deep-ink: #000d10;
+  /* Bảng màu gốc từ NEW_DESIGN.md */
+  --color-forest-ink: #163300;
+  --color-lime-voltage: #9fe870;
+  --color-spruce: #054d28;
+  --color-linen-mist: #e2f6d5;
+  --color-signal-blue: #0b4c72;
+  --color-alarm-red: #cb272f;
+  --color-charcoal: #454745;
+  --color-obsidian: #0e0f0c;
+  --color-pebble: #868685;
+  --color-slate: #6a6c6a;
+  --color-fog: #e8ebe6;
   --color-pure-white: #ffffff;
-  --color-clay-ember: #bc7155;
+
+  /* Alias tương thích ngược */
+  --color-deep-ink: #163300;
+  --color-clay-ember: #9fe870;
 
   /*
-   * Màu theo vai trò, đổi giá trị ở chế độ tối (bên dưới). Xám pha xanh một họ duy nhất; một màu nhấn đất nung.
-   * paper là nền trang, surface là nền thẻ và ô nhập nổi trên nền trang.
+   * Màu theo vai trò (Light Mode mặc định):
+   * - paper: nền trang sáng pha chút sương lá (#f6f8f3) để thẻ trắng (#ffffff) tách lớp rõ ràng.
+   * - surface: nền thẻ và ô nhập (#ffffff).
+   * - tint: nền phụ / khối phân đoạn (#e8ebe6 Fog).
+   * - ink / ink-2 / muted: hệ chữ Obsidian -> Charcoal -> Slate.
    */
-  --color-ink: #0e1726;
-  --color-ink-2: #3a4656;
-  --color-paper: #f3f5f8;
+  --color-ink: #0e0f0c;
+  --color-ink-2: #454745;
+  --color-paper: #f6f8f3;
   --color-surface: #ffffff;
-  --color-muted: #5a6675;
-  --color-line: #dde3ea;
-  --color-line-strong: #c2cbd5;
-  --color-tint: #e9eef3;
-
-  /* Màu nhấn: nút chính, mục đang chọn, giá, focus. #a85a3c đạt 5:1 với chữ trắng (clay-ember gốc chỉ 3.7:1). */
-  --color-accent: #a85a3c;
-  --color-accent-hover: #8f4a2f;
-  --color-accent-fg: #ffffff;
-  --color-accent-soft: #f7ebe5;
-
-  /* Màu trạng thái (badge, thông báo): chữ đậm trên nền nhạt cùng tông. */
-  --color-ok: #17704a;
-  --color-ok-soft: #e1f3e9;
-  --color-warn: #8a5300;
-  --color-warn-soft: #fcefd5;
-  --color-danger: #b4232f;
-  --color-danger-soft: #fbe6e7;
-  --color-info: #1f5a92;
-  --color-info-soft: #e3edf8;
-
-  --color-sky-1: #c4d6e2;
-  --color-sky-2: #d9e4eb;
-  --color-sky-3: #e9ecec;
-  --color-sky-4: #f3eee6;
+  --color-muted: #5e615e;
+  --color-line: #dce2d8;
+  --color-line-strong: #868685;
+  --color-tint: #e8ebe6;
 
   /*
-   * --font-sans không khai báo ở đây: next/font (layout.tsx) gắn Be Vietnam Pro vào biến này trên <html>, và CSS
-   * không nằm trong layer của next/font thắng giá trị mặc định trong @layer theme của Tailwind.
+   * Màu nhấn văn bản & đường viền trên nền sáng: dùng Forest Ink (#163300) để đạt tương phản 13.8:1
+   * (NEW_DESIGN.md cấm dùng Lime Voltage làm màu chữ trên nền sáng).
    */
+  --color-accent: #163300;
+  --color-accent-hover: #054d28;
+  --color-accent-fg: #9fe870;
+  --color-accent-soft: #e2f6d5;
+
+  /*
+   * Nút hành động chính (Primary CTA): nền Lime Voltage (#9fe870) + chữ Forest Ink (#163300) đậm.
+   */
+  --color-cta: #9fe870;
+  --color-cta-hover: #8cd95c;
+  --color-cta-fg: #163300;
+
+  /* Màu trạng thái (badge, thông báo): chữ đậm trên nền nhạt cùng tông theo NEW_DESIGN.md */
+  --color-ok: #054d28;
+  --color-ok-soft: #e2f6d5;
+  --color-warn: #7c4a00;
+  --color-warn-soft: #fef1d6;
+  --color-danger: #cb272f;
+  --color-danger-soft: #fde8e9;
+  --color-info: #0b4c72;
+  --color-info-soft: #e3f1f8;
+
+  /* Bầu trời trang trí / dải màu rừng nhiệt đới */
+  --color-sky-1: #054d28;
+  --color-sky-2: #163300;
+  --color-sky-3: #e2f6d5;
+  --color-sky-4: #f6f8f3;
+
+  /* Độ đậm chữ (Be Vietnam Pro gắn vào --font-sans từ layout.tsx, có đủ 400..900) */
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
+  --font-weight-black: 900;
 
   /* Thang chữ */
   --text-badge: 12px;
@@ -71,41 +95,41 @@
   --text-subheading--letter-spacing: -0.2px;
   --text-heading-sm: 22px;
   --text-heading-sm--line-height: 28px;
-  --text-heading-sm--letter-spacing: -0.3px;
+  --text-heading-sm--letter-spacing: -0.35px;
   --text-heading: 28px;
   --text-heading--line-height: 34px;
-  --text-heading--letter-spacing: -0.5px;
+  --text-heading--letter-spacing: -0.6px;
   --text-heading-lg: 34px;
   --text-heading-lg--line-height: 40px;
-  --text-heading-lg--letter-spacing: -0.9px;
+  --text-heading-lg--letter-spacing: -1px;
   --text-display: 48px;
-  --text-display--line-height: 54px;
-  --text-display--letter-spacing: -1.4px;
+  --text-display--line-height: 52px;
+  --text-display--letter-spacing: -1.6px;
   --text-display-xl: 131px;
-  --text-display-xl--line-height: 131px;
-  --text-display-xl--letter-spacing: -2.62px;
+  --text-display-xl--line-height: 124px;
+  --text-display-xl--letter-spacing: -3.2px;
   --text-hero: 187px;
   --text-hero--line-height: 150px;
-  --text-hero--letter-spacing: -3.74px;
+  --text-hero--letter-spacing: -4.2px;
 
   /* Khoảng cách: p-N = N px */
   --spacing: 1px;
 
-  /* Bo góc: nút là pill, thẻ 14px, khối con và ô nhập 10px, badge 6px */
-  --radius-pill: 1000px;
-  --radius-card: 14px;
+  /* Bo góc theo NEW_DESIGN.md: nút & badge là pill (9999px), thẻ & ô nhập 10px, khối lớn 28px */
+  --radius-pill: 9999px;
+  --radius-card: 10px;
   --radius-inner: 10px;
-  --radius-badge: 6px;
-  --radius-decorative: 45px;
+  --radius-badge: 9999px;
+  --radius-largecards: 28px;
+  --radius-decorative: 28px;
 
-  /* Bóng pha màu ink, ánh sáng từ trên xuống. Viền hairline nằm trong bóng nên thẻ không cần border. */
+  /* Bóng phẳng hiện đại kèm viền hairline 1px chuẩn Wise */
   --shadow-card:
-    0 0 0 1px rgb(14 23 38 / 0.06), 0 1px 2px rgb(14 23 38 / 0.04),
-    0 8px 24px -12px rgb(14 23 38 / 0.12);
+    0 0 0 1px rgb(14 15 12 / 0.1), 0 6px 20px 0 rgb(0 0 0 / 0.05);
   --shadow-card-hover:
-    0 0 0 1px rgb(14 23 38 / 0.1), 0 2px 4px rgb(14 23 38 / 0.05),
-    0 16px 32px -14px rgb(14 23 38 / 0.2);
-  --shadow-accent: 0 6px 16px -8px rgb(168 90 60 / 0.7);
+    0 0 0 1px rgb(22 51 0 / 0.25), 0 10px 26px -4px rgb(22 51 0 / 0.12);
+  --shadow-accent:
+    0 0 0 1px rgb(22 51 0 / 0.18), 0 6px 16px -6px rgb(22 51 0 / 0.24);
 
   /* Bố cục */
   --container-page: 1200px;
@@ -113,44 +137,87 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Chế độ tối: navy nhiều lớp (nền trang tối nhất, thẻ sáng hơn một bậc), màu nhấn và trạng thái sáng lên cho đủ tương phản. */
+/*
+ * Chế độ tối (Dark Mode): nền rừng đêm sâu (#0b1507), bề mặt thẻ (#12220c),
+ * chữ trắng sương (#f2f7ef) và điểm nhấn Lime Voltage (#9fe870) rực sáng trên nền tối.
+ */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --color-ink: #e8edf3;
-    --color-ink-2: #c3ccd7;
-    --color-paper: #0a111c;
-    --color-surface: #111b29;
-    --color-muted: #94a1b2;
-    --color-line: #213044;
-    --color-line-strong: #34465f;
-    --color-tint: #172435;
-    --color-accent: #e08a68;
-    --color-accent-hover: #eba085;
-    --color-accent-fg: #0e1726;
-    --color-accent-soft: rgb(224 138 104 / 0.14);
-    --color-ok: #6fd6a0;
-    --color-ok-soft: rgb(111 214 160 / 0.13);
-    --color-warn: #f2bd5c;
-    --color-warn-soft: rgb(242 189 92 / 0.13);
-    --color-danger: #f58c94;
-    --color-danger-soft: rgb(245 140 148 / 0.13);
-    --color-info: #8dbcf0;
-    --color-info-soft: rgb(141 188 240 / 0.13);
-    --color-sky-1: #090a14;
-    --color-sky-2: #10111e;
-    --color-sky-3: #1a1824;
-    --color-sky-4: #2a2027;
+  html:not([data-theme="light"]) {
+    --color-ink: #f2f7ef;
+    --color-ink-2: #cfe0c9;
+    --color-paper: #0b1507;
+    --color-surface: #12220c;
+    --color-muted: #98b092;
+    --color-line: #233b1b;
+    --color-line-strong: #3c5e31;
+    --color-tint: #182d11;
+    --color-accent: #9fe870;
+    --color-accent-hover: #b4f08d;
+    --color-accent-fg: #163300;
+    --color-accent-soft: rgb(159 232 112 / 0.15);
+    --color-cta: #9fe870;
+    --color-cta-hover: #b4f08d;
+    --color-cta-fg: #163300;
+    --color-ok: #9fe870;
+    --color-ok-soft: rgb(159 232 112 / 0.15);
+    --color-warn: #f5c469;
+    --color-warn-soft: rgb(245 196 105 / 0.15);
+    --color-danger: #ff8b92;
+    --color-danger-soft: rgb(255 139 146 / 0.15);
+    --color-info: #7cc8f5;
+    --color-info-soft: rgb(124 200 245 / 0.15);
+    --color-sky-1: #071004;
+    --color-sky-2: #0e1d09;
+    --color-sky-3: #163300;
+    --color-sky-4: #054d28;
     --shadow-card:
-      0 0 0 1px rgb(255 255 255 / 0.06), 0 1px 0 rgb(255 255 255 / 0.04) inset,
-      0 12px 28px -14px rgb(0 0 0 / 0.7);
+      0 0 0 1px rgb(159 232 112 / 0.12), 0 1px 0 rgb(255 255 255 / 0.04) inset,
+      0 12px 28px -14px rgb(0 0 0 / 0.72);
     --shadow-card-hover:
-      0 0 0 1px rgb(255 255 255 / 0.12), 0 1px 0 rgb(255 255 255 / 0.05) inset,
-      0 18px 36px -14px rgb(0 0 0 / 0.8);
-    --shadow-accent: 0 6px 18px -8px rgb(224 138 104 / 0.55);
+      0 0 0 1px rgb(159 232 112 / 0.28), 0 1px 0 rgb(255 255 255 / 0.06) inset,
+      0 18px 36px -14px rgb(0 0 0 / 0.82);
+    --shadow-accent: 0 6px 18px -6px rgb(159 232 112 / 0.38);
   }
 }
 
-/* Thẻ nổi trên nền trang: nền surface, bo 14px, viền hairline nằm trong bóng. */
+html[data-theme="dark"] {
+  --color-ink: #f2f7ef;
+  --color-ink-2: #cfe0c9;
+  --color-paper: #0b1507;
+  --color-surface: #12220c;
+  --color-muted: #98b092;
+  --color-line: #233b1b;
+  --color-line-strong: #3c5e31;
+  --color-tint: #182d11;
+  --color-accent: #9fe870;
+  --color-accent-hover: #b4f08d;
+  --color-accent-fg: #163300;
+  --color-accent-soft: rgb(159 232 112 / 0.15);
+  --color-cta: #9fe870;
+  --color-cta-hover: #b4f08d;
+  --color-cta-fg: #163300;
+  --color-ok: #9fe870;
+  --color-ok-soft: rgb(159 232 112 / 0.15);
+  --color-warn: #f5c469;
+  --color-warn-soft: rgb(245 196 105 / 0.15);
+  --color-danger: #ff8b92;
+  --color-danger-soft: rgb(255 139 146 / 0.15);
+  --color-info: #7cc8f5;
+  --color-info-soft: rgb(124 200 245 / 0.15);
+  --color-sky-1: #071004;
+  --color-sky-2: #0e1d09;
+  --color-sky-3: #163300;
+  --color-sky-4: #054d28;
+  --shadow-card:
+    0 0 0 1px rgb(159 232 112 / 0.12), 0 1px 0 rgb(255 255 255 / 0.04) inset,
+    0 12px 28px -14px rgb(0 0 0 / 0.72);
+  --shadow-card-hover:
+    0 0 0 1px rgb(159 232 112 / 0.28), 0 1px 0 rgb(255 255 255 / 0.06) inset,
+    0 18px 36px -14px rgb(0 0 0 / 0.82);
+  --shadow-accent: 0 6px 18px -6px rgb(159 232 112 / 0.38);
+}
+
+/* Thẻ nổi trên nền trang: nền surface, bo 10px, viền hairline nằm trong bóng. */
 @utility card {
   border-radius: var(--radius-card);
   background-color: var(--color-surface);
@@ -163,20 +230,25 @@
   background-color: var(--color-surface);
   box-shadow:
     0 0 0 1.5px var(--color-accent),
-    0 12px 32px -16px rgb(168 90 60 / 0.45);
+    0 12px 32px -16px rgb(22 51 0 / 0.28);
 }
 
-/* Nền tối để vùng kéo quá đáy trang liền với footer (#000d10 theo DESIGN.md). */
+/* Nền tối Forest Ink để vùng kéo quá đáy trang liền với footer (#163300 theo NEW_DESIGN.md). */
 html {
-  background: #000d10;
-  /* Checkbox, ô chọn, lịch chọn ngày gốc của trình duyệt theo chế độ sáng/tối. */
+  background: #163300;
   color-scheme: light dark;
 }
+html[data-theme="light"] {
+  color-scheme: light;
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
 
-/* Hai quầng sáng (trời xanh bên trái, đất nung bên phải) ở đầu trang, để nền không phẳng một màu. */
+/* Quầng sáng Linen Mist & Lime Voltage dịu nhẹ ở đầu trang. */
 body {
-  --glow-sky: rgb(122 166 204 / 0.28);
-  --glow-clay: rgb(201 129 98 / 0.16);
+  --glow-sky: rgb(226 246 213 / 0.65);
+  --glow-clay: rgb(159 232 112 / 0.18);
   background:
     radial-gradient(1100px 460px at 12% -120px, var(--glow-sky), transparent),
     radial-gradient(900px 420px at 92% -160px, var(--glow-clay), transparent),
@@ -191,13 +263,16 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 @media (prefers-color-scheme: dark) {
-  body {
-    --glow-sky: rgb(56 98 160 / 0.26);
-    --glow-clay: rgb(224 138 104 / 0.1);
+  html:not([data-theme="light"]) body {
+    --glow-sky: rgb(5 77 40 / 0.38);
+    --glow-clay: rgb(159 232 112 / 0.1);
   }
 }
+html[data-theme="dark"] body {
+  --glow-sky: rgb(5 77 40 / 0.38);
+  --glow-clay: rgb(159 232 112 / 0.1);
+}
 
-/* Trong layer base để class tiện ích (outline-none của ô nhập...) vẫn ghi đè được. */
 @layer base {
   h1,
   h2,
@@ -205,18 +280,16 @@ body {
     text-wrap: balance;
   }
 
-  /* Danh sách thả xuống gốc của ô chọn: ép nền và chữ theo token, không phụ thuộc color-scheme của trình duyệt. */
   option {
     background-color: var(--color-surface);
     color: var(--color-ink);
   }
 
   ::selection {
-    background: var(--color-accent-soft);
-    color: var(--color-ink);
+    background: var(--color-lime-voltage);
+    color: var(--color-forest-ink);
   }
 
-  /* Vòng focus bàn phím một kiểu cho mọi phần tử bấm được. */
   :where(
     a,
     button,

@@ -66,9 +66,9 @@ export function Jet() {
 export function Logo() {
   return (
     <svg className="logo-svg" viewBox="0 0 160 160" aria-hidden="true">
-      <rect width="160" height="160" rx="36" fill="#000d10" />
+      <rect width="160" height="160" rx="36" fill="#163300" />
       <g transform="translate(20 20) scale(1.2)">
-        <circle cx="80" cy="20" r="7" fill="#bc7155" />
+        <circle cx="80" cy="20" r="8" fill="#9fe870" />
         <g
           transform="matrix(0.671751 0.671751 -0.671751 0.671751 46 -13.1751)"
           fill="#ffffff"

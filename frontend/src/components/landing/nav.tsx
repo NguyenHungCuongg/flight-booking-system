@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCurrentUser } from "@/lib/use-current-user";
+import { ThemeToggle } from "../theme-toggle";
 import UserMenu from "../user-menu";
 import { Icon, Logo } from "./icons";
 
@@ -41,6 +42,7 @@ export default function Nav() {
           <Link className="nav-link" href="/bookings">
             Đặt chỗ của tôi
           </Link>
+          <ThemeToggle className="nav-theme-btn" />
           {/* Đang hỏi /me (undefined) thì chưa hiện gì, để không nháy nút Đăng nhập. */}
           {user ? (
             <UserMenu user={user} className="nav-link" />
@@ -52,16 +54,19 @@ export default function Nav() {
             )
           )}
         </nav>
-        <button
-          type="button"
-          className="icon-btn solid menu-btn"
-          aria-expanded={menuOpen}
-          aria-controls="menu"
-          aria-label={menuOpen ? "Đóng menu" : "Mở menu"}
-          onClick={() => setMenuOpen((o) => !o)}
-        >
-          <Icon name={menuOpen ? "close" : "menu"} />
-        </button>
+        <div className="nav-mobile-actions">
+          <ThemeToggle className="nav-theme-btn" />
+          <button
+            type="button"
+            className="icon-btn solid menu-btn"
+            aria-expanded={menuOpen}
+            aria-controls="menu"
+            aria-label={menuOpen ? "Đóng menu" : "Mở menu"}
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            <Icon name={menuOpen ? "close" : "menu"} />
+          </button>
+        </div>
       </div>
       <div
         className={`menu${menuOpen ? " is-open" : ""}`}
