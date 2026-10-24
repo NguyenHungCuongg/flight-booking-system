@@ -72,7 +72,7 @@ const focusOnMount = (el: HTMLInputElement | null) =>
   el?.focus({ preventScroll: true });
 
 const iconCircleBtn =
-  "inline-grid size-40 shrink-0 place-items-center rounded-pill border border-line-strong bg-surface text-ink transition hover:border-ink hover:bg-accent-soft active:scale-95 disabled:cursor-not-allowed disabled:opacity-35";
+  "inline-grid size-40 shrink-0 place-items-center rounded-inner border border-line-strong bg-surface text-ink transition hover:border-ink hover:bg-accent-soft active:scale-95 disabled:cursor-not-allowed disabled:opacity-35";
 
 export default function SearchDock() {
   const router = useRouter();
@@ -356,7 +356,7 @@ export default function SearchDock() {
       {/* Top controls: Segmented trip switch + Passenger/Cabin picker + International notice */}
       <div className="relative z-25 flex flex-wrap items-center gap-10">
         <div
-          className="inline-grid grid-cols-2 rounded-pill border border-line bg-tint p-4"
+          className="inline-grid grid-cols-2 rounded-inner border border-line bg-tint p-4"
           role="group"
           aria-label="Loại hành trình"
         >
@@ -364,7 +364,7 @@ export default function SearchDock() {
             type="button"
             aria-pressed={oneway}
             onClick={() => setTrip("oneway")}
-            className={`min-h-36 rounded-pill px-16 py-7 text-caption font-bold transition-colors ${
+            className={`min-h-36 rounded-inner px-16 py-7 text-caption font-bold transition-colors ${
               oneway
                 ? "bg-cta text-cta-fg shadow-xs"
                 : "text-ink-2 hover:text-ink"
@@ -376,7 +376,7 @@ export default function SearchDock() {
             type="button"
             aria-pressed={!oneway}
             onClick={() => setTrip("round")}
-            className={`min-h-36 rounded-pill px-16 py-7 text-caption font-bold transition-colors ${
+            className={`min-h-36 rounded-inner px-16 py-7 text-caption font-bold transition-colors ${
               !oneway
                 ? "bg-cta text-cta-fg shadow-xs"
                 : "text-ink-2 hover:text-ink"
@@ -389,7 +389,7 @@ export default function SearchDock() {
         <div className="relative">
           <button
             type="button"
-            className="inline-flex min-h-42 items-center gap-10 rounded-pill border border-line-strong bg-surface px-16 text-caption font-bold text-ink transition hover:border-ink hover:bg-accent-soft"
+            className="inline-flex min-h-42 items-center gap-10 rounded-inner border border-line-strong bg-surface px-16 text-caption font-bold text-ink transition hover:border-ink hover:bg-accent-soft"
             aria-expanded={s.panel === "pax"}
             aria-controls="pax-pop"
             onClick={() => open("pax")}
@@ -467,7 +467,7 @@ export default function SearchDock() {
                         type="button"
                         aria-pressed={active}
                         onClick={() => update({ cabin: c.id })}
-                        className={`min-h-36 rounded-pill border px-14 py-7 text-caption font-bold transition ${
+                        className={`min-h-36 rounded-inner border px-14 py-7 text-caption font-bold transition ${
                           active
                             ? "border-cta bg-cta text-cta-fg"
                             : "border-line-strong bg-surface text-ink hover:border-ink"
@@ -538,7 +538,7 @@ export default function SearchDock() {
           <div className="flex items-center justify-center max-sm:py-4">
             <button
               type="button"
-              className="grid size-38 place-items-center rounded-pill border border-line-strong bg-surface text-ink transition hover:border-ink hover:bg-accent-soft active:scale-95"
+              className="grid size-38 place-items-center rounded-inner border border-line-strong bg-surface text-ink transition hover:border-ink hover:bg-accent-soft active:scale-95"
               aria-label="Đảo điểm đi và điểm đến"
               onClick={swap}
               style={{ transform: `rotate(${s.swapTurns * 180}deg)` }}
@@ -905,10 +905,10 @@ function CalendarPop(p: {
               onClick={() => p.onPick(c.day)}
               className={`grid h-42 w-full place-items-center text-caption font-bold tabular-nums transition ${
                 c.sel
-                  ? "rounded-pill bg-cta text-cta-fg"
+                  ? "rounded-inner bg-cta text-cta-fg"
                   : c.inRange
                     ? "bg-accent-soft text-ink"
-                    : "rounded-pill text-ink hover:bg-tint"
+                    : "rounded-inner text-ink hover:bg-tint"
               } ${
                 c.isToday && !c.sel
                   ? "ring-1 ring-inset ring-line-strong"

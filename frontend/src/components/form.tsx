@@ -11,15 +11,15 @@ import {
 import { ApiError } from "@/lib/api";
 import { Icon } from "./landing/icons";
 
-/** Nút chính theo DESIGN.md (Wise style): pill nền Lime Voltage (#9fe870), chữ Forest Ink (#163300) đậm. */
+/** Nút chính theo DESIGN.md: khối bo 10px nền Lime Voltage (#9fe870), chữ Forest Ink (#163300) đậm, phẳng không bóng. */
 export const pillPrimary =
-  "inline-flex min-h-40 items-center justify-center gap-8 rounded-pill bg-cta px-18 py-10 text-caption leading-none font-semibold whitespace-nowrap text-cta-fg shadow-accent transition-[background-color,transform,box-shadow] duration-200 ease-out hover:-translate-y-1 hover:bg-cta-hover active:translate-y-0 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0";
-/** Nút phụ: pill nền thẻ, viền Pebble đậm lên thành Forest Ink khi rê chuột. */
+  "inline-flex min-h-40 items-center justify-center gap-8 rounded-inner bg-cta px-18 py-10 text-caption leading-none font-semibold whitespace-nowrap text-cta-fg transition-[background-color,transform] duration-200 ease-out hover:bg-cta-hover active:scale-[0.98] disabled:cursor-wait disabled:opacity-60";
+/** Nút phụ: khối bo 10px nền thẻ, viền Pebble đậm lên thành Forest Ink khi rê chuột. */
 export const pillLine =
-  "inline-flex min-h-40 items-center justify-center gap-8 rounded-pill border border-line-strong bg-surface px-18 py-10 text-caption leading-none font-semibold whitespace-nowrap text-ink transition-[background-color,border-color,transform] duration-200 ease-out hover:border-ink hover:bg-accent-soft active:scale-[0.98] disabled:cursor-wait disabled:opacity-60";
+  "inline-flex min-h-40 items-center justify-center gap-8 rounded-inner border border-line-strong bg-surface px-18 py-10 text-caption leading-none font-semibold whitespace-nowrap text-ink transition-[background-color,border-color,transform] duration-200 ease-out hover:border-ink hover:bg-accent-soft active:scale-[0.98] disabled:cursor-wait disabled:opacity-60";
 /** Nút cho thao tác không hoàn tác được (huỷ chuyến bay): viền và chữ Alarm Red (#cb272f), nền đỏ khi rê chuột. */
 export const pillDanger =
-  "inline-flex min-h-40 items-center justify-center gap-8 rounded-pill border border-danger bg-surface px-18 py-10 text-caption leading-none font-semibold whitespace-nowrap text-danger transition-[background-color,color,transform] duration-200 ease-out hover:bg-danger hover:text-surface active:scale-[0.98] disabled:cursor-wait disabled:opacity-60";
+  "inline-flex min-h-40 items-center justify-center gap-8 rounded-inner border border-danger bg-surface px-18 py-10 text-caption leading-none font-semibold whitespace-nowrap text-danger transition-[background-color,color,transform] duration-200 ease-out hover:bg-danger hover:text-surface active:scale-[0.98] disabled:cursor-wait disabled:opacity-60";
 export const textLink =
   "font-semibold underline decoration-accent/40 decoration-2 underline-offset-4 transition-colors hover:text-accent hover:decoration-accent";
 
@@ -227,7 +227,7 @@ export function FormSkeleton({ rows }: { rows: number }) {
           <div className="h-42 rounded-inner bg-tint" />
         </div>
       ))}
-      <div className="h-40 w-140 rounded-pill bg-tint" />
+      <div className="h-40 w-140 rounded-inner bg-tint" />
     </div>
   );
 }

@@ -28,7 +28,7 @@ export default function CheckoutHeader({ backUrl }: { backUrl: string }) {
           <li>
             <span
               aria-current="step"
-              className="rounded-pill bg-accent-soft px-11 py-4 font-semibold text-accent"
+              className="rounded-inner bg-accent-soft px-11 py-4 font-semibold text-accent"
             >
               2. Thông tin hành khách
             </span>

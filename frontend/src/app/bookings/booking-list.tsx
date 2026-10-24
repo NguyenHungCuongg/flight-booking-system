@@ -163,8 +163,8 @@ export default function BookingList() {
               aria-current={s === status ? "page" : undefined}
               className={
                 s === status
-                  ? "rounded-pill border border-accent bg-accent-soft px-11 py-4 font-semibold text-accent"
-                  : "rounded-pill border border-line bg-surface px-11 py-4 text-muted transition-colors hover:border-line-strong hover:text-ink"
+                  ? "rounded-inner border border-accent bg-accent-soft px-11 py-4 font-semibold text-accent"
+                  : "rounded-inner border border-line bg-surface px-11 py-4 text-muted transition-colors hover:border-line-strong hover:text-ink"
               }
             >
               {s ? STATUS_LABEL[s as BookingStatus] : "Tất cả"}

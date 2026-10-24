@@ -67,7 +67,7 @@ export default function SiteHeader({
                   key={href}
                   href={href}
                   aria-current={active ? "page" : undefined}
-                  className={`rounded-pill px-12 py-5 transition-colors duration-200 ${
+                  className={`rounded-inner px-12 py-5 transition-colors duration-200 ${
                     active
                       ? "bg-accent-soft font-semibold text-accent"
                       : "text-muted hover:bg-tint hover:text-ink"

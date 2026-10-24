@@ -6,7 +6,7 @@
 
 Source measurements are normalized; roles and recommendations are interpreted. Font summary lists are independent, not paired by position. HTML examples are reconstructions, not source components.
 
-Wise speaks in a confident, slightly loud voice: a deep forest green (#163300) carries most of the surface area — text, nav, dark sections, icons — while a single electric lime (#9fe870) acts as functional punctuation on CTAs, active tabs, and key highlights. The display type is almost aggressive: Wise Sans at weight 900, tightly tracked, shouted across the hero in 100px+ block letters. The rest of the system stays restrained on a near-white canvas with soft gray surfaces (#e8ebe6). Components are pill-shaped by default — buttons, nav segments, flag thumbnails, image masks — with gentle 10px radii reserved for cards and inputs. Color rarely gradients; instead, the lime–forest pairing inverts cleanly when sections go dark, creating rhythm without decoration.
+Wise speaks in a confident, slightly loud voice: a deep forest green (#163300) carries most of the surface area — text, nav, dark sections, icons — while a single electric lime (#9fe870) acts as functional punctuation on CTAs, active tabs, and key highlights. The display type is almost aggressive: Wise Sans at weight 900, tightly tracked, shouted across the hero in 100px+ block letters. The rest of the system stays restrained on a near-white canvas with soft gray surfaces (#e8ebe6). Buttons, nav segments, inputs and cards share one gentle 10px radius; tags use 6px; only flag thumbnails and tiny dots are circular. Color rarely gradients; instead, the lime–forest pairing inverts cleanly when sections go dark, creating rhythm without decoration.
 
 ## Tokens — Colors
 
@@ -108,13 +108,13 @@ Wise speaks in a confident, slightly loud voice: a deep forest green (#163300) c
 
 | Element     | Value  |
 | ----------- | ------ |
-| tags        | 9999px |
+| tags        | 6px    |
 | cards       | 10px   |
 | inputs      | 10px   |
-| buttons     | 9999px |
+| buttons     | 10px   |
 | imageMasks  | 1000px |
 | largeCards  | 28px   |
-| navSegments | 9999px |
+| navSegments | 10px   |
 
 ### Shadows
 
@@ -134,17 +134,17 @@ Wise speaks in a confident, slightly loud voice: a deep forest green (#163300) c
 
 ## Components
 
-### Primary CTA Pill Button
+### Primary CTA Button
 
-**Role:** The signature action element — filled lime pill that signals "do this next."
+**Role:** The signature action element — filled lime block that signals "do this next."
 
-Fully rounded (9999px radius) button with Lime Voltage (#9fe870) fill and Charcoal (#454745) or Forest Ink (#163300) text. Padding 11px vertical, 24px horizontal. Inter weight 500 at 16px. No border, no shadow — the fill does all the work.
+10px radius button (same as inputs) with Lime Voltage (#9fe870) fill and Charcoal (#454745) or Forest Ink (#163300) text. Padding 11px vertical, 24px horizontal. Inter weight 500 at 16px. No border, no shadow, no hover lift: hover only darkens the fill.
 
-### Outlined Pill Button
+### Outlined Button
 
 **Role:** Secondary action in the nav and inline CTAs.
 
-White fill, 1px Forest Ink border, 9999px radius. Same padding as primary. Used for "Sign up" in the header and non-primary calls to action where the lime would compete with a primary action nearby.
+White fill, 1px Forest Ink border, 10px radius. Same padding as primary. Used for "Sign up" in the header and non-primary calls to action where the lime would compete with a primary action nearby.
 
 ### Text Link Button
 
@@ -156,13 +156,13 @@ Underlined Forest Ink text at 16px Inter weight 500, no background, no border. P
 
 **Role:** Persistent header with brand, section switcher, and account access.
 
-White background, 64px height. Logo left, three-segment pill nav (Personal / Business / Platform) with 9999px radius and Forest Ink text, right cluster has language flag, Help, Log in, and outlined Sign up pill.
+White background, 64px height. Logo left, three-segment nav (Personal / Business / Platform) with 10px radius and Forest Ink text, right cluster has language flag, Help, Log in, and outlined Sign up button.
 
 ### Segmented Tab Control
 
 **Role:** In-page section switcher — single active state in lime.
 
-Pill container (9999px radius) holding multiple text labels. Active tab: Lime Voltage fill with Charcoal text. Inactive tabs: transparent with Charcoal text. ~40px height, 12px horizontal padding per segment.
+Container (10px radius) holding multiple text labels. Active tab: Lime Voltage fill with Charcoal text. Inactive tabs: transparent with Charcoal text. ~40px height, 12px horizontal padding per segment.
 
 ### Display Headline
 
@@ -210,7 +210,7 @@ Forest Ink (#163300) rounded square (16px radius), fixed bottom-right, 120px wid
 
 **Role:** Small status labels and category tags.
 
-9999px radius, 8px vertical and 12px horizontal padding. Linen Mist (#e2f6d5) background with Forest Ink text, or Forest Ink background with Lime Voltage text. Inter 500 at 12px.
+6px radius, 2px vertical and 8px horizontal padding. Only for real state or category (booking status, domestic or international, applied voucher), never as a decorative eyebrow, step number or a copy of nearby text. Linen Mist (#e2f6d5) background with Forest Ink text, or Forest Ink background with Lime Voltage text. Inter 500 at 12px.
 
 ## Do's and Don'ts
 
@@ -218,7 +218,7 @@ Forest Ink (#163300) rounded square (16px radius), fixed bottom-right, 120px wid
 
 - Set display headlines in Wise Sans weight 900 with letter-spacing -3.15px at 105px; the extreme heaviness is the brand's signature — don't soften it to 700.
 - Use Lime Voltage (#9fe870) exclusively for primary action fills and active states; one lime element per visible viewport section is usually enough.
-- Default to 9999px radius for all buttons, tags, and nav segments — pill shapes are foundational, not decorative.
+- Use one radius scale: 10px for buttons, inputs, nav segments and cards; 6px for tags; 28px for large dark section cards. No pill (9999px) shapes.
 - Use Forest Ink (#163300) for text and dark surfaces, not pure black; the green-tinted near-black is warmer and more on-brand.
 - Apply tight negative letter-spacing at large sizes (-0.030em at 100px+ down to -0.003em at 12px); headings should feel compact, not airy.
 - Pair a filled primary CTA with an underlined text link as the secondary action — never two filled buttons side by side.
@@ -229,7 +229,7 @@ Forest Ink (#163300) rounded square (16px radius), fixed bottom-right, 120px wid
 - Don't use Charcoal (#454745) for display headlines — reserve Obsidian (#0e0f0c) or Forest Ink for maximum contrast at large sizes.
 - Don't introduce gradients, drop shadows beyond hairline borders, or decorative blurs — the system is flat by design.
 - Don't use Lime Voltage as text color on light backgrounds; its contrast is too low. It only works as fill or on dark green.
-- Don't use sharp corners (0–4px radius) on buttons, tags, or nav elements; pills are the default shape language.
+- Don't use pill (9999px) radii on buttons, tags or nav elements, and don't put eyebrow badges or numbered badges (01, 02...) above headings.
 - Don't set display headlines in Inter — Wise Sans 900 is the only acceptable voice for 60px+ type.
 - Don't stack multiple lime elements close together; space them so the accent reads as a single punctuation mark.
 - Don't use #000000 for body text; Charcoal (#454745) at 18px on white is the baseline that keeps the page from feeling harsh.
@@ -257,7 +257,7 @@ Painted 3D-style illustrations of a globe with gold coins establish the brand's 
 
 ## Layout
 
-Max-width 1200px centered container, with hero and dark sections going full-bleed. Hero pattern: centered massive display headline over white space, with a large illustration (globe) breaking the lower edge of the viewport. Section rhythm alternates white → light green band → dark Forest Ink section, creating a natural color cadence. Content arrangement is predominantly centered stacks in the hero, then 2-column text+visual or 3-column feature rows in supporting sections. A 5-column flag grid handles the country directory. Navigation is a single sticky top bar with a segmented pill switcher. The QR badge floats fixed in the bottom-right corner across all scroll positions.
+Max-width 1200px centered container, with hero and dark sections going full-bleed. Hero pattern: centered massive display headline over white space, with a large illustration (globe) breaking the lower edge of the viewport. Section rhythm alternates white → light green band → dark Forest Ink section, creating a natural color cadence. Content arrangement is predominantly centered stacks in the hero, then 2-column text+visual or 3-column feature rows in supporting sections. A 5-column flag grid handles the country directory. Navigation is a single sticky top bar with a segmented switcher. The QR badge floats fixed in the bottom-right corner across all scroll positions.
 
 ## Agent Prompt Guide
 
@@ -280,7 +280,7 @@ No distinct primary action color was observed; use the extracted neutral button 
 
 4. Dark section card: Forest Ink (#163300) background, 28px radius, 40px padding. Headline in Lime Voltage (#9fe870) at 36px Inter 700. Body text in #ffffff at 16px Inter 400. Contains an inset white card (10px radius) for a currency selector: circular flag + country name in Charcoal + outlined "Change" button.
 
-5. Outlined nav button: white fill, 1px solid #163300 border, 9999px radius, 8px 16px padding, Inter 500 at 16px in #163300. Used in the top-right nav cluster for secondary account actions.
+5. Outlined nav button: white fill, 1px solid #163300 border, 10px radius, 8px 16px padding, Inter 500 at 16px in #163300. Used in the top-right nav cluster for secondary account actions.
 
 ## Similar Brands
 
@@ -398,13 +398,13 @@ No distinct primary action color was observed; use the extracted neutral button 
   --radius-full-2: 9999px;
 
   /* Named Radii */
-  --radius-tags: 9999px;
+  --radius-tags: 6px;
   --radius-cards: 10px;
   --radius-inputs: 10px;
-  --radius-buttons: 9999px;
+  --radius-buttons: 10px;
   --radius-imagemasks: 1000px;
   --radius-largecards: 28px;
-  --radius-navsegments: 9999px;
+  --radius-navsegments: 10px;
 
   /* Shadows */
   --shadow-subtle: rgba(14, 15, 12, 0.12) 0px 0px 0px 1px;
@@ -523,7 +523,7 @@ No distinct primary action color was observed; use the extracted neutral button 
 }
 ```
 
-5. Outlined nav button: white fill, 1px solid #163300 border, 9999px radius, 8px 16px padding, Inter 500 at 16px in #163300. Used in the top-right nav cluster for secondary account actions.
+5. Outlined nav button: white fill, 1px solid #163300 border, 10px radius, 8px 16px padding, Inter 500 at 16px in #163300. Used in the top-right nav cluster for secondary account actions.
 
 ## Similar Brands
 
@@ -641,13 +641,13 @@ No distinct primary action color was observed; use the extracted neutral button 
   --radius-full-2: 9999px;
 
   /* Named Radii */
-  --radius-tags: 9999px;
+  --radius-tags: 6px;
   --radius-cards: 10px;
   --radius-inputs: 10px;
-  --radius-buttons: 9999px;
+  --radius-buttons: 10px;
   --radius-imagemasks: 1000px;
   --radius-largecards: 28px;
-  --radius-navsegments: 9999px;
+  --radius-navsegments: 10px;
 
   /* Shadows */
   --shadow-subtle: rgba(14, 15, 12, 0.12) 0px 0px 0px 1px;

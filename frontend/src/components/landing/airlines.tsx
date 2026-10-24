@@ -2,22 +2,18 @@ import { Icon, Jet } from "./icons";
 
 const FEATURES = [
   [
-    "01",
     "Bay thẳng hoặc nối chuyến",
     "Kết quả hiển thị cả chuyến thẳng lẫn chuyến nối một điểm dừng cùng hãng, thời gian chờ nối từ 1 đến 12 tiếng.",
   ],
   [
-    "02",
     "Giá trọn gói, đúng số khách",
     "Giá hiển thị đã gồm thuế phí, tính sẵn theo đúng số người lớn, trẻ em và em bé bạn đã chọn.",
   ],
   [
-    "03",
     "Gói giá minh bạch",
     "Xem rõ hành lý xách tay, ký gửi và điều kiện đổi hoặc hoàn của từng gói vé ngay trước khi đặt.",
   ],
   [
-    "04",
     "Lọc và sắp xếp tức thì",
     "Lọc theo hãng bay, số điểm dừng, khung giờ cất cánh, giá tối đa. Sắp xếp theo giá, giờ bay hoặc tổng thời lượng.",
   ],
@@ -35,15 +31,10 @@ export default function Airlines() {
           <div className="rounded-[20px] border border-line bg-tint p-20 sm:p-28 lg:col-span-5">
             <div className="card grid gap-16 p-20">
               <div className="flex items-center justify-between gap-12 border-b border-line pb-14">
-                <div className="flex items-center gap-8">
-                  <span className="inline-grid h-24 min-w-32 place-items-center rounded-pill bg-accent-soft px-8 text-badge font-bold text-accent">
-                    VN
-                  </span>
-                  <span className="text-caption font-bold text-ink">
-                    Vietnam Airlines · VN213
-                  </span>
-                </div>
-                <span className="rounded-pill bg-tint px-10 py-3 text-badge font-semibold text-ink-2">
+                <span className="text-caption font-bold text-ink">
+                  Vietnam Airlines · VN213
+                </span>
+                <span className="rounded-badge bg-tint px-10 py-3 text-badge font-semibold text-ink-2">
                   Bay thẳng
                 </span>
               </div>
@@ -56,7 +47,7 @@ export default function Airlines() {
                 <div className="grid flex-1 justify-items-center gap-4 px-8 text-badge text-muted">
                   <span>2 giờ 10 phút</span>
                   <div className="flex w-full items-center gap-4 text-accent">
-                    <span className="size-6 rounded-pill border border-line-strong" />
+                    <span className="size-6 rounded-inner border border-line-strong" />
                     <span className="flex-1 border-t border-dashed border-line-strong" />
                     <Jet className="size-16 shrink-0" />
                   </div>
@@ -107,7 +98,8 @@ export default function Airlines() {
                 id="air-h"
                 className="text-[clamp(28px,3.2vw,42px)] leading-[1.05] font-black tracking-[-0.028em] text-ink"
               >
-                Đủ thông tin để chọn đúng vé<span className="text-accent">.</span>
+                Đủ thông tin để chọn đúng vé
+                <span className="text-accent">.</span>
               </h2>
               <p className="max-w-[52ch] text-body text-muted">
                 Không phí ẩn ở bước cuối. Mọi điều kiện hành lý, đổi ngày bay và
@@ -116,15 +108,14 @@ export default function Airlines() {
             </div>
 
             <div className="grid gap-24 sm:grid-cols-2 sm:gap-28">
-              {FEATURES.map(([num, title, desc]) => (
+              {FEATURES.map(([title, desc]) => (
                 <div
-                  key={num}
+                  key={title}
                   className="grid content-start gap-10 border-t border-line pt-20"
                 >
-                  <span className="inline-flex justify-self-start rounded-pill bg-cta px-10 py-2 text-badge font-black text-cta-fg">
-                    {num}
-                  </span>
-                  <h3 className="text-subheading font-bold text-ink">{title}</h3>
+                  <h3 className="text-subheading font-bold text-ink">
+                    {title}
+                  </h3>
                   <p className="text-body text-muted">{desc}</p>
                 </div>
               ))}

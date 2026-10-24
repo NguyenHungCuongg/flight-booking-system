@@ -130,7 +130,7 @@ export default function Story() {
                     >
                       <span
                         aria-hidden="true"
-                        className={`grid size-32 place-items-center rounded-pill border text-caption font-bold transition-colors ${
+                        className={`grid size-32 place-items-center rounded-inner border text-caption font-bold transition-colors ${
                           isDone || isActive
                             ? "border-cta bg-cta text-cta-fg"
                             : "border-line-strong bg-surface text-muted group-hover:border-ink"
@@ -181,7 +181,7 @@ export default function Story() {
                     </p>
                   </div>
                   <span
-                    className={`inline-flex min-h-32 items-center rounded-pill px-12 py-4 text-badge font-bold ${
+                    className={`inline-flex min-h-32 items-center rounded-badge px-12 py-4 text-badge font-bold ${
                       step === 4
                         ? "bg-cta text-cta-fg"
                         : "border border-line-strong bg-accent-soft text-accent"
@@ -235,7 +235,7 @@ export default function Story() {
                     </div>
                     <div className="flex justify-between text-caption">
                       <span className="text-muted">Mã giảm giá</span>
-                      <b className="rounded-pill bg-accent-soft px-8 py-2 text-badge font-bold text-accent">
+                      <b className="rounded-badge bg-accent-soft px-8 py-2 text-badge font-bold text-accent">
                         WELCOME10
                       </b>
                     </div>
@@ -250,11 +250,11 @@ export default function Story() {
                     <p className="text-display font-black tracking-tight text-accent tabular-nums">
                       <span ref={timerEl}>{pad(HOLD_MINUTES)}:00</span>
                     </p>
-                    <div className="h-4 overflow-hidden rounded-pill bg-tint">
+                    <div className="h-4 overflow-hidden rounded-inner bg-tint">
                       <span
                         ref={lineEl}
                         aria-hidden="true"
-                        className="block h-full origin-left rounded-pill bg-cta transition-transform duration-1000 ease-linear"
+                        className="block h-full origin-left rounded-inner bg-cta transition-transform duration-1000 ease-linear"
                       />
                     </div>
                     <p className="text-badge leading-relaxed text-muted">
@@ -274,9 +274,9 @@ export default function Story() {
                     </p>
                     <div
                       aria-hidden="true"
-                      className="h-8 overflow-hidden rounded-pill bg-tint"
+                      className="h-8 overflow-hidden rounded-inner bg-tint"
                     >
-                      <div className="h-full w-1/2 animate-pulse rounded-pill bg-cta" />
+                      <div className="h-full w-1/2 animate-pulse rounded-inner bg-cta" />
                     </div>
                     <p className="text-badge leading-relaxed text-muted">
                       Thanh toán lỗi hoặc bị huỷ giữa chừng, bạn vẫn thử lại được

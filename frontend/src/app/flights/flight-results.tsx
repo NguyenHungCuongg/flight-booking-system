@@ -274,7 +274,7 @@ export default function FlightResults() {
                     aria-current={active ? "step" : undefined}
                     className={
                       active
-                        ? "rounded-pill bg-accent-soft px-11 py-4 font-semibold text-accent"
+                        ? "rounded-inner bg-accent-soft px-11 py-4 font-semibold text-accent"
                         : "px-11 py-4 text-muted"
                     }
                   >

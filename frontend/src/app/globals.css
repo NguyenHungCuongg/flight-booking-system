@@ -115,21 +115,17 @@
   /* Khoảng cách: p-N = N px */
   --spacing: 1px;
 
-  /* Bo góc theo NEW_DESIGN.md: nút & badge là pill (9999px), thẻ & ô nhập 10px, khối lớn 28px */
-  --radius-pill: 9999px;
+  /* Bo góc: nút, ô nhập, thẻ cùng 10px; badge 6px; khối lớn 28px. Không dùng pill. */
   --radius-card: 10px;
   --radius-inner: 10px;
-  --radius-badge: 9999px;
+  --radius-badge: 6px;
   --radius-largecards: 28px;
   --radius-decorative: 28px;
 
   /* Bóng phẳng hiện đại kèm viền hairline 1px chuẩn Wise */
-  --shadow-card:
-    0 0 0 1px rgb(14 15 12 / 0.1), 0 6px 20px 0 rgb(0 0 0 / 0.05);
+  --shadow-card: 0 0 0 1px rgb(14 15 12 / 0.1), 0 6px 20px 0 rgb(0 0 0 / 0.05);
   --shadow-card-hover:
     0 0 0 1px rgb(22 51 0 / 0.25), 0 10px 26px -4px rgb(22 51 0 / 0.12);
-  --shadow-accent:
-    0 0 0 1px rgb(22 51 0 / 0.18), 0 6px 16px -6px rgb(22 51 0 / 0.24);
 
   /* Bố cục */
   --container-page: 1200px;
@@ -176,7 +172,6 @@
     --shadow-card-hover:
       0 0 0 1px rgb(159 232 112 / 0.28), 0 1px 0 rgb(255 255 255 / 0.06) inset,
       0 18px 36px -14px rgb(0 0 0 / 0.82);
-    --shadow-accent: 0 6px 18px -6px rgb(159 232 112 / 0.38);
   }
 }
 
@@ -214,7 +209,6 @@ html[data-theme="dark"] {
   --shadow-card-hover:
     0 0 0 1px rgb(159 232 112 / 0.28), 0 1px 0 rgb(255 255 255 / 0.06) inset,
     0 18px 36px -14px rgb(0 0 0 / 0.82);
-  --shadow-accent: 0 6px 18px -6px rgb(159 232 112 / 0.38);
 }
 
 /* Thẻ nổi trên nền trang: nền surface, bo 10px, viền hairline nằm trong bóng. */

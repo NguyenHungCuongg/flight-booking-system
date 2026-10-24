@@ -29,18 +29,11 @@ export default function AfterSales() {
   const pane = PANES[tab];
 
   return (
-    <section
-      id="doi-hoan"
-      aria-labelledby="after-h"
-      className="py-40 sm:py-68"
-    >
+    <section id="doi-hoan" aria-labelledby="after-h" className="py-40 sm:py-68">
       <div className="mx-auto max-w-page px-16 sm:px-38">
         <div className="grid gap-32 rounded-[28px] border border-lime-voltage/20 bg-forest-ink p-24 text-pure-white sm:p-44 lg:grid-cols-12 lg:items-center lg:gap-48 lg:p-56">
           {/* Left: Headline + Segmented Switch */}
           <div className="grid content-start gap-20 lg:col-span-6">
-            <span className="inline-flex justify-self-start rounded-pill bg-spruce px-12 py-4 text-badge font-bold text-lime-voltage">
-              Chủ động sau khi xuất vé
-            </span>
             <h2
               id="after-h"
               className="text-[clamp(28px,3.2vw,44px)] leading-[1.04] font-black tracking-[-0.028em] text-lime-voltage"
@@ -65,7 +58,7 @@ export default function AfterSales() {
                     type="button"
                     aria-pressed={active}
                     onClick={() => setTab(k)}
-                    className={`min-h-42 rounded-pill border px-20 py-9 text-caption font-bold transition ${
+                    className={`min-h-42 rounded-inner border px-20 py-9 text-caption font-bold transition ${
                       active
                         ? "border-lime-voltage bg-lime-voltage text-forest-ink"
                         : "border-linen-mist/35 bg-transparent text-pure-white hover:border-lime-voltage"
@@ -99,7 +92,7 @@ export default function AfterSales() {
                     key={f}
                     className="flex items-start gap-12 text-body text-pure-white/95"
                   >
-                    <span className="mt-2 grid size-22 shrink-0 place-items-center rounded-pill bg-lime-voltage text-forest-ink">
+                    <span className="mt-2 grid size-22 shrink-0 place-items-center rounded-inner bg-lime-voltage text-forest-ink">
                       <Icon name="check" className="size-14 shrink-0" />
                     </span>
                     <span>{f}</span>

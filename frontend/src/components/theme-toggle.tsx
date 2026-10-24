@@ -79,7 +79,7 @@ export function ThemeToggle({
       }
       className={
         className ||
-        "inline-flex h-36 items-center gap-7 rounded-pill border border-line-strong bg-surface px-11 text-caption font-semibold text-ink transition hover:border-ink hover:bg-accent-soft active:scale-[0.98]"
+        "inline-flex h-36 items-center gap-7 rounded-inner border border-line-strong bg-surface px-11 text-caption font-semibold text-ink transition hover:border-ink hover:bg-accent-soft active:scale-[0.98]"
       }
     >
       {isDark ? (

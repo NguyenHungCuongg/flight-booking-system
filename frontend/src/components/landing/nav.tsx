@@ -38,7 +38,7 @@ export default function Nav() {
         >
           {LINKS.map(([href, label, isRoute]) => {
             const cls =
-              "rounded-pill px-12 py-6 font-semibold text-ink-2 transition-colors duration-200 hover:bg-accent-soft hover:text-accent";
+              "rounded-inner px-12 py-6 font-semibold text-ink-2 transition-colors duration-200 hover:bg-accent-soft hover:text-accent";
             return isRoute ? (
               <Link key={href} href={href} className={cls}>
                 {label}

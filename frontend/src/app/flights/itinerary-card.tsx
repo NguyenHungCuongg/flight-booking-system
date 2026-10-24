@@ -58,12 +58,6 @@ export default function ItineraryCard({
       <div className="grid gap-16 p-16 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-28">
         <div className="grid gap-13">
           <p className="flex flex-wrap items-center gap-x-8 text-caption text-muted">
-            <span
-              aria-hidden="true"
-              className="inline-grid h-22 min-w-28 place-items-center rounded-badge bg-accent-soft px-5 text-badge font-bold text-accent"
-            >
-              {a.airline.code}
-            </span>
             <span className="font-semibold text-ink">{a.airline.name}</span>
             {" · "}
             {numbers}
@@ -77,9 +71,9 @@ export default function ItineraryCard({
                 aria-hidden="true"
                 className="flex w-full items-center gap-4"
               >
-                <span className="size-8 shrink-0 rounded-pill border-2 border-line-strong" />
+                <span className="size-8 shrink-0 rounded-inner border-2 border-line-strong" />
                 <span className="flex-1 border-t-2 border-dashed border-line-strong" />
-                <span className="size-8 shrink-0 rounded-pill bg-accent" />
+                <span className="size-8 shrink-0 rounded-inner bg-accent" />
               </span>
               <span>
                 {itinerary.stops === 0

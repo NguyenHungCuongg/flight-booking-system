@@ -51,7 +51,7 @@ export default function Faq() {
                 <span>{q}</span>
                 <span
                   aria-hidden="true"
-                  className={`grid size-36 shrink-0 place-items-center rounded-pill border transition-all duration-200 ${
+                  className={`grid size-36 shrink-0 place-items-center rounded-inner border transition-all duration-200 ${
                     isOpen
                       ? "rotate-45 border-cta bg-cta text-cta-fg"
                       : "border-line-strong bg-paper text-ink"
