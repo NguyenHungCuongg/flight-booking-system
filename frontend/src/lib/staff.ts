@@ -39,6 +39,19 @@ export function pageOf(params: URLSearchParams): number {
   return Number.isFinite(n) && n >= 1 ? n : 1;
 }
 
+/** Các lựa chọn số dòng mỗi trang; mặc định trùng `@PageableDefault(size = 20)` của backend. */
+export const PAGE_SIZES = [10, 15, 20] as const;
+export const DEFAULT_PAGE_SIZE = 20;
+
+/**
+ * Đọc số dòng mỗi trang từ URL params (`size`).
+ * Giá trị ngoài `PAGE_SIZES` thì dùng mặc định.
+ */
+export function sizeOf(params: URLSearchParams): number {
+  const n = Number(params.get("size"));
+  return PAGE_SIZES.find((s) => s === n) ?? DEFAULT_PAGE_SIZE;
+}
+
 /**
  * Chuyển bộ lọc trên URL thành chuỗi query gửi lên API backend:
  * - Bỏ mọi ô rỗng hoặc chỉ có khoảng trắng (vì `<Form>` của `next/form` gửi ô trống thành `key=`,
@@ -58,6 +71,7 @@ export function listQuery(
     }
   }
   out.set("page", String(pageOf(params) - 1));
+  if (params.has("size")) out.set("size", String(sizeOf(params)));
   return out.toString();
 }
 
@@ -102,4 +116,3 @@ export function refundActions(
     settle: status === "APPROVED",
   };
 }
-

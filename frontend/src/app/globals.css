@@ -205,6 +205,12 @@ body {
     text-wrap: balance;
   }
 
+  /* Danh sách thả xuống gốc của ô chọn: ép nền và chữ theo token, không phụ thuộc color-scheme của trình duyệt. */
+  option {
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+  }
+
   ::selection {
     background: var(--color-accent-soft);
     color: var(--color-ink);

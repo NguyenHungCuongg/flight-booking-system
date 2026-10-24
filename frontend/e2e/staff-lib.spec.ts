@@ -5,6 +5,7 @@ import {
   pageHref,
   pageOf,
   refundActions,
+  sizeOf,
 } from "../src/lib/staff";
 
 const url = (q: string) => new URLSearchParams(q);
@@ -22,6 +23,14 @@ test("listQuery: bỏ ô rỗng, giữ thứ tự khoá, trang URL đếm từ 1
   expect(listQuery(url("q=%20%20&status="), ["q", "status"])).toBe("page=0");
   expect(listQuery(url("q=abc123&page=0"), ["q"])).toBe("q=abc123&page=0");
   expect(listQuery(url("page=abc"), ["q"])).toBe("page=0");
+});
+
+test("sizeOf/listQuery: chỉ nhận 10, 15, 20; size chỉ gửi lên API khi có trên URL", () => {
+  expect(sizeOf(url(""))).toBe(20);
+  expect(sizeOf(url("size=10"))).toBe(10);
+  expect(sizeOf(url("size=999"))).toBe(20);
+  expect(listQuery(url("size=15&page=2"), ["q"])).toBe("page=1&size=15");
+  expect(listQuery(url("size=7"), ["q"])).toBe("page=0&size=20");
 });
 
 test("pageOf: thiếu, sai hoặc nhỏ hơn 1 thì là trang 1", () => {
@@ -69,4 +78,3 @@ test("cabinLabel: nhãn tiếng Việt, mã lạ giữ nguyên", () => {
   expect(cabinLabel("ECONOMY")).toBe("Phổ thông");
   expect(cabinLabel("XYZ")).toBe("XYZ");
 });
-

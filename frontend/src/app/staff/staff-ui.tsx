@@ -1,10 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import SiteHeader from "@/components/site-header";
 import { textLink } from "@/components/form";
-import { pageHref, pageOf } from "@/lib/staff";
+import {
+  DEFAULT_PAGE_SIZE,
+  PAGE_SIZES,
+  pageHref,
+  pageOf,
+  sizeOf,
+} from "@/lib/staff";
 
 export const tableBox =
   "card overflow-x-auto [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-tint/60";
@@ -39,14 +46,37 @@ export function Pager({
   params: URLSearchParams;
   totalPages: number;
 }) {
+  const router = useRouter();
   const page = pageOf(params);
-  if (totalPages <= 1 && page <= 1) return null;
+  const size = sizeOf(params);
+  if (totalPages === 0 && page <= 1) return null;
+
+  const changeSize = (next: string) => {
+    const p = new URLSearchParams(params);
+    if (Number(next) === DEFAULT_PAGE_SIZE) p.delete("size");
+    else p.set("size", next);
+    router.push(pageHref(path, p, 1));
+  };
 
   return (
     <nav
       aria-label="Phân trang"
-      className="flex items-center gap-16 text-caption"
+      className="flex flex-wrap items-center gap-16 text-caption"
     >
+      <label className="flex items-center gap-8 text-muted">
+        Số dòng mỗi trang
+        <select
+          value={size}
+          onChange={(e) => changeSize(e.target.value)}
+          className="cursor-pointer rounded-inner border border-line-strong bg-surface px-8 py-4 text-ink"
+        >
+          {PAGE_SIZES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </label>
       {page > 1 && (
         <Link
           href={pageHref(path, params, Math.min(page - 1, totalPages))}
@@ -64,4 +94,3 @@ export function Pager({
     </nav>
   );
 }
-
