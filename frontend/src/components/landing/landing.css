@@ -39,7 +39,7 @@
     Roboto,
     sans-serif;
   font-optical-sizing: auto;
-  font-size: 18px;
+  font-size: 15px;
   line-height: 1.61;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -159,11 +159,11 @@
   left: 16px;
   top: -120px;
   z-index: 60;
-  padding: 14px 20px;
+  padding: 10px 18px;
   border-radius: 1000px;
   background: var(--btn-bg);
   color: var(--btn-fg);
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 700;
   text-decoration: none;
 }
@@ -195,8 +195,8 @@
 
 /* ---------- type ---------- */
 .sk .h-hero {
-  font-size: clamp(36px, 4.2vw, 63px);
-  line-height: 1.05;
+  font-size: clamp(30px, 3.4vw, 50px);
+  line-height: 1.1;
   letter-spacing: -0.02em;
   font-weight: 700;
 }
@@ -205,21 +205,21 @@
   color: var(--clay);
 }
 .sk .h-sec {
-  font-size: clamp(34px, 3.6vw, 52px);
+  font-size: clamp(26px, 2.8vw, 40px);
   line-height: 1.06;
   letter-spacing: -0.01em;
   font-weight: 700;
   text-wrap: balance;
 }
 .sk .h-sub {
-  font-size: 23px;
+  font-size: 18px;
   line-height: 1.22;
   letter-spacing: -0.01em;
   font-weight: 700;
 }
 .sk .body {
-  font-size: 18px;
-  line-height: 29px;
+  font-size: 15px;
+  line-height: 24px;
 }
 .sk .muted {
   color: var(--muted);
@@ -239,11 +239,11 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  min-height: 52px;
-  padding: 15px 22px 16px;
+  min-height: 44px;
+  padding: 11px 20px 12px;
   border-radius: 1000px;
   border: 1px solid transparent;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
@@ -264,8 +264,9 @@
   transition: transform 0.45s var(--ease-out);
 }
 .sk .pill.sm {
-  min-height: 44px;
-  padding: 12px 20px 13px;
+  min-height: 38px;
+  padding: 8px 16px 9px;
+  font-size: 13px;
 }
 .sk .pill-dark {
   background: var(--btn-bg);
@@ -391,12 +392,12 @@
 .sk .nav-links {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 28px;
 }
 .sk .nav-link {
   position: relative;
   padding: 8px 0;
-  font-size: 20px;
+  font-size: 15px;
   line-height: 1;
   color: var(--ink);
   text-decoration: none;
@@ -414,8 +415,9 @@
   transition: transform 0.5s var(--ease-out);
 }
 .sk .nav .pill {
-  min-height: 46px;
-  padding: 12px 20px 13px;
+  min-height: 40px;
+  padding: 8px 18px 9px;
+  font-size: 14px;
 }
 .sk .menu-btn {
   display: none;
@@ -462,7 +464,7 @@
 }
 .sk .menu-links a {
   padding: 6px 0;
-  font-size: 37px;
+  font-size: 24px;
   line-height: 1.25;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -521,8 +523,12 @@
   --accent-hover: #eba085;
   position: relative;
   z-index: 5;
+  min-height: 90vh;
+  min-height: 90dvh;
+  display: flex;
+  flex-direction: column;
   padding-top: 72px;
-  overflow: hidden;
+  overflow: visible;
   background: #090a14;
   color: var(--ink);
 }
@@ -531,6 +537,7 @@
   inset: 0;
   z-index: 0;
   pointer-events: none;
+  overflow: hidden;
 }
 .sk .hero-bg-img {
   object-fit: cover;
@@ -557,11 +564,14 @@
 }
 .sk .hero-in {
   position: relative;
+  flex: 1;
+  width: 100%;
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  grid-template-rows: auto minmax(280px, 1fr) auto;
+  grid-template-rows: auto 1fr auto;
   column-gap: 24px;
-  min-height: 700px;
+  min-height: calc(90vh - 72px);
+  min-height: calc(90dvh - 72px);
   padding-top: 22px;
   padding-bottom: 36px;
 }
@@ -575,7 +585,7 @@
 .sk .wm-text {
   display: block;
   padding-bottom: 0.14em;
-  font-size: clamp(72px, 13vw, 187px);
+  font-size: clamp(56px, 10vw, 142px);
   line-height: 0.8;
   letter-spacing: -0.02em;
   font-weight: 700;
@@ -605,10 +615,10 @@
   display: block;
 }
 .sk .hero-sub {
-  max-width: 36ch;
-  margin: 18px 0 0 auto;
-  font-size: 18px;
-  line-height: 29px;
+  max-width: 42ch;
+  margin: 16px 0 0 auto;
+  font-size: 15px;
+  line-height: 24px;
   color: var(--ink-2);
   text-wrap: balance;
 }
@@ -741,13 +751,13 @@
 .sk .seg button {
   position: relative;
   z-index: 1;
-  min-height: 42px;
-  padding: 10px 18px;
+  min-height: 38px;
+  padding: 8px 16px;
   border: 0;
   border-radius: 1000px;
   background: transparent;
   color: var(--ink);
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -763,12 +773,12 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  min-height: 52px;
-  padding: 0 16px 0 18px;
+  min-height: 44px;
+  padding: 0 16px;
   border-radius: 1000px;
   border: 1px solid var(--line);
   background: transparent;
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -789,7 +799,7 @@
   max-width: 560px;
   margin-left: auto;
   padding-right: 6px;
-  font-size: 17px;
+  font-size: 13px;
   line-height: 1.35;
 }
 .sk .fields {
@@ -820,7 +830,7 @@
   gap: 2px;
   width: 100%;
   height: 100%;
-  padding: 14px 18px 15px;
+  padding: 12px 16px 13px;
   border: 0;
   background: transparent;
   text-align: left;
@@ -831,14 +841,14 @@
   background: var(--tint);
 }
 .sk .f-label {
-  font-size: 17px;
-  line-height: 1.25;
+  font-size: 13px;
+  line-height: 1.2;
   color: var(--muted);
 }
 .sk .f-main {
   display: block;
   overflow: hidden;
-  font-size: 30px;
+  font-size: 22px;
   line-height: 1.15;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -847,7 +857,7 @@
 }
 .sk .f-main.is-empty {
   padding-top: 4px;
-  font-size: 20px;
+  font-size: 15px;
   line-height: 1.3;
   color: var(--muted);
   white-space: normal;
@@ -855,7 +865,7 @@
 .sk .f-sub {
   display: block;
   overflow: hidden;
-  font-size: 17px;
+  font-size: 13px;
   line-height: 1.3;
   color: var(--muted);
   white-space: nowrap;
@@ -873,7 +883,7 @@
   align-items: center;
   gap: 6px;
   margin-top: 6px;
-  font-size: 17px;
+  font-size: 13px;
   line-height: 1.3;
   font-weight: 700;
   color: var(--ink);
@@ -889,8 +899,8 @@
 .sk .swap {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   padding: 0;
   border-radius: 100%;
   border: 1px solid var(--line-strong);
@@ -911,8 +921,9 @@
   --btn-bg: var(--accent);
   --btn-fg: var(--accent-fg);
   --btn-hover: var(--accent-hover);
-  min-height: 64px;
-  padding-inline: 28px;
+  min-height: 52px;
+  padding-inline: 22px;
+  font-size: 15px;
 }
 .sk .go-icon {
   position: relative;
@@ -1006,6 +1017,7 @@
   padding: 18px;
   background: var(--panel);
   border: 1px solid var(--line-strong);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
   text-align: left;
   transform-origin: top left;
 }
@@ -1038,7 +1050,7 @@
   margin-bottom: 12px;
 }
 .sk .pop-title {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
 }
 .sk .q-wrap {
@@ -1062,7 +1074,7 @@
   outline: 0;
   background: transparent;
   color: var(--ink);
-  font-size: 18px;
+  font-size: 15px;
 }
 .sk .q::placeholder {
   color: var(--muted);
@@ -1094,7 +1106,7 @@
   box-shadow: inset 2px 0 0 var(--ink);
 }
 .sk .ap-code {
-  font-size: 23px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -1103,26 +1115,26 @@
   min-width: 0;
 }
 .sk .ap-city {
-  font-size: 18px;
+  font-size: 15px;
   line-height: 1.3;
   font-weight: 700;
 }
 .sk .ap-name {
   overflow: hidden;
-  font-size: 17px;
+  font-size: 13px;
   line-height: 1.3;
   color: var(--muted);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 .sk .ap-tag {
-  font-size: 17px;
+  font-size: 13px;
   color: var(--muted);
   white-space: nowrap;
 }
 .sk .ap-empty {
   padding: 14px 6px;
-  font-size: 17px;
+  font-size: 14px;
   line-height: 1.45;
   color: var(--muted);
 }
@@ -1133,12 +1145,12 @@
   gap: 10px;
 }
 .sk .cal-title {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
 }
 .sk .cal-hint {
   margin: 4px 0 12px;
-  font-size: 17px;
+  font-size: 13px;
   color: var(--muted);
   text-align: center;
 }
@@ -1152,7 +1164,7 @@
   display: grid;
   place-items: center;
   height: 32px;
-  font-size: 17px;
+  font-size: 13px;
   color: var(--muted);
 }
 .sk .day {
@@ -1164,7 +1176,7 @@
   border: 0;
   border-radius: 100%;
   background: transparent;
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
@@ -1211,12 +1223,12 @@
   border-bottom: 1px solid var(--line);
 }
 .sk .pax-t {
-  font-size: 18px;
+  font-size: 15px;
   line-height: 1.3;
   font-weight: 700;
 }
 .sk .pax-d {
-  font-size: 17px;
+  font-size: 13px;
   line-height: 1.3;
   color: var(--muted);
 }
@@ -1228,7 +1240,7 @@
 .sk .num {
   display: inline-block;
   min-width: 32px;
-  font-size: 23px;
+  font-size: 18px;
   font-weight: 700;
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -1238,7 +1250,7 @@
   align-items: flex-start;
   gap: 8px;
   margin-top: 12px;
-  font-size: 17px;
+  font-size: 13px;
   line-height: 1.4;
 }
 .sk .pax-note .ic {
@@ -1255,7 +1267,7 @@
 .sk .cabin legend {
   margin-bottom: 10px;
   padding: 0;
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
 }
 .sk .cabin-opts {
@@ -1264,12 +1276,12 @@
   gap: 8px;
 }
 .sk .opt-pill {
-  min-height: 44px;
-  padding: 10px 16px;
+  min-height: 38px;
+  padding: 8px 14px;
   border-radius: 1000px;
   border: 1px solid var(--line-strong);
   background: transparent;
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -1350,7 +1362,7 @@
   border-right: 1px solid var(--line);
 }
 .sk .r-code {
-  font-size: 52px;
+  font-size: 38px;
   line-height: 1;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -1391,7 +1403,7 @@
 }
 .sk .r-city {
   align-self: end;
-  font-size: 17px;
+  font-size: 13px;
   line-height: 1.35;
   color: var(--muted);
 }
@@ -1400,7 +1412,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 700;
 }
 .sk .r-act {
@@ -1602,7 +1614,7 @@
 }
 .sk .step-t {
   padding-top: 1px;
-  font-size: 23px;
+  font-size: 18px;
   line-height: 1.25;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -1612,7 +1624,7 @@
 .sk .step-d {
   grid-column: 2;
   max-width: 44ch;
-  font-size: 18px;
+  font-size: 15px;
   line-height: 29px;
   color: var(--muted);
   transition: color 0.4s var(--ease-out);
@@ -1643,12 +1655,12 @@
   gap: 16px;
 }
 .sk .bk-k {
-  font-size: 17px;
+  font-size: 13px;
   line-height: 1.3;
   color: var(--muted);
 }
 .sk .bk-code {
-  font-size: 23px;
+  font-size: 18px;
   line-height: 1.3;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -1660,7 +1672,7 @@
   padding: 6px 14px;
   border-radius: 1000px;
   border: 1px solid var(--line-strong);
-  font-size: 17px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
@@ -1673,13 +1685,13 @@
 .sk .bk-route {
   padding-top: 12px;
   border-top: 1px solid var(--line);
-  font-size: 37px;
+  font-size: 26px;
   line-height: 1.05;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 .sk .bk-meta {
-  font-size: 17px;
+  font-size: 13px;
   line-height: 1.35;
   color: var(--muted);
 }
@@ -1702,17 +1714,17 @@
 }
 .sk .fare b {
   display: block;
-  font-size: 18px;
+  font-size: 15px;
   line-height: 1.3;
 }
 .sk .fare small {
   display: block;
-  font-size: 17px;
+  font-size: 13px;
   line-height: 1.3;
   color: var(--muted);
 }
 .sk .bk-pax {
-  font-size: 23px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -1720,14 +1732,14 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-size: 17px;
+  font-size: 14px;
   line-height: 1.35;
 }
 .sk .bk-row b {
   font-weight: 700;
 }
 .sk .bk-timer {
-  font-size: 63px;
+  font-size: 46px;
   line-height: 1;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -1741,7 +1753,7 @@
   transition: transform 1s linear;
 }
 .sk .bk-note {
-  font-size: 17px;
+  font-size: 13px;
   line-height: 1.45;
   color: var(--muted);
 }
@@ -1749,7 +1761,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 23px;
+  font-size: 18px;
   line-height: 1.3;
   font-weight: 700;
 }
@@ -1774,7 +1786,7 @@
 }
 .sk .stage-cap {
   margin-top: 14px;
-  font-size: 17px;
+  font-size: 13px;
   color: var(--muted);
 }
 @media (max-width: 1023px) {
@@ -1822,7 +1834,7 @@
   max-width: 540px;
 }
 .sk .clay-h {
-  font-size: clamp(34px, 3.6vw, 52px);
+  font-size: clamp(26px, 2.8vw, 40px);
   line-height: 1.06;
   letter-spacing: -0.01em;
   font-weight: 700;
@@ -1830,8 +1842,8 @@
 }
 .sk .clay-p {
   max-width: 44ch;
-  font-size: 18px;
-  line-height: 29px;
+  font-size: 15px;
+  line-height: 24px;
   color: var(--clay-ink);
 }
 .sk .clay-seg {
@@ -1841,13 +1853,13 @@
   margin-top: 8px;
 }
 .sk .clay-tab {
-  min-height: 48px;
-  padding: 12px 20px 13px;
+  min-height: 40px;
+  padding: 8px 16px 9px;
   border-radius: 1000px;
   border: 1px solid var(--clay-ink);
   background: transparent;
   color: var(--clay-ink);
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -1888,7 +1900,7 @@
   gap: 18px;
 }
 .sk .clay-formula {
-  font-size: clamp(26px, 2.4vw, 37px);
+  font-size: clamp(20px, 2vw, 28px);
   line-height: 1.15;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -1901,8 +1913,8 @@
 .sk .clay-facts li {
   position: relative;
   padding-left: 30px;
-  font-size: 18px;
-  line-height: 29px;
+  font-size: 15px;
+  line-height: 24px;
   color: var(--clay-ink);
 }
 .sk .clay-facts .ic {
@@ -1969,7 +1981,7 @@
 }
 .sk .faq-h {
   margin-bottom: 18px;
-  font-size: 23px;
+  font-size: 18px;
   line-height: 1.22;
   font-weight: 700;
   color: #ffffff;
@@ -1986,12 +1998,12 @@
   justify-content: space-between;
   gap: 24px;
   width: 100%;
-  padding: 22px 0;
+  padding: 18px 0;
   border: 0;
   background: transparent;
   color: #ffffff;
   text-align: left;
-  font-size: 20px;
+  font-size: 16px;
   line-height: 1.35;
   font-weight: 700;
   cursor: pointer;
@@ -2017,8 +2029,8 @@
 }
 .sk .faq-a {
   padding: 0 64px 26px 0;
-  font-size: 18px;
-  line-height: 29px;
+  font-size: 15px;
+  line-height: 24px;
   color: #c3c4cd;
 }
 @media (max-width: 899px) {
@@ -2093,7 +2105,7 @@
   position: relative;
   z-index: 2;
   color: #ffffff;
-  font-size: clamp(34px, 5.2vw, 72px);
+  font-size: clamp(28px, 4vw, 54px);
   line-height: 1.1;
   letter-spacing: -0.02em;
   font-weight: 700;
@@ -2150,7 +2162,7 @@
 .sk .foot-wm {
   display: block;
   margin-bottom: clamp(48px, 6vw, 80px);
-  font-size: clamp(64px, 11vw, 131px);
+  font-size: clamp(48px, 8vw, 96px);
   line-height: 0.85;
   letter-spacing: -0.02em;
   font-weight: 700;
@@ -2179,13 +2191,13 @@
 }
 .sk .foot-col h3 {
   margin-bottom: 8px;
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 700;
   color: #ffffff;
 }
 .sk .foot-col a {
   justify-self: start;
-  font-size: 20px;
+  font-size: 15px;
   line-height: 1.6;
   color: #8e8e95;
   text-decoration: none;
@@ -2199,7 +2211,7 @@
   margin-top: clamp(56px, 7vw, 88px);
   padding-top: 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
-  font-size: 17px;
+  font-size: 13px;
   line-height: 1.45;
   color: #8e8e95;
 }
