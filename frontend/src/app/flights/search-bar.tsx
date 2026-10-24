@@ -2,7 +2,6 @@
 
 import { useState, type ReactNode } from "react";
 import { pillLine } from "@/components/form";
-import "@/components/landing/landing.css";
 import SearchDock from "@/components/landing/search-dock";
 import {
   SearchProvider,
@@ -25,7 +24,7 @@ export default function SearchBar({
   return (
     <div className="grid gap-16">
       {summary !== null && (
-        <div className="flex flex-wrap items-center justify-between gap-16 card p-16">
+        <div className="card flex flex-wrap items-center justify-between gap-16 p-16">
           {summary}
           <button
             type="button"
@@ -39,9 +38,7 @@ export default function SearchBar({
       )}
       {open && (
         <SearchProvider initial={initial}>
-          <div className="sk t-auto">
-            <SearchDock />
-          </div>
+          <SearchDock />
         </SearchProvider>
       )}
     </div>

@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 /*
- * Token của NEW_DESIGN.md (SkyLine — Wise Style System: Forest Ink #163300 & Lime Voltage #9fe870).
+ * Token của DESIGN.md (SkyLine — Wise Style System: Forest Ink #163300 & Lime Voltage #9fe870).
  * Hỗ trợ chuyển đổi Sáng / Tối qua thuộc tính html[data-theme="light" | "dark"] và tự động theo
  * prefers-color-scheme khi người dùng chưa khóa chế độ.
  */
 @theme {
-  /* Bảng màu gốc từ NEW_DESIGN.md */
+  /* Bảng màu gốc từ DESIGN.md */
   --color-forest-ink: #163300;
   --color-lime-voltage: #9fe870;
   --color-spruce: #054d28;

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
+import { pillLine, pillPrimary } from "@/components/form";
 import { countryName, useAirports, type Airport } from "@/lib/airports";
 import { CABINS } from "./data";
 import { Icon, Jet } from "./icons";
@@ -24,23 +25,18 @@ interface Local {
   hi: number;
   calMonth: number | null;
   swapTurns: number;
-  depPar: number;
-  retPar: number;
-  paxPar: number;
   paxKey: string;
   paxNote: string;
   errors: Partial<Record<Field, string>>;
-  shake: number;
   status: string;
 }
 
 const monthIdx = (d: Date) => d.getFullYear() * 12 + d.getMonth();
-const tick = (n: number) => (n > 0 ? (n % 2 ? "tick-a" : "tick-b") : "");
 const norm = (s: string) =>
   s
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/đ/g, "d")
     .trim();
 
@@ -75,6 +71,9 @@ function filterAirports(
 const focusOnMount = (el: HTMLInputElement | null) =>
   el?.focus({ preventScroll: true });
 
+const iconCircleBtn =
+  "inline-grid size-40 shrink-0 place-items-center rounded-pill border border-line-strong bg-surface text-ink transition hover:border-ink hover:bg-accent-soft active:scale-95 disabled:cursor-not-allowed disabled:opacity-35";
+
 export default function SearchDock() {
   const router = useRouter();
   const [pending, startNav] = useTransition();
@@ -87,13 +86,9 @@ export default function SearchDock() {
     hi: 0,
     calMonth: null,
     swapTurns: 0,
-    depPar: 0,
-    retPar: 0,
-    paxPar: 0,
     paxKey: "",
     paxNote: "",
     errors: {},
-    shake: 0,
     status: "",
   });
   const patch = useCallback(
@@ -227,13 +222,12 @@ export default function SearchDock() {
       const keep = !!(form.ret && form.ret >= day);
       update({ dep: day, ret: keep ? form.ret : null });
       patch({
-        depPar: s.depPar + 1,
         panel: !oneway && !keep ? "ret" : null,
         errors: clearErr("dep"),
       });
     } else if (s.panel === "ret") {
       update({ ret: day });
-      patch({ retPar: s.retPar + 1, panel: null, errors: clearErr("ret") });
+      patch({ panel: null, errors: clearErr("ret") });
     }
   };
 
@@ -252,7 +246,7 @@ export default function SearchDock() {
       note = "Đã bớt số em bé vì mỗi người lớn chỉ đi kèm một em bé.";
     }
     update({ adults, children, infants });
-    patch({ paxNote: note, paxPar: s.paxPar + 1, paxKey: kind });
+    patch({ paxNote: note, paxKey: kind });
   };
   let paxNote = s.paxNote;
   if (!paxNote && seated >= 9)
@@ -274,7 +268,6 @@ export default function SearchDock() {
       patch({
         errors,
         panel: null,
-        shake: s.shake + 1,
         status: "Kiểm tra lại các ô được đánh dấu.",
       });
       return;
@@ -315,16 +308,14 @@ export default function SearchDock() {
       const d = new Date(y, m, n);
       const day = iso(d);
       const sel = day === form.dep || day === form.ret;
-      let cls = "day";
-      if (form.dep && form.ret && day > form.dep && day < form.ret)
-        cls += " is-range";
-      if (day === todayStr) cls += " is-today";
-      if (sel) cls += " is-sel";
+      const inRange = !!(form.dep && form.ret && day > form.dep && day < form.ret);
+      const isToday = day === todayStr;
       return {
         n,
         day,
-        cls,
         sel,
+        inRange,
+        isToday,
         disabled: day < minStr || day > maxStr,
         label: `${weekday(d)}, ${n} tháng ${m + 1} năm ${y}`,
       };
@@ -338,45 +329,46 @@ export default function SearchDock() {
   };
   const cal = isCal ? calendar() : null;
 
-  const dockCls = [
-    "dock",
-    s.popUp && "pop-up",
-    flash && (flash % 2 ? "flash-a" : "flash-b"),
-    s.shake && (s.shake % 2 ? "shake-a" : "shake-b"),
-  ]
-    .filter(Boolean)
-    .join(" ");
-  const fieldCls = (k: Field) =>
-    `field field-${k}${s.panel === k ? " is-open" : ""}${err[k] ? " has-err" : ""}`;
+  const popPos = (alignRight = false) =>
+    `max-sm:mt-10 sm:absolute sm:z-30 ${
+      s.popUp ? "sm:bottom-[calc(100%+10px)]" : "sm:top-[calc(100%+10px)]"
+    } ${alignRight ? "sm:right-0" : "sm:left-0"}`;
 
   return (
     <div
-      className={dockCls}
       id="tim-chuyen"
       role="search"
       aria-label="Tìm chuyến bay"
+      className={`card relative grid gap-14 p-16 sm:p-20 transition-shadow duration-300 ${
+        flash ? "ring-2 ring-accent" : ""
+      }`}
     >
       {s.panel && (
         <button
           type="button"
-          className="scrim"
+          className="fixed inset-0 z-20 cursor-default bg-transparent max-sm:hidden"
           tabIndex={-1}
           aria-hidden="true"
           onClick={closePanel}
         />
       )}
 
-      <div className="dock-bar">
+      {/* Top controls: Segmented trip switch + Passenger/Cabin picker + International notice */}
+      <div className="relative z-25 flex flex-wrap items-center gap-10">
         <div
-          className={`seg${oneway ? "" : " is-round"}`}
+          className="inline-grid grid-cols-2 rounded-pill border border-line bg-tint p-4"
           role="group"
           aria-label="Loại hành trình"
         >
-          <span className="seg-ind" aria-hidden="true" />
           <button
             type="button"
             aria-pressed={oneway}
             onClick={() => setTrip("oneway")}
+            className={`min-h-36 rounded-pill px-16 py-7 text-caption font-bold transition-colors ${
+              oneway
+                ? "bg-cta text-cta-fg shadow-xs"
+                : "text-ink-2 hover:text-ink"
+            }`}
           >
             Một chiều
           </button>
@@ -384,92 +376,113 @@ export default function SearchDock() {
             type="button"
             aria-pressed={!oneway}
             onClick={() => setTrip("round")}
+            className={`min-h-36 rounded-pill px-16 py-7 text-caption font-bold transition-colors ${
+              !oneway
+                ? "bg-cta text-cta-fg shadow-xs"
+                : "text-ink-2 hover:text-ink"
+            }`}
           >
             Khứ hồi
           </button>
         </div>
 
-        <div className="pax-wrap">
+        <div className="relative">
           <button
             type="button"
-            className="chip"
+            className="inline-flex min-h-42 items-center gap-10 rounded-pill border border-line-strong bg-surface px-16 text-caption font-bold text-ink transition hover:border-ink hover:bg-accent-soft"
             aria-expanded={s.panel === "pax"}
             aria-controls="pax-pop"
             onClick={() => open("pax")}
           >
-            <Icon name="users" />
+            <Icon name="users" className="size-18 shrink-0" />
             <span>
               {total} khách, {cabin.label}
             </span>
-            <Icon name="chev" className="chev" />
+            <Icon
+              name="chev"
+              className={`size-16 shrink-0 transition-transform duration-200 ${
+                s.panel === "pax" ? "rotate-180" : ""
+              }`}
+            />
           </button>
           {s.panel === "pax" && (
             <div
-              className="pop pop-pax"
               id="pax-pop"
               role="dialog"
               aria-label="Hành khách và hạng ghế"
               onKeyDown={onPopKey}
+              className={`${popPos(false)} w-full rounded-card border border-line-strong bg-surface p-18 shadow-card-hover sm:w-420`}
             >
-              <PaxRow
-                title="Người lớn"
-                desc="Từ 12 tuổi"
-                noun="người lớn"
-                value={form.adults}
-                tick={s.paxKey === "adults" ? tick(s.paxPar) : ""}
-                decDis={form.adults <= 1}
-                incDis={seated >= 9}
-                onDec={() => pax("adults", -1)}
-                onInc={() => pax("adults", 1)}
-              />
-              <PaxRow
-                title="Trẻ em"
-                desc="Từ 2 đến dưới 12 tuổi"
-                noun="trẻ em"
-                value={form.children}
-                tick={s.paxKey === "children" ? tick(s.paxPar) : ""}
-                decDis={form.children <= 0}
-                incDis={seated >= 9}
-                onDec={() => pax("children", -1)}
-                onInc={() => pax("children", 1)}
-              />
-              <PaxRow
-                title="Em bé"
-                desc="Dưới 2 tuổi, ngồi cùng người lớn"
-                noun="em bé"
-                value={form.infants}
-                tick={s.paxKey === "infants" ? tick(s.paxPar) : ""}
-                decDis={form.infants <= 0}
-                incDis={form.infants >= form.adults}
-                onDec={() => pax("infants", -1)}
-                onInc={() => pax("infants", 1)}
-              />
+              <div className="divide-y divide-line">
+                <PaxRow
+                  title="Người lớn"
+                  desc="Từ 12 tuổi"
+                  noun="người lớn"
+                  value={form.adults}
+                  decDis={form.adults <= 1}
+                  incDis={seated >= 9}
+                  onDec={() => pax("adults", -1)}
+                  onInc={() => pax("adults", 1)}
+                />
+                <PaxRow
+                  title="Trẻ em"
+                  desc="Từ 2 đến dưới 12 tuổi"
+                  noun="trẻ em"
+                  value={form.children}
+                  decDis={form.children <= 0}
+                  incDis={seated >= 9}
+                  onDec={() => pax("children", -1)}
+                  onInc={() => pax("children", 1)}
+                />
+                <PaxRow
+                  title="Em bé"
+                  desc="Dưới 2 tuổi, ngồi cùng người lớn"
+                  noun="em bé"
+                  value={form.infants}
+                  decDis={form.infants <= 0}
+                  incDis={form.infants >= form.adults}
+                  onDec={() => pax("infants", -1)}
+                  onInc={() => pax("infants", 1)}
+                />
+              </div>
               {paxNote && (
-                <p className="pax-note" role="status">
-                  <Icon name="info" />
+                <p
+                  className="mt-12 flex items-start gap-8 rounded-inner bg-accent-soft/60 px-12 py-8 text-badge text-ink"
+                  role="status"
+                >
+                  <Icon name="info" className="mt-1 size-16 shrink-0 text-accent" />
                   <span>{paxNote}</span>
                 </p>
               )}
-              <fieldset className="cabin">
-                <legend>Hạng ghế</legend>
-                <div className="cabin-opts">
-                  {CABINS.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      className={`opt-pill${c.id === form.cabin ? " is-on" : ""}`}
-                      aria-pressed={c.id === form.cabin}
-                      onClick={() => update({ cabin: c.id })}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
+              <fieldset className="mt-16 border-0 p-0">
+                <legend className="mb-10 text-caption font-bold text-ink">
+                  Hạng ghế
+                </legend>
+                <div className="flex flex-wrap gap-8">
+                  {CABINS.map((c) => {
+                    const active = c.id === form.cabin;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => update({ cabin: c.id })}
+                        className={`min-h-36 rounded-pill border px-14 py-7 text-caption font-bold transition ${
+                          active
+                            ? "border-cta bg-cta text-cta-fg"
+                            : "border-line-strong bg-surface text-ink hover:border-ink"
+                        }`}
+                      >
+                        {c.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </fieldset>
-              <div className="pop-foot">
+              <div className="mt-16 flex justify-end">
                 <button
                   type="button"
-                  className="pill pill-dark sm"
+                  className={pillPrimary}
                   onClick={closePanel}
                 >
                   Xong
@@ -480,8 +493,8 @@ export default function SearchDock() {
         </div>
 
         {F && T && F.countryCode !== T.countryCode && (
-          <p className="intl">
-            <Icon name="info" />
+          <p className="flex max-w-520 items-center gap-8 rounded-inner bg-accent-soft/65 px-12 py-8 text-badge text-ink-2 lg:ml-auto">
+            <Icon name="info" className="size-18 shrink-0 text-accent" />
             <span>
               Hành trình quốc tế: hộ chiếu của mọi hành khách phải còn hạn ít
               nhất 6 tháng tính từ ngày bay chặng cuối.
@@ -490,9 +503,11 @@ export default function SearchDock() {
         )}
       </div>
 
-      <div className="fields">
-        <div className="f-route">
-          <div className={fieldCls("from")}>
+      {/* Main search fields grid */}
+      <div className="relative z-25 grid rounded-inner border border-line bg-paper/45 lg:grid-cols-[minmax(0,2.4fr)_minmax(0,1.9fr)_auto]">
+        {/* Route: From + Swap + To */}
+        <div className="relative grid border-b border-line sm:grid-cols-[minmax(0,1fr)_52px_minmax(0,1fr)] lg:border-b-0">
+          <div className="relative min-w-0">
             <FieldBtn
               label="Từ"
               open={s.panel === "from"}
@@ -500,12 +515,13 @@ export default function SearchDock() {
               error={err.from}
               main={form.from || "Chọn sân bay"}
               sub={F?.city ?? (form.from ? "\u00a0" : "Điểm đi")}
-              mainCls={form.from ? tick(form.fromPar) : "is-empty"}
+              isEmpty={!form.from}
             />
             {s.panel === "from" && (
               <AirportPop
                 title="Bay từ"
                 aria="Chọn sân bay đi"
+                posClass={popPos(false)}
                 query={s.query}
                 list={list}
                 empty={empty}
@@ -519,19 +535,19 @@ export default function SearchDock() {
             )}
           </div>
 
-          <div className="swap-cell">
+          <div className="flex items-center justify-center max-sm:py-4">
             <button
               type="button"
-              className="swap"
+              className="grid size-38 place-items-center rounded-pill border border-line-strong bg-surface text-ink transition hover:border-ink hover:bg-accent-soft active:scale-95"
               aria-label="Đảo điểm đi và điểm đến"
               onClick={swap}
               style={{ transform: `rotate(${s.swapTurns * 180}deg)` }}
             >
-              <Icon name="swap" />
+              <Icon name="swap" className="size-18 shrink-0 max-sm:rotate-90" />
             </button>
           </div>
 
-          <div className={fieldCls("to")}>
+          <div className="relative min-w-0 max-sm:border-t max-sm:border-line">
             <FieldBtn
               label="Đến"
               open={s.panel === "to"}
@@ -539,12 +555,13 @@ export default function SearchDock() {
               error={err.to}
               main={form.to || "Chọn sân bay"}
               sub={T?.city ?? (form.to ? "\u00a0" : "Điểm đến")}
-              mainCls={form.to ? tick(form.toPar) : "is-empty"}
+              isEmpty={!form.to}
             />
             {s.panel === "to" && (
               <AirportPop
                 title="Bay đến"
                 aria="Chọn sân bay đến"
+                posClass={popPos(true)}
                 query={s.query}
                 list={list}
                 empty={empty}
@@ -559,8 +576,9 @@ export default function SearchDock() {
           </div>
         </div>
 
-        <div className="f-when">
-          <div className={fieldCls("dep")}>
+        {/* Dates: Departure + Return */}
+        <div className="grid grid-cols-2 border-b border-line lg:border-b-0 lg:border-l">
+          <div className="relative min-w-0">
             <FieldBtn
               label="Ngày đi"
               open={s.panel === "dep"}
@@ -568,12 +586,13 @@ export default function SearchDock() {
               error={err.dep}
               main={depD ? ddmm(depD) : "Chọn ngày"}
               sub={depD ? weekday(depD) : "Chưa chọn"}
-              mainCls={depD ? tick(s.depPar) : "is-empty"}
+              isEmpty={!depD}
             />
             {s.panel === "dep" && cal && (
               <CalendarPop
                 aria="Chọn ngày đi"
                 hint="Chọn ngày đi"
+                posClass={popPos(false)}
                 cal={cal}
                 onShift={shiftMonth}
                 onPick={pickDate}
@@ -583,7 +602,7 @@ export default function SearchDock() {
             )}
           </div>
 
-          <div className={fieldCls("ret")}>
+          <div className="relative min-w-0 border-l border-line">
             <FieldBtn
               label="Ngày về"
               open={s.panel === "ret"}
@@ -593,12 +612,13 @@ export default function SearchDock() {
               sub={
                 oneway ? "Không bắt buộc" : retD ? weekday(retD) : "Chưa chọn"
               }
-              mainCls={!oneway && retD ? tick(s.retPar) : "is-empty"}
+              isEmpty={oneway || !retD}
             />
             {s.panel === "ret" && cal && (
               <CalendarPop
                 aria="Chọn ngày về"
                 hint="Chọn ngày về"
+                posClass={popPos(true)}
                 cal={cal}
                 onShift={shiftMonth}
                 onPick={pickDate}
@@ -609,21 +629,24 @@ export default function SearchDock() {
           </div>
         </div>
 
-        <div className="go-cell">
+        {/* Submit CTA */}
+        <div className="flex items-center p-10 lg:border-l lg:border-line">
           <button
             type="button"
-            className={`pill pill-dark go${pending ? " is-loading" : ""}`}
+            className={`${pillPrimary} min-h-52 w-full px-24 text-body font-bold lg:w-auto`}
             aria-busy={pending}
             onClick={submit}
           >
             <span>{pending ? "Đang tìm" : "Tìm chuyến bay"}</span>
-            <span className="go-icon" aria-hidden="true">
-              <Icon name="arrow" />
-              <Jet />
-            </span>
+            {pending ? (
+              <Jet className="size-20 shrink-0 animate-pulse" />
+            ) : (
+              <Icon name="arrow" className="size-20 shrink-0" />
+            )}
           </button>
         </div>
       </div>
+
       <p className="sr-only" role="status">
         {s.status}
       </p>
@@ -637,22 +660,38 @@ function FieldBtn(p: {
   onClick: () => void;
   main: string;
   sub: string;
-  mainCls: string;
+  isEmpty: boolean;
   error?: string;
 }) {
   return (
     <button
       type="button"
-      className="field-btn"
       aria-expanded={p.open}
       onClick={p.onClick}
+      className={`grid h-full w-full content-start gap-2 rounded-inner px-16 py-12 text-left transition-colors ${
+        p.open ? "bg-accent-soft/75" : "hover:bg-tint/70"
+      } ${p.error ? "ring-2 ring-inset ring-danger" : ""}`}
     >
-      <span className="f-label">{p.label}</span>
-      <span className={`f-main ${p.mainCls}`.trim()}>{p.main}</span>
-      <span className="f-sub">{p.sub}</span>
+      <span
+        className={`text-badge ${
+          p.error ? "font-bold text-danger" : "font-medium text-muted"
+        }`}
+      >
+        {p.label}
+      </span>
+      <span
+        className={
+          p.isEmpty
+            ? "pt-4 text-body font-semibold text-muted"
+            : "truncate text-heading-sm font-black tracking-tight text-ink"
+        }
+      >
+        {p.main}
+      </span>
+      <span className="truncate text-badge text-muted">{p.sub}</span>
       {p.error && (
-        <span className="f-err">
-          <Icon name="alert" />
+        <span className="mt-4 flex items-center gap-6 text-badge font-bold text-danger">
+          <Icon name="alert" className="size-16 shrink-0" />
           {p.error}
         </span>
       )}
@@ -665,37 +704,38 @@ function PaxRow(p: {
   desc: string;
   noun: string;
   value: number;
-  tick: string;
   decDis: boolean;
   incDis: boolean;
   onDec: () => void;
   onInc: () => void;
 }) {
   return (
-    <div className="pax-row">
+    <div className="flex items-center justify-between gap-16 py-12 first:pt-0">
       <div>
-        <p className="pax-t">{p.title}</p>
-        <p className="pax-d">{p.desc}</p>
+        <p className="text-body font-bold text-ink">{p.title}</p>
+        <p className="text-badge text-muted">{p.desc}</p>
       </div>
-      <div className="stepper">
+      <div className="flex items-center gap-8">
         <button
           type="button"
-          className="icon-btn"
+          className={iconCircleBtn}
           aria-label={`Bớt một ${p.noun}`}
           disabled={p.decDis}
           onClick={p.onDec}
         >
-          <Icon name="minus" />
+          <Icon name="minus" className="size-18 shrink-0" />
         </button>
-        <span className={`num ${p.tick}`.trim()}>{p.value}</span>
+        <span className="min-w-32 text-center text-subheading font-black text-ink tabular-nums">
+          {p.value}
+        </span>
         <button
           type="button"
-          className="icon-btn"
+          className={iconCircleBtn}
           aria-label={`Thêm một ${p.noun}`}
           disabled={p.incDis}
           onClick={p.onInc}
         >
-          <Icon name="plus" />
+          <Icon name="plus" className="size-18 shrink-0" />
         </button>
       </div>
     </div>
@@ -705,9 +745,9 @@ function PaxRow(p: {
 function AirportPop(p: {
   title: string;
   aria: string;
+  posClass: string;
   query: string;
   list: Airport[];
-  /** Câu hiện khi list rỗng: đang tải, lỗi tải hoặc không có sân bay khớp. */
   empty: string;
   hi: number;
   onQuery: (q: string) => void;
@@ -718,29 +758,29 @@ function AirportPop(p: {
 }) {
   return (
     <div
-      className="pop pop-ap"
       role="dialog"
       aria-label={p.aria}
       onKeyDown={p.onPopKey}
+      className={`${p.posClass} w-full rounded-card border border-line-strong bg-surface p-18 shadow-card-hover sm:w-400`}
     >
-      <div className="pop-head">
-        <label className="pop-title" htmlFor="ap-q">
+      <div className="mb-12 flex items-center justify-between gap-12">
+        <label className="text-body font-bold text-ink" htmlFor="ap-q">
           {p.title}
         </label>
         <button
           type="button"
-          className="icon-btn"
+          className={iconCircleBtn}
           aria-label="Đóng"
           onClick={p.onClose}
         >
-          <Icon name="close" />
+          <Icon name="close" className="size-18 shrink-0" />
         </button>
       </div>
-      <div className="q-wrap">
-        <Icon name="search" />
+      <div className="flex min-h-46 items-center gap-10 rounded-inner border border-line-strong bg-paper/50 px-14 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent-soft">
+        <Icon name="search" className="size-18 shrink-0 text-muted" />
         <input
           id="ap-q"
-          className="q"
+          className="min-w-0 flex-1 bg-transparent py-10 text-body text-ink outline-none placeholder:text-muted"
           type="text"
           value={p.query}
           ref={focusOnMount}
@@ -757,25 +797,33 @@ function AirportPop(p: {
           ? `${p.list.length} sân bay phù hợp`
           : "Không có sân bay phù hợp"}
       </p>
-      <div className="ap-list">
+      <div className="mt-10 grid max-h-320 overflow-y-auto overscroll-contain">
         {p.list.map((a, i) => (
           <button
             key={a.code}
             type="button"
-            className={`opt${i === p.hi ? " is-hi" : ""}`}
             onClick={() => p.onPick(a.code)}
+            className={`grid min-h-56 w-full grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-12 rounded-inner px-10 py-8 text-left transition-colors ${
+              i === p.hi
+                ? "bg-accent-soft/80 shadow-[inset_3px_0_0_var(--color-accent)]"
+                : "hover:bg-tint"
+            }`}
           >
-            <span className="ap-code">{a.code}</span>
-            <span className="ap-txt">
-              <span className="ap-city">{a.city}</span>
-              <span className="ap-name">{a.name}</span>
+            <span className="text-subheading font-black tracking-tight text-accent">
+              {a.code}
             </span>
-            <span className="ap-tag">
+            <span className="grid min-w-0">
+              <span className="text-body font-bold text-ink">{a.city}</span>
+              <span className="truncate text-badge text-muted">{a.name}</span>
+            </span>
+            <span className="text-badge font-medium text-muted">
               {a.countryCode === "VN" ? "" : countryName(a.countryCode)}
             </span>
           </button>
         ))}
-        {p.list.length === 0 && <p className="ap-empty">{p.empty}</p>}
+        {p.list.length === 0 && (
+          <p className="px-6 py-14 text-caption text-muted">{p.empty}</p>
+        )}
       </div>
     </div>
   );
@@ -784,12 +832,14 @@ function AirportPop(p: {
 function CalendarPop(p: {
   aria: string;
   hint: string;
+  posClass: string;
   cal: {
     cells: ({
       n: number;
       day: string;
-      cls: string;
       sel: boolean;
+      inRange: boolean;
+      isToday: boolean;
       disabled: boolean;
       label: string;
     } | null)[];
@@ -804,61 +854,76 @@ function CalendarPop(p: {
 }) {
   return (
     <div
-      className="pop pop-cal"
       role="dialog"
       aria-label={p.aria}
       onKeyDown={p.onKey}
+      className={`${p.posClass} w-full rounded-card border border-line-strong bg-surface p-18 shadow-card-hover sm:w-356`}
     >
-      <div className="cal-head">
+      <div className="flex items-center justify-between gap-10">
         <button
           type="button"
-          className="icon-btn"
+          className={iconCircleBtn}
           aria-label="Tháng trước"
           disabled={p.cal.prevDis}
           onClick={() => p.onShift(-1)}
         >
-          <Icon name="left" />
+          <Icon name="left" className="size-18 shrink-0" />
         </button>
-        <p className="cal-title" aria-live="polite">
+        <p className="text-body font-bold text-ink" aria-live="polite">
           {p.cal.title}
         </p>
         <button
           type="button"
-          className="icon-btn"
+          className={iconCircleBtn}
           aria-label="Tháng sau"
           disabled={p.cal.nextDis}
           onClick={() => p.onShift(1)}
         >
-          <Icon name="right" />
+          <Icon name="right" className="size-18 shrink-0" />
         </button>
       </div>
-      <p className="cal-hint">{p.hint}</p>
-      <div className="cal-grid cal-wd" aria-hidden="true">
+      <p className="mt-4 mb-12 text-center text-badge text-muted">{p.hint}</p>
+      <div
+        className="grid grid-cols-7 text-center text-badge font-semibold text-muted"
+        aria-hidden="true"
+      >
         {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((d) => (
-          <span key={d}>{d}</span>
+          <span key={d} className="grid h-32 place-items-center">
+            {d}
+          </span>
         ))}
       </div>
-      <div className="cal-grid">
+      <div className="grid grid-cols-7 gap-y-2">
         {p.cal.cells.map((c, i) =>
           c ? (
             <button
               key={c.day}
               type="button"
-              className={c.cls}
               disabled={c.disabled}
               aria-pressed={c.sel}
               aria-label={c.label}
               onClick={() => p.onPick(c.day)}
+              className={`grid h-42 w-full place-items-center text-caption font-bold tabular-nums transition ${
+                c.sel
+                  ? "rounded-pill bg-cta text-cta-fg"
+                  : c.inRange
+                    ? "bg-accent-soft text-ink"
+                    : "rounded-pill text-ink hover:bg-tint"
+              } ${
+                c.isToday && !c.sel
+                  ? "ring-1 ring-inset ring-line-strong"
+                  : ""
+              } disabled:cursor-not-allowed disabled:font-normal disabled:text-muted disabled:opacity-40 disabled:hover:bg-transparent`}
             >
               {c.n}
             </button>
           ) : (
-            <span key={`b${i}`} className="day-blank" />
+            <span key={`b${i}`} className="h-42 w-full" />
           ),
         )}
       </div>
-      <div className="pop-foot">
-        <button type="button" className="pill pill-line sm" onClick={p.onClose}>
+      <div className="mt-14 flex justify-end">
+        <button type="button" className={pillLine} onClick={p.onClose}>
           Xong
         </button>
       </div>

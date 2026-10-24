@@ -30,15 +30,20 @@ export type IconName = keyof typeof PATHS;
 
 export function Icon({
   name,
-  className = "",
+  className = "size-20 shrink-0",
 }: {
   name: IconName;
   className?: string;
 }) {
   return (
     <svg
-      className={`ic ${className}`.trim()}
+      className={className}
       viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
     >
       {PATHS[name].map((d) => (
@@ -52,9 +57,17 @@ const JET_BODY =
   "M45 40L12 60V67L45 58ZM55 40L88 60V67L55 58ZM45 70L32 80V85L45 81ZM55 70L68 80V85L55 81Z";
 
 /** Biểu tượng máy bay (mũi hướng sang phải), dùng làm ký hiệu chuyến bay. */
-export function Jet() {
+export function Jet({ className = "size-20 shrink-0" }: { className?: string }) {
   return (
-    <svg className="glyph" viewBox="0 0 100 100">
+    <svg
+      className={className}
+      viewBox="0 0 100 100"
+      fill="currentColor"
+      stroke="currentColor"
+      strokeWidth={3}
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <g transform="rotate(90 50 50)">
         <rect x="45" y="14" width="10" height="70" rx="5" />
         <path d={JET_BODY} />
@@ -63,15 +76,18 @@ export function Jet() {
   );
 }
 
-export function Logo() {
+export function Logo({ className = "size-full" }: { className?: string }) {
   return (
-    <svg className="logo-svg" viewBox="0 0 160 160" aria-hidden="true">
+    <svg className={className} viewBox="0 0 160 160" aria-hidden="true">
       <rect width="160" height="160" rx="36" fill="#163300" />
       <g transform="translate(20 20) scale(1.2)">
         <circle cx="80" cy="20" r="8" fill="#9fe870" />
         <g
           transform="matrix(0.671751 0.671751 -0.671751 0.671751 46 -13.1751)"
           fill="#ffffff"
+          stroke="#ffffff"
+          strokeWidth={3}
+          strokeLinejoin="round"
         >
           <rect x="45" y="14" width="10" height="70" rx="5" />
           <path d={JET_BODY} />

@@ -29,36 +29,49 @@ const ITEMS = [
     "Một lần đặt được bao nhiêu người?",
     "Tối đa 9 khách chiếm ghế. Mỗi người lớn đi kèm tối đa một em bé, em bé không chiếm ghế.",
   ],
-];
+] as const;
 
 export default function Faq() {
   const [open, setOpen] = useState<Record<number, boolean>>({ 0: true });
 
   return (
-    <div className="faq">
-      {ITEMS.map(([q, a], i) => (
-        <div key={q} className={`faq-item${open[i] ? " is-open" : ""}`}>
-          <h4>
-            <button
-              type="button"
-              className="faq-q"
-              aria-expanded={!!open[i]}
-              aria-controls={`faq-a${i}`}
-              onClick={() => setOpen((o) => ({ ...o, [i]: !o[i] }))}
-            >
-              <span>{q}</span>
-              <span className="faq-ic" aria-hidden="true">
-                <Icon name="plus" />
-              </span>
-            </button>
-          </h4>
-          {open[i] && (
-            <div className="faq-a" id={`faq-a${i}`}>
-              <p>{a}</p>
-            </div>
-          )}
-        </div>
-      ))}
+    <div className="divide-y divide-line rounded-card border border-line bg-surface">
+      {ITEMS.map(([q, a], i) => {
+        const isOpen = !!open[i];
+        return (
+          <div key={q} className="px-20 py-4 sm:px-24">
+            <h4>
+              <button
+                type="button"
+                aria-expanded={isOpen}
+                aria-controls={`faq-a${i}`}
+                onClick={() => setOpen((o) => ({ ...o, [i]: !o[i] }))}
+                className="flex w-full items-center justify-between gap-20 py-16 text-left text-nav font-bold text-ink transition-colors hover:text-accent"
+              >
+                <span>{q}</span>
+                <span
+                  aria-hidden="true"
+                  className={`grid size-36 shrink-0 place-items-center rounded-pill border transition-all duration-200 ${
+                    isOpen
+                      ? "rotate-45 border-cta bg-cta text-cta-fg"
+                      : "border-line-strong bg-paper text-ink"
+                  }`}
+                >
+                  <Icon name="plus" className="size-18 shrink-0" />
+                </span>
+              </button>
+            </h4>
+            {isOpen && (
+              <div
+                id={`faq-a${i}`}
+                className="pb-18 pr-40 text-body text-ink-2"
+              >
+                <p>{a}</p>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

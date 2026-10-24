@@ -11,7 +11,7 @@ import {
 import { ApiError } from "@/lib/api";
 import { Icon } from "./landing/icons";
 
-/** Nút chính theo NEW_DESIGN.md (Wise style): pill nền Lime Voltage (#9fe870), chữ Forest Ink (#163300) đậm. */
+/** Nút chính theo DESIGN.md (Wise style): pill nền Lime Voltage (#9fe870), chữ Forest Ink (#163300) đậm. */
 export const pillPrimary =
   "inline-flex min-h-40 items-center justify-center gap-8 rounded-pill bg-cta px-18 py-10 text-caption leading-none font-semibold whitespace-nowrap text-cta-fg shadow-accent transition-[background-color,transform,box-shadow] duration-200 ease-out hover:-translate-y-1 hover:bg-cta-hover active:translate-y-0 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60 disabled:hover:translate-y-0";
 /** Nút phụ: pill nền thẻ, viền Pebble đậm lên thành Forest Ink khi rê chuột. */
@@ -23,7 +23,7 @@ export const pillDanger =
 export const textLink =
   "font-semibold underline decoration-accent/40 decoration-2 underline-offset-4 transition-colors hover:text-accent hover:decoration-accent";
 
-/** Ô nhập và ô chọn theo NEW_DESIGN.md: bo 10px, viền Pebble 1px; focus viền Forest Ink kèm quầng Linen Mist. */
+/** Ô nhập và ô chọn theo DESIGN.md: bo 10px, viền Pebble 1px; focus viền Forest Ink kèm quầng Linen Mist. */
 const inputBox = (invalid: boolean) =>
   `flex min-w-0 rounded-inner border bg-surface transition-[border-color,box-shadow] duration-200 hover:border-ink-2/70 focus-within:border-accent focus-within:shadow-[0_0_0_3px_var(--color-accent-soft)] ${
     invalid ? "border-danger" : "border-line-strong"
@@ -83,7 +83,7 @@ function Note({
   ) : null;
 }
 
-/** Nhãn trên ô, lỗi dưới ô (NEW_DESIGN.md: ô nhập bo 10px, viền 1px Pebble). */
+/** Nhãn trên ô, lỗi dưới ô (DESIGN.md: ô nhập bo 10px, viền 1px Pebble). */
 export function Field({
   label,
   error,

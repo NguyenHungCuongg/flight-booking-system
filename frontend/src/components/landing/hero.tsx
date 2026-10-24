@@ -1,108 +1,61 @@
-"use client";
-
-import Image from "next/image";
-import { useRef } from "react";
+import { HOLD_MINUTES } from "./data";
+import { Icon, Jet } from "./icons";
 import SearchDock from "./search-dock";
 
-const reduced = () =>
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const HIGHLIGHTS = [
+  "Giá trọn gói đã gồm thuế phí",
+  `Giữ chỗ miễn phí ${HOLD_MINUTES} phút`,
+  "Đổi chuyến, hoàn vé ngay trên web",
+] as const;
 
 export default function Hero() {
-  const heroRef = useRef<HTMLElement>(null);
-  const raf = useRef(0);
-  const pos = useRef({ x: 0, y: 0 });
-
-  // Parallax theo con trỏ: chỉ ghi biến CSS --mx/--my, không đi qua state của React.
-  const onMove = (e: React.MouseEvent) => {
-    const el = heroRef.current;
-    if (!el || reduced()) return;
-    const r = el.getBoundingClientRect();
-    if (!r.width || !r.height) return;
-    pos.current = {
-      x: Math.max(-0.5, Math.min(0.5, (e.clientX - r.left) / r.width - 0.5)),
-      y: Math.max(-0.5, Math.min(0.5, (e.clientY - r.top) / r.height - 0.5)),
-    };
-    if (raf.current) return;
-    raf.current = requestAnimationFrame(() => {
-      raf.current = 0;
-      el.style.setProperty("--mx", pos.current.x.toFixed(3));
-      el.style.setProperty("--my", pos.current.y.toFixed(3));
-    });
-  };
-  const onLeave = () => {
-    heroRef.current?.style.setProperty("--mx", "0");
-    heroRef.current?.style.setProperty("--my", "0");
-  };
-
   return (
     <section
-      className="hero"
-      ref={heroRef}
-      onMouseMove={onMove}
-      onMouseLeave={onLeave}
       aria-labelledby="hero-h"
+      className="relative overflow-hidden border-b border-line pt-28 pb-48 sm:pt-48 sm:pb-68"
     >
-      <div className="hero-bg" aria-hidden="true">
-        <Image
-          src="/assets/images/night-sky.jpg"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="hero-bg-img"
-        />
-        <div className="hero-bg-overlay" />
-      </div>
-      <div className="wrap hero-in">
-        <div className="wm" aria-hidden="true">
-          <div className="wm-exit">
-            <div className="wm-par">
-              <p className="wm-text">
-                {[..."SkyLine"].map((c, i) => (
-                  <span key={i} className="wm-ch">
-                    {c}
-                  </span>
-                ))}
-                <span className="wm-ch dot">.</span>
-              </p>
+      <div className="mx-auto max-w-page px-16 sm:px-38">
+        <div className="grid gap-24 lg:grid-cols-12 lg:items-end lg:gap-32">
+          <div className="grid gap-18 lg:col-span-7">
+            <div className="inline-flex justify-self-start items-center gap-8 rounded-pill border border-line bg-accent-soft px-14 py-6 text-badge font-bold text-accent">
+              <Jet className="size-16 shrink-0" />
+              <span>Vé máy bay nội địa và quốc tế · Nhiều hãng một nơi</span>
             </div>
+
+            <h1
+              id="hero-h"
+              className="text-[clamp(40px,6.2vw,76px)] leading-[0.95] font-black tracking-[-0.035em] text-ink"
+            >
+              <span className="sr-only">SkyLine. </span>
+              <span className="block">Tìm một giây.</span>
+              <span className="mt-4 inline-block rounded-pill bg-cta px-18 py-4 text-cta-fg">
+                Bay vạn dặm.
+              </span>
+            </h1>
+          </div>
+
+          <div className="grid gap-16 lg:col-span-5 lg:pb-6">
+            <p className="max-w-[44ch] text-subheading leading-relaxed font-medium text-ink-2">
+              So sánh chuyến bay thẳng và nối chuyến của nhiều hãng trong một lần
+              tìm. Giữ chỗ trước, kiểm tra kỹ thông tin rồi mới thanh toán qua
+              VNPay.
+            </p>
+            <ul className="flex flex-wrap gap-8">
+              {HIGHLIGHTS.map((item) => (
+                <li
+                  key={item}
+                  className="inline-flex items-center gap-6 rounded-pill border border-line bg-surface px-12 py-5 text-badge font-semibold text-ink-2"
+                >
+                  <Icon name="check" className="size-14 shrink-0 text-ok" />
+                  {item}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
-        <div className="hero-copy">
-          <h1 id="hero-h" className="h-hero">
-            <span className="sr-only">SkyLine. </span>
-            <span className="hl-line">Tìm một giây.</span>
-            <span className="hl-line">Bay vạn dặm.</span>
-          </h1>
-          <p className="hero-sub">
-            Bay thẳng hoặc nối chuyến, giá đã gồm thuế phí. Giữ chỗ trước, thanh
-            toán sau qua VNPay.
-          </p>
-        </div>
-
-        <div className="jet-stage">
-          <div className="jet-exit">
-            <div className="jet-par">
-              <div className="jet-float">
-                <Image
-                  className="jet-img"
-                  src="/assets/images/skyline-hero-jet.webp"
-                  width={2000}
-                  height={643}
-                  priority
-                  sizes="(min-width: 1200px) 1160px, 96vw"
-                  alt="Máy bay chở khách thân trắng, không mang logo hãng, đang nghiêng cánh trên bầu trời"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="dock-row">
-          <div className="dock-in">
-            <SearchDock />
-          </div>
+        <div className="mt-32 rounded-[20px] border border-line bg-tint/65 p-8 sm:mt-40 sm:p-14">
+          <SearchDock />
         </div>
       </div>
     </section>

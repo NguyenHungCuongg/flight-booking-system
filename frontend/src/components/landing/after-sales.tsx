@@ -1,12 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 import { Icon } from "./icons";
 
 const PANES = {
   doi: {
     tab: "Đổi chuyến",
+    badge: "Đổi ngày bay trực tuyến",
     formula: "Phí đổi + chênh lệch giá vé",
     facts: [
       "Đổi trước giờ bay ít nhất 24 giờ, cùng hãng, cùng gói giá.",
@@ -15,6 +15,7 @@ const PANES = {
   },
   hoan: {
     tab: "Hoàn vé",
+    badge: "Hoàn theo từng chiều bay",
     formula: "Giá trị chiều − phí hoàn",
     facts: [
       "Số tiền hoàn được chốt khi gửi yêu cầu, nhân viên duyệt rồi hoàn qua VNPay.",
@@ -28,49 +29,80 @@ export default function AfterSales() {
   const pane = PANES[tab];
 
   return (
-    <section className="after sec" id="doi-hoan" aria-labelledby="after-h">
-      <div className="clay">
-        <div className="clay-copy">
-          <h2 id="after-h" className="clay-h rv">
-            Đổi chuyến, hoàn vé. Tự làm trên web.
-          </h2>
-          <p className="clay-p rv rv-2">
-            Gói giá cho phép thì bạn tự đổi ngày bay hoặc gửi yêu cầu hoàn cho
-            từng chiều, thấy trước phí và số tiền.
-          </p>
-          <div className="clay-seg" role="group" aria-label="Xem quy định">
-            {(Object.keys(PANES) as (keyof typeof PANES)[]).map((k) => (
-              <button
-                key={k}
-                type="button"
-                className={`clay-tab${tab === k ? " is-on" : ""}`}
-                aria-pressed={tab === k}
-                onClick={() => setTab(k)}
-              >
-                {PANES[k].tab}
-              </button>
-            ))}
+    <section
+      id="doi-hoan"
+      aria-labelledby="after-h"
+      className="py-40 sm:py-68"
+    >
+      <div className="mx-auto max-w-page px-16 sm:px-38">
+        <div className="grid gap-32 rounded-[28px] border border-lime-voltage/20 bg-forest-ink p-24 text-pure-white sm:p-44 lg:grid-cols-12 lg:items-center lg:gap-48 lg:p-56">
+          {/* Left: Headline + Segmented Switch */}
+          <div className="grid content-start gap-20 lg:col-span-6">
+            <span className="inline-flex justify-self-start rounded-pill bg-spruce px-12 py-4 text-badge font-bold text-lime-voltage">
+              Chủ động sau khi xuất vé
+            </span>
+            <h2
+              id="after-h"
+              className="text-[clamp(28px,3.2vw,44px)] leading-[1.04] font-black tracking-[-0.028em] text-lime-voltage"
+            >
+              Đổi chuyến, hoàn vé. Tự làm trên web.
+            </h2>
+            <p className="max-w-[46ch] text-body text-linen-mist/90">
+              Gói giá cho phép thì bạn tự đổi ngày bay hoặc gửi yêu cầu hoàn cho
+              từng chiều, thấy trước phí và số tiền ngay trên màn hình đặt chỗ.
+            </p>
+
+            <div
+              className="mt-4 flex flex-wrap gap-10"
+              role="group"
+              aria-label="Xem quy định"
+            >
+              {(Object.keys(PANES) as (keyof typeof PANES)[]).map((k) => {
+                const active = tab === k;
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setTab(k)}
+                    className={`min-h-42 rounded-pill border px-20 py-9 text-caption font-bold transition ${
+                      active
+                        ? "border-lime-voltage bg-lime-voltage text-forest-ink"
+                        : "border-linen-mist/35 bg-transparent text-pure-white hover:border-lime-voltage"
+                    }`}
+                  >
+                    {PANES[k].tab}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-        <div className="clay-right">
-          <div className="eng-wrap">
-            <Image
-              className="eng-img"
-              src="/assets/images/skyline-engine-wing.webp"
-              width={1400}
-              height={452}
-              sizes="(min-width: 900px) 64vw, 116vw"
-              alt="Cận cảnh động cơ và cánh máy bay sơn trắng"
-            />
-          </div>
-          <div className="clay-panel" aria-live="polite">
-            <div className="clay-pane" key={tab}>
-              <p className="clay-formula">{pane.formula}</p>
-              <ul className="clay-facts">
+
+          {/* Right: Formula & Rule Card */}
+          <div
+            aria-live="polite"
+            className="rounded-card border border-lime-voltage/25 bg-spruce/70 p-24 sm:p-32 lg:col-span-6"
+          >
+            <div key={tab} className="grid gap-18">
+              <div className="grid gap-6 border-b border-linen-mist/15 pb-16">
+                <span className="text-badge font-semibold text-linen-mist/80">
+                  {pane.badge} · Công thức tính
+                </span>
+                <p className="text-[clamp(22px,2.2vw,30px)] leading-tight font-black tracking-tight text-lime-voltage">
+                  {pane.formula}
+                </p>
+              </div>
+
+              <ul className="grid gap-12">
                 {pane.facts.map((f) => (
-                  <li key={f}>
-                    <Icon name="check" />
-                    {f}
+                  <li
+                    key={f}
+                    className="flex items-start gap-12 text-body text-pure-white/95"
+                  >
+                    <span className="mt-2 grid size-22 shrink-0 place-items-center rounded-pill bg-lime-voltage text-forest-ink">
+                      <Icon name="check" className="size-14 shrink-0" />
+                    </span>
+                    <span>{f}</span>
                   </li>
                 ))}
               </ul>

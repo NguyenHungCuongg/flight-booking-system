@@ -1,107 +1,73 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { pillLine, pillPrimary } from "@/components/form";
+import { ThemeToggle } from "@/components/theme-toggle";
+import UserMenu from "@/components/user-menu";
 import { useCurrentUser } from "@/lib/use-current-user";
-import { ThemeToggle } from "../theme-toggle";
-import UserMenu from "../user-menu";
-import { Icon, Logo } from "./icons";
+import { Logo } from "./icons";
+
+const LINKS = [
+  ["/flights", "Tìm chuyến bay", true],
+  ["#cach-dat-ve", "Cách đặt vé", false],
+  ["#doi-hoan", "Đổi và hoàn vé", false],
+  ["#ho-tro", "Hỗ trợ", false],
+  ["/bookings", "Đặt chỗ của tôi", true],
+] as const;
 
 export default function Nav() {
-  const [solid, setSolid] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const user = useCurrentUser();
 
-  // Nền thanh điều hướng đặc dần khi cuộn qua phần đầu hero.
-  useEffect(() => {
-    const onScroll = () => setSolid(window.scrollY > 140);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  const close = () => setMenuOpen(false);
-
   return (
-    <header className={`nav${solid ? " is-solid" : ""}`}>
-      <div className="nav-bg" aria-hidden="true" />
-      <div className="wrap nav-in">
-        <a className="logo" href="#top" aria-label="SkyLine, về đầu trang">
-          <Logo />
+    <div className="sticky top-0 z-40 border-b border-line bg-paper/85 backdrop-blur-md">
+      <header className="mx-auto flex max-w-page flex-wrap items-center justify-between gap-16 px-16 py-12 sm:px-38">
+        <a
+          href="#top"
+          aria-label="SkyLine, về đầu trang"
+          className="inline-flex items-center gap-10 text-subheading font-black tracking-tight text-ink"
+        >
+          <span className="size-32 [&>svg]:size-full">
+            <Logo />
+          </span>
+          SkyLine
         </a>
-        <nav className="nav-links" aria-label="Điều hướng chính">
-          <Link className="nav-link" href="/flights">
-            Tìm chuyến bay
-          </Link>
-          <a className="nav-link" href="#cach-dat-ve">
-            Cách đặt vé
-          </a>
-          <a className="nav-link" href="#ho-tro">
-            Hỗ trợ
-          </a>
-          <Link className="nav-link" href="/bookings">
-            Đặt chỗ của tôi
-          </Link>
-          <ThemeToggle className="nav-theme-btn" />
-          {/* Đang hỏi /me (undefined) thì chưa hiện gì, để không nháy nút Đăng nhập. */}
-          {user ? (
-            <UserMenu user={user} className="nav-link" />
-          ) : (
-            user === null && (
-              <Link className="pill pill-dark" href="/login">
+
+        <nav
+          aria-label="Điều hướng chính"
+          className="flex flex-wrap items-center gap-x-8 gap-y-8 text-caption"
+        >
+          {LINKS.map(([href, label, isRoute]) => {
+            const cls =
+              "rounded-pill px-12 py-6 font-semibold text-ink-2 transition-colors duration-200 hover:bg-accent-soft hover:text-accent";
+            return isRoute ? (
+              <Link key={href} href={href} className={cls}>
+                {label}
+              </Link>
+            ) : (
+              <a key={href} href={href} className={cls}>
+                {label}
+              </a>
+            );
+          })}
+
+          <ThemeToggle />
+
+          {user === undefined ? (
+            <span className="min-w-120" aria-hidden="true" />
+          ) : user === null ? (
+            <div className="flex items-center gap-8">
+              <Link href="/login" className={pillPrimary}>
                 Đăng nhập
               </Link>
-            )
-          )}
-        </nav>
-        <div className="nav-mobile-actions">
-          <ThemeToggle className="nav-theme-btn" />
-          <button
-            type="button"
-            className="icon-btn solid menu-btn"
-            aria-expanded={menuOpen}
-            aria-controls="menu"
-            aria-label={menuOpen ? "Đóng menu" : "Mở menu"}
-            onClick={() => setMenuOpen((o) => !o)}
-          >
-            <Icon name={menuOpen ? "close" : "menu"} />
-          </button>
-        </div>
-      </div>
-      <div
-        className={`menu${menuOpen ? " is-open" : ""}`}
-        id="menu"
-        onKeyDown={(e) => e.key === "Escape" && close()}
-      >
-        <nav className="menu-links" aria-label="Menu">
-          <Link href="/flights" onClick={close}>
-            Tìm chuyến bay
-          </Link>
-          <a href="#cach-dat-ve" onClick={close}>
-            Cách đặt vé
-          </a>
-          <a href="#ho-tro" onClick={close}>
-            Hỗ trợ
-          </a>
-          <Link href="/bookings" onClick={close}>
-            Đặt chỗ của tôi
-          </Link>
-        </nav>
-        <div className="menu-cta">
-          {user ? (
-            <UserMenu user={user} className="pill pill-line" />
-          ) : (
-            <>
-              <Link className="pill pill-dark" href="/login" onClick={close}>
-                Đăng nhập
-              </Link>
-              <Link className="pill pill-line" href="/register" onClick={close}>
+              <Link href="/register" className={`${pillLine} max-sm:hidden`}>
                 Đăng ký
               </Link>
-            </>
+            </div>
+          ) : (
+            <UserMenu user={user} className={pillLine} />
           )}
-        </div>
-      </div>
-    </header>
+        </nav>
+      </header>
+    </div>
   );
 }
