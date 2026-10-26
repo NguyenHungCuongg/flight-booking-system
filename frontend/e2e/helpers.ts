@@ -12,7 +12,9 @@ export const field = (scope: Page | Locator, label: string) =>
   scope.getByLabel(label, { exact: true });
 
 /** Lấy header X-XSRF-TOKEN từ cookie sau khi gọi GET /api/auth/csrf. */
-export async function csrfHeaders(page: Page): Promise<{ "X-XSRF-TOKEN": string }> {
+export async function csrfHeaders(
+  page: Page,
+): Promise<{ "X-XSRF-TOKEN": string }> {
   const csrfRes = await page.request.get("/api/auth/csrf");
   expect(csrfRes.ok()).toBe(true);
   const csrf = (await page.context().cookies()).find(
@@ -48,13 +50,9 @@ export function paidReturn(paymentUrl: string) {
   return `/api/payments/vnpay/return?${params}&vnp_SecureHash=${hash}`;
 }
 
-/** Tạo một đặt chỗ đã xuất vé bằng API (dùng chung cookie với trang) rồi mở C-09. */
-export async function issuedBooking(
-  page: Page,
-  fare: string,
-  legs: { from: string; to: string; date: string; flight: string }[],
-) {
-  const email = `e2e-${test.info().testId}-${Date.now()}@example.com`;
+/** Đăng ký tài khoản khách mới trên C-04 (đã đăng nhập sau đó), trả email. */
+export async function register(page: Page) {
+  const email = `e2e-${test.info().testId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@example.com`;
   await page.goto("/register");
   await field(page, "Họ và tên").fill("Phạm Thu Hà");
   await field(page, "Email").fill(email);
@@ -62,6 +60,16 @@ export async function issuedBooking(
   await field(page, "Mật khẩu").fill("matkhau1");
   await page.getByRole("button", { name: "Tạo tài khoản" }).click();
   await expect(page).toHaveURL("/bookings");
+  return email;
+}
+
+/** Tạo một đặt chỗ đã xuất vé bằng API (dùng chung cookie với trang) rồi mở C-09. */
+export async function issuedBooking(
+  page: Page,
+  fare: string,
+  legs: { from: string; to: string; date: string; flight: string }[],
+) {
+  const email = await register(page);
 
   const headers = await csrfHeaders(page);
 
@@ -109,7 +117,8 @@ export async function issuedBooking(
     },
   });
   expect(createRes.ok()).toBe(true);
-  const { code } = (await createRes.json()) as Schemas["BookingCreatedResponse"];
+  const { code } =
+    (await createRes.json()) as Schemas["BookingCreatedResponse"];
 
   const payRes = await page.request.post(`/api/bookings/${code}/payments`, {
     headers,
@@ -121,4 +130,3 @@ export async function issuedBooking(
   await expect(page).toHaveURL(`/bookings/${code}?payment=success`);
   return { code, email };
 }
-

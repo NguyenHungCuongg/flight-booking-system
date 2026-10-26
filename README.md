@@ -4,7 +4,7 @@ An online multi-airline ticket agency (OTA) modelled on [Traveloka](https://www.
 
 The system does not connect to real airline reservation systems (GDS/NDC): the ticket inventory is simulated, and admins enter schedules, seats, fare families and prices for each airline.
 
-> **Status:** work in progress. The backend foundation, accounts, email and the catalog module are done, as are the landing page and the account screens. Flight search, booking, payment and after-sales come next. See the [roadmap](docs/superpowers/plans/2026-10-09-00-roadmap.md) for the full plan list and progress.
+> **Status:** all 21 plans of the [roadmap](docs/superpowers/plans/2026-10-09-00-roadmap.md) are done: search, booking, VNPay payment, refunds, rescheduling, flight disruption, and the customer, staff and admin screens. `docker compose up -d --build` runs the whole system; see the [demo script](docs/DEMO.md).
 
 ## Tech stack
 
@@ -87,7 +87,15 @@ Available with the `dev` profile. The password for all three is `Demo@1234`.
 docker compose up -d --build
 ```
 
-This starts PostgreSQL, Mailpit and the backend. The frontend is not in the Compose file yet; run it with `npm run dev` as above.
+This starts the whole system: PostgreSQL, Mailpit, the backend (profile from `SPRING_PROFILES_ACTIVE` in `.env`; `dev` loads the seed data and demo accounts) and the frontend at http://localhost:3000. Every service has a health check; `docker compose ps` shows them all `healthy`. The flight seed covers 60 days from the first start, so refresh it with `docker compose down -v` before a demo.
+
+The demo script for scenarios D1–D11 is [docs/DEMO.md](docs/DEMO.md). To check the stack end to end:
+
+```bash
+cd frontend
+E2E_BASE_URL=http://localhost:3000 npm run e2e   # all E2E, then the D1–D11 demo spec
+node scripts/perf.mjs                            # NFR-01 response times (p95)
+```
 
 ## Development
 
@@ -137,6 +145,7 @@ The design documents are the source of truth for behaviour and are written in Vi
 | [Backend Schema](docs/BACKEND_SCHEMA.md)                   | DDL, key queries, seed data                                                             |
 | [DESIGN.md](DESIGN.md)                                     | Frontend design system                                                                  |
 | [Roadmap](docs/superpowers/plans/2026-10-09-00-roadmap.md) | The 21 implementation plans, their dependencies and progress                            |
+| [Demo script](docs/DEMO.md)                                | Presentation script for demo scenarios D1–D11                                           |
 
 ## License
 

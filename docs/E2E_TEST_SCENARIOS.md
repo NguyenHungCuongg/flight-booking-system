@@ -489,17 +489,17 @@ Mọi route công khai hiển thị được; route cần đăng nhập chuyển
 
 | Demo | Nội dung                                                   | Kịch bản E2E       | Trạng thái                     |
 | ---- | ---------------------------------------------------------- | ------------------ | ------------------------------ |
-| D1   | Đăng ký, khứ hồi 4 khách, hành lý, `WELCOME10`, thanh toán | A01, B03, C01, C02 | 🟡 thiếu khứ hồi 8 vé trọn vẹn |
-| D2   | Nối chuyến HAN→SGN→PQC                                     | B04, C03           | ❌                             |
+| D1   | Đăng ký, khứ hồi 4 khách, hành lý, `WELCOME10`, thanh toán | A01, B03, C01, C02 | ✅ `demo.spec.ts`              |
+| D2   | Nối chuyến HAN→SGN→PQC                                     | B04, C03           | ✅ `demo.spec.ts`              |
 | D3   | Quốc tế, thiếu hộ chiếu, giờ Singapore                     | B05, C04           | ✅                             |
-| D4   | Hai khách tranh ghế cuối                                   | C09                | ❌                             |
+| D4   | Hai khách tranh ghế cuối                                   | C09                | ✅ `demo.spec.ts` (qua API)    |
 | D5   | Không thanh toán, tự hết hạn                               | C11                | ✅                             |
 | D6   | Đổi chuyến, trả phí qua VNPay                              | D05                | ✅                             |
 | D7   | Hoàn vé, Staff duyệt                                       | D01, E03           | ✅                             |
-| D8   | Huỷ chuyến có cả `ISSUED` và `PENDING_PAYMENT`             | F06                | 🟡                             |
-| D9   | Đổi `booking.hold_minutes`                                 | F08                | 🟡                             |
-| D10  | Báo cáo khớp D1–D8                                         | F09                | 🟡                             |
-| D11  | Phân quyền 403 và 404                                      | A05                | 🟡                             |
+| D8   | Huỷ chuyến có cả `ISSUED` và `PENDING_PAYMENT`             | F06                | ✅ `demo.spec.ts` (2/4 loại)   |
+| D9   | Đổi `booking.hold_minutes`                                 | F08                | ✅ `demo.spec.ts`              |
+| D10  | Báo cáo khớp D1–D8                                         | F09                | ✅ `demo.spec.ts`              |
+| D11  | Phân quyền 403 và 404                                      | A05                | ✅ `demo.spec.ts`              |
 
 ### Khoảng trống cần ưu tiên viết tự động
 

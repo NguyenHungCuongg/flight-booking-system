@@ -16,7 +16,21 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: "list",
   use: { baseURL, trace: "retain-on-failure" },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "chromium",
+      testIgnore: /demo\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    // Kịch bản demo D1–D11: đổi tham số dùng chung và so số liệu báo cáo, nên chạy sau cùng và tuần tự.
+    {
+      name: "demo",
+      testMatch: /demo\.spec\.ts/,
+      dependencies: ["chromium"],
+      fullyParallel: false,
+      use: { ...devices["Desktop Chrome"] },
+    },
+  ],
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : { command: "npm run dev", url: baseURL, reuseExistingServer: true },
