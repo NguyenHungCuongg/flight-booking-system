@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import PageLoading from "@/components/page-loading";
 import AdminFlightList from "./flight-list";
 
 export const metadata = {
@@ -8,7 +9,7 @@ export const metadata = {
 /** A-04 (APP_FLOW §2.3): danh sách chuyến bay của Admin, trang mặc định sau đăng nhập. */
 export default function AdminFlightsPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<PageLoading />}>
       <AdminFlightList />
     </Suspense>
   );

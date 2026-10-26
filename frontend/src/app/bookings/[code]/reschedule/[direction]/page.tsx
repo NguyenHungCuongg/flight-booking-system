@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import PageLoading from "@/components/page-loading";
 import RescheduleView from "./reschedule-view";
 
 export const metadata: Metadata = { title: "Đổi chuyến | SkyLine" };
@@ -10,7 +11,7 @@ export const metadata: Metadata = { title: "Đổi chuyến | SkyLine" };
  */
 export default function Page() {
   return (
-    <Suspense>
+    <Suspense fallback={<PageLoading />}>
       <RescheduleView />
     </Suspense>
   );

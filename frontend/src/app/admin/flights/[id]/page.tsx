@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import PageLoading from "@/components/page-loading";
 import FlightDetailView from "./flight-detail";
 
 export const metadata = {
@@ -8,7 +9,7 @@ export const metadata = {
 /** A-06 (APP_FLOW §2.3): kho ghế, sửa, huỷ hai bước và xoá chuyến bay. */
 export default function AdminFlightDetailPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<PageLoading />}>
       <FlightDetailView />
     </Suspense>
   );

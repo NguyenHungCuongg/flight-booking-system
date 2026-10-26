@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import PageLoading from "@/components/page-loading";
 import type { Metadata } from "next";
 import BookingSearch from "./booking-search";
 
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 /** S-01 (APP_FLOW §2.2): Staff và Admin tra cứu đặt chỗ theo mã, email hoặc số điện thoại. */
 export default function StaffBookingsPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<PageLoading />}>
       <BookingSearch />
     </Suspense>
   );

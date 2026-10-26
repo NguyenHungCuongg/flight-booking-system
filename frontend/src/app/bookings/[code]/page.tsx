@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import PageLoading from "@/components/page-loading";
 import BookingView from "./booking-view";
 
 export const metadata: Metadata = { title: "Chi tiết đặt chỗ | SkyLine" };
@@ -10,7 +11,7 @@ export const metadata: Metadata = { title: "Chi tiết đặt chỗ | SkyLine" }
  */
 export default function Page() {
   return (
-    <Suspense>
+    <Suspense fallback={<PageLoading />}>
       <BookingView />
     </Suspense>
   );

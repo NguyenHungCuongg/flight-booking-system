@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import PageLoading from "@/components/page-loading";
 import RefundView from "./refund-view";
 
 export const metadata: Metadata = { title: "Hoàn vé | SkyLine" };
@@ -10,7 +11,7 @@ export const metadata: Metadata = { title: "Hoàn vé | SkyLine" };
  */
 export default function Page() {
   return (
-    <Suspense>
+    <Suspense fallback={<PageLoading />}>
       <RefundView />
     </Suspense>
   );
