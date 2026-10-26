@@ -108,6 +108,22 @@ def test_sold_out_on_approval_lets_the_agent_propose_another_flight():
     assert len(fake.holds) == 1                     # chỉ lần giữ thất bại
 
 
+def test_parallel_tool_calls_cannot_leave_results_of_old_constraints():
+    # LangGraph chạy các tool call của cùng một AIMessage song song: search_flights đang chờ HTTP
+    # thì set_constraints đổi ràng buộc. Kết quả tìm không được tính theo ràng buộc cũ.
+    fake = FakeBackend(search_delay=0.2)
+    chat = Chats().create("s1")
+    both = AIMessage(content="", tool_calls=[call("search_flights").tool_calls[0],
+                                             call("set_constraints", **{**ROUTE, "depart_before": "07:00"}).tool_calls[0]])
+    turn(chat, scripted(call("set_constraints", **ROUTE), both, AIMessage(content="Xong.")), "Đặt vé",
+         fake.backend(), TODAY)
+    h = chat.harness
+    assert h.constraints.depart_before == "07:00"
+    for i in h.found:
+        assert i["broken"] == h.constraints.broken(i["segments"][0]["from"], i["segments"][-1]["to"],
+                                                   i["depart"], i["price"])
+
+
 def test_budget_ends_the_turn_with_a_handoff():
     fake = FakeBackend()
     dates = [f"2026-11-{d:02d}" for d in range(1, 12)]
@@ -133,6 +149,14 @@ def test_llm_outage_is_a_handoff_not_a_crash():
     out = turn(Chats().create("s1"), scripted(err), "Đặt vé", FakeBackend().backend(), TODAY)
     assert out["cards"][-1]["type"] == "handoff"
     assert "thử lại sau" in out["cards"][-1]["question"]
+
+
+def test_prompt_names_todays_weekday():
+    from flight_agent.core import Harness
+    from flight_agent.react import system_prompt
+    h = Harness()
+    h.begin_turn(FakeBackend().backend(), TODAY)          # 2026-10-26 là thứ Hai
+    assert "thứ Hai, 2026-10-26" in system_prompt(h)
 
 
 def test_chat_belongs_to_its_session():

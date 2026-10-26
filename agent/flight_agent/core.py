@@ -7,6 +7,7 @@ dừng lượt chat, và dùng CODE để quyết định việc đã xong hay c
 """
 import json
 import re
+import threading
 import unicodedata
 from collections import deque
 from dataclasses import dataclass, field
@@ -114,6 +115,8 @@ class Harness:
     model_calls: int = 0
     recent: deque = field(default_factory=lambda: deque(maxlen=LOOP_WINDOW))
     held_code: str | None = None                         # booking đọc lại không khớp (hold_mismatch)
+    # LangGraph chạy các tool call của cùng một AIMessage song song: mỗi lúc chỉ một tool được chạy.
+    tool_lock: threading.Lock = field(default_factory=threading.Lock)
 
     def begin_turn(self, backend: Backend, today: str) -> None:
         self.backend, self.today = backend, today
@@ -254,6 +257,10 @@ class Harness:
 
     # ---- mọi lời gọi tool đều đi qua đây
     def execute(self, tool: str, args: dict) -> dict:
+        with self.tool_lock:
+            return self._execute(tool, args)
+
+    def _execute(self, tool: str, args: dict) -> dict:
         if self.is_looping(tool, args):
             self.stop("loop")
             result = {"status": "denied", "hint": f"Lặp: {tool} với cùng tham số đã gọi {LOOP_REPEAT} lần."}

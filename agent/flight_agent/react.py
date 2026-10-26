@@ -4,6 +4,7 @@ create_agent của LangChain chạy vòng lặp; hai middleware cắm harness v�
 mỗi lần gọi model bị trừ vào ngân sách, mỗi lời gọi tool đi qua Harness.execute().
 """
 import json
+from datetime import date
 
 from langchain.agents import create_agent
 from langchain.agents.middleware import wrap_model_call, wrap_tool_call
@@ -25,8 +26,13 @@ bấm "Giữ chỗ" trên thẻ. Bạn không giữ chỗ được, nên không 
 - Trả lời ngắn gọn bằng tiếng Việt, viết văn bản thuần, không dùng Markdown (trang web không hiển thị Markdown)."""
 
 
+WEEKDAYS = ("thứ Hai", "thứ Ba", "thứ Tư", "thứ Năm", "thứ Sáu", "thứ Bảy", "Chủ nhật")
+
+
 def system_prompt(harness: Harness) -> str:
-    text = SYSTEM_PROMPT.format(today=harness.today)
+    # Có thứ trong tuần để model không phải tự tính "thứ 6 này" là ngày nào.
+    weekday = WEEKDAYS[date.fromisoformat(harness.today).weekday()]
+    text = SYSTEM_PROMPT.format(today=f"{weekday}, {harness.today}")
     return f"{text}\n\n{harness.constraints.to_prompt()}" if harness.constraints else text
 
 

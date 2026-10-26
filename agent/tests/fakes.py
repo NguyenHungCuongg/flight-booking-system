@@ -73,9 +73,9 @@ def problem(status, code, errors=()):
 
 class FakeBackend:
     def __init__(self, flights=FLIGHTS, me_status=200, quote_error=None, hold_error=None, detail_patch=None,
-                 hold_delay=0.0):
+                 hold_delay=0.0, search_delay=0.0):
         self.flights, self.me_status, self.quote_error, self.hold_error = flights, me_status, quote_error, hold_error
-        self.detail_patch, self.hold_delay = detail_patch or {}, hold_delay
+        self.detail_patch, self.hold_delay, self.search_delay = detail_patch or {}, hold_delay, search_delay
         self.requests: list[httpx.Request] = []
         self.holds: list[dict] = []
         self.transport = httpx.MockTransport(self.handle)
@@ -99,6 +99,7 @@ class FakeBackend:
                                              "email": "customer@demo.local", "phone": "0901234567",
                                              "role": "CUSTOMER", "status": "ACTIVE"})
         if route == ("GET", "/api/flights/search"):
+            time.sleep(self.search_delay)
             return httpx.Response(200, json={"itineraries": self.flights})
         if route == ("POST", "/api/bookings/quote"):
             if self.quote_error:
