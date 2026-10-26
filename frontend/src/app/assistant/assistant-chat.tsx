@@ -248,7 +248,13 @@ export default function AssistantChat() {
               </li>
             ) : (
               <li key={i} className="grid gap-12">
-                {entry.turn.reply && <p>{entry.turn.reply}</p>}
+                {/* Thẻ "Đã giữ chỗ" và thẻ bàn giao đã nói đúng câu trả lời, không lặp lại. */}
+                {entry.turn.reply &&
+                  !entry.turn.cards.some(
+                    (c) => c.type === "held" || c.type === "handoff",
+                  ) && (
+                    <p className="whitespace-pre-line">{entry.turn.reply}</p>
+                  )}
                 {entry.turn.trace.length > 0 && (
                   <ul
                     aria-label="Các bước đã chạy"

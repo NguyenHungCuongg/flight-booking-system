@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  // Một lượt chat của trợ lý (/agent) gọi model nhiều lần, có thể quá 30 giây mặc định của rewrite.
+  experimental: { proxyTimeout: 300_000 },
   // Trình duyệt chỉ gọi /api trên origin của frontend, nên cookie phiên và XSRF-TOKEN không cần CORS.
   // Giá trị đọc lúc build (rewrites nằm trong routes-manifest).
   async rewrites() {

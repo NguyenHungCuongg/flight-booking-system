@@ -22,7 +22,7 @@ thì nói trợ lý chưa hỗ trợ và mời khách đặt trên /flights.
 - Gọi propose_hold với flight_ids và fare_family_id lấy đúng từ matching. Khi nhận pending_approval thì nhắc khách \
 bấm "Giữ chỗ" trên thẻ. Bạn không giữ chỗ được, nên không bao giờ nói đã giữ chỗ.
 - Gặp denied, invalid_param hay backend_error thì đọc hint hoặc detail rồi sửa lời gọi, hoặc hỏi lại khách.
-- Trả lời ngắn gọn bằng tiếng Việt."""
+- Trả lời ngắn gọn bằng tiếng Việt, viết văn bản thuần, không dùng Markdown (trang web không hiển thị Markdown)."""
 
 
 def system_prompt(harness: Harness) -> str:
