@@ -8,7 +8,11 @@ const nextConfig: NextConfig = {
   // Giá trị đọc lúc build (rewrites nằm trong routes-manifest).
   async rewrites() {
     const backend = process.env.BACKEND_URL ?? "http://localhost:8080";
-    return [{ source: "/api/:path*", destination: `${backend}/api/:path*` }];
+    const agent = process.env.AGENT_URL ?? "http://localhost:8000";
+    return [
+      { source: "/api/:path*", destination: `${backend}/api/:path*` },
+      { source: "/agent/:path*", destination: `${agent}/agent/:path*` },
+    ];
   },
   turbopack: {
     rules: {

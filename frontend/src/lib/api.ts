@@ -29,7 +29,7 @@ function readCookie(name: string) {
 }
 
 /** csrf.spa() của Spring Security: header phải mang giá trị trong cookie XSRF-TOKEN (TDD §4.2). */
-async function csrfToken() {
+export async function csrfToken() {
   let token = readCookie("XSRF-TOKEN");
   if (!token) {
     await fetch("/api/auth/csrf", { credentials: "same-origin" });

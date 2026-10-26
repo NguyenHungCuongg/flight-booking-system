@@ -15,6 +15,7 @@ const PROTECTED = [
   "/account",
   "/bookings",
   "/checkout",
+  "/assistant",
   "/bookings/ZZZZZZ",
   "/bookings/ZZZZZZ/refund/outbound",
   "/bookings/ZZZZZZ/reschedule/outbound",
