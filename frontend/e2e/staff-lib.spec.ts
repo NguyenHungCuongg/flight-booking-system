@@ -6,9 +6,23 @@ import {
   pageOf,
   refundActions,
   sizeOf,
+  withCurrent,
 } from "../src/lib/staff";
 
 const url = (q: string) => new URLSearchParams(q);
+
+test("withCurrent: thêm giá trị đang lọc khi không có trong danh sách", () => {
+  const options = [
+    { value: "", label: "Tất cả" },
+    { value: "HAN", label: "HAN, Hà Nội" },
+  ];
+  expect(withCurrent(options, "HAN")).toBe(options);
+  expect(withCurrent(options, "")).toBe(options);
+  expect(withCurrent(options, "XYZ").at(-1)).toEqual({
+    value: "XYZ",
+    label: "XYZ",
+  });
+});
 
 test("listQuery: bỏ ô rỗng, giữ thứ tự khoá, trang URL đếm từ 1 sang API đếm từ 0", () => {
   expect(

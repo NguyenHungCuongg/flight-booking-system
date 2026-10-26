@@ -204,7 +204,7 @@ test("A-04 & A-06: Admin lọc chuyến, sửa, huỷ hai bước rồi xoá chu
   await expect(page.getByText("06:40").first()).toBeVisible();
 
   await page.getByRole("button", { name: "Huỷ chuyến" }).click();
-  await expect(dialog).toContainText("FLIGHT_CANCELLED");
+  await expect(dialog).toContainText("Tạo yêu cầu hoàn 100%");
   await dialog.getByRole("button", { name: "Xác nhận huỷ chuyến" }).click();
   await expect(page.getByText("Đã huỷ", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Sửa chuyến bay" })).toHaveCount(0);

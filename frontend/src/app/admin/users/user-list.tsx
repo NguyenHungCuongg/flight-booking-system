@@ -3,7 +3,14 @@
 import Form from "next/form";
 import { useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { AdminModal, AdminPage, ConfirmModal, tableBox, td, th } from "../admin-ui";
+import {
+  AdminModal,
+  AdminPage,
+  ConfirmModal,
+  tableBox,
+  td,
+  th,
+} from "../admin-ui";
 import {
   Field,
   FormSkeleton,
@@ -38,7 +45,10 @@ export default function UserList() {
 
   const [version, setVersion] = useState(0);
   const query = listQuery(params, ["q", "role"]);
-  const usersRes = useApi<Schemas["PagedModelUserResponse"]>(`/admin/users?${query}`, version);
+  const usersRes = useApi<Schemas["PagedModelUserResponse"]>(
+    `/admin/users?${query}`,
+    version,
+  );
 
   const [createOpen, setCreateOpen] = useState(false);
   const [toggleTarget, setToggleTarget] = useState<UserAdmin | null>(null);
@@ -57,13 +67,19 @@ export default function UserList() {
     const email = (fd.get("email") as string)?.trim();
     const fullName = (fd.get("fullName") as string)?.trim();
     const phone = (fd.get("phone") as string)?.trim();
-    const password = (fd.get("password") as string)?.trim();
+    const password = String(fd.get("password"));
     const role = fd.get("role") as "STAFF" | "ADMIN";
 
     try {
       await apiFetch("/admin/users", {
         method: "POST",
-        body: { email, fullName, phone, password, role } satisfies Schemas["CreateUserRequest"],
+        body: {
+          email,
+          fullName,
+          phone,
+          password,
+          role,
+        } satisfies Schemas["CreateUserRequest"],
       });
       setCreateOpen(false);
       reload();
@@ -89,7 +105,9 @@ export default function UserList() {
       setToggleTarget(null);
       reload();
     } catch (err: unknown) {
-      setActionError(errorText(err as ApiError) || "Không thể đổi trạng thái tài khoản.");
+      setActionError(
+        errorText(err as ApiError) || "Không thể đổi trạng thái tài khoản.",
+      );
       setToggleTarget(null);
     } finally {
       setLoading(false);
@@ -102,7 +120,8 @@ export default function UserList() {
         <div>
           <h1 className="text-heading-lg font-bold">Người dùng & Tài khoản.</h1>
           <p className="text-caption text-muted mt-4">
-            Quản trị danh sách người dùng, cấp quyền tài khoản và khoá phiên truy cập (A-08).
+            Quản trị danh sách người dùng, cấp quyền tài khoản và khoá phiên
+            truy cập (A-08).
           </p>
         </div>
         <button
@@ -147,60 +166,76 @@ export default function UserList() {
         <Notice>{usersRes.error.detail}</Notice>
       ) : (
         <>
-          <div className={tableBox}>
-            <table aria-label="Bảng người dùng" className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className={th}>ID</th>
-                  <th className={th}>Họ tên</th>
-                  <th className={th}>Email</th>
-                  <th className={th}>Số điện thoại</th>
-                  <th className={th}>Vai trò</th>
-                  <th className={th}>Trạng thái</th>
-                  <th className={th}>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {usersRes.data.content.map((u) => {
-                  const isMe = currentUser?.id === u.id;
-                  return (
-                    <tr key={u.id}>
-                      <td className={td}>#{u.id}</td>
-                      <td className={`${td} font-bold`}>{u.fullName}</td>
-                      <td className={td}>{u.email}</td>
-                      <td className={td}>{u.phone}</td>
-                      <td className={td}>{ROLE_LABEL[u.role] ?? u.role}</td>
-                      <td className={td}>
-                        {u.status === "ACTIVE" ? (
-                          <span className="font-bold text-ink">Hoạt động</span>
-                        ) : (
-                          <span className="font-semibold text-danger">Đã khoá</span>
-                        )}
-                      </td>
-                      <td className={td}>
-                        {isMe ? (
-                          <span className="text-muted text-caption" title="BR-105: Không thể tự khoá chính mình">
-                            (Chính bạn)
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActionError(null);
-                              setToggleTarget(u);
-                            }}
-                            className={textLink}
-                          >
-                            {u.status === "ACTIVE" ? "Khoá tài khoản" : "Mở khoá"}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          {usersRes.data.content.length === 0 ? (
+            <p className="text-muted">Không có tài khoản nào khớp bộ lọc.</p>
+          ) : (
+            <div className={tableBox}>
+              <table
+                aria-label="Bảng người dùng"
+                className="w-full border-collapse"
+              >
+                <thead>
+                  <tr>
+                    <th className={th}>ID</th>
+                    <th className={th}>Họ tên</th>
+                    <th className={th}>Email</th>
+                    <th className={th}>Số điện thoại</th>
+                    <th className={th}>Vai trò</th>
+                    <th className={th}>Trạng thái</th>
+                    <th className={th}>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usersRes.data.content.map((u) => {
+                    const isMe = currentUser?.id === u.id;
+                    return (
+                      <tr key={u.id}>
+                        <td className={td}>#{u.id}</td>
+                        <td className={`${td} font-bold`}>{u.fullName}</td>
+                        <td className={td}>{u.email}</td>
+                        <td className={td}>{u.phone}</td>
+                        <td className={td}>{ROLE_LABEL[u.role] ?? u.role}</td>
+                        <td className={td}>
+                          {u.status === "ACTIVE" ? (
+                            <span className="font-bold text-ink">
+                              Hoạt động
+                            </span>
+                          ) : (
+                            <span className="font-semibold text-danger">
+                              Đã khoá
+                            </span>
+                          )}
+                        </td>
+                        <td className={td}>
+                          {isMe ? (
+                            <span
+                              className="text-muted text-caption"
+                              title="BR-105: Không thể tự khoá chính mình"
+                            >
+                              (Chính bạn)
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActionError(null);
+                                setToggleTarget(u);
+                              }}
+                              className={textLink}
+                            >
+                              {u.status === "ACTIVE"
+                                ? "Khoá tài khoản"
+                                : "Mở khoá"}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
           <Pager
             path="/admin/users"
             params={params}
@@ -238,7 +273,11 @@ export default function UserList() {
               required
               placeholder="0912345678"
             />
-            <SelectField label="Vai trò cấp phát" name="role" defaultValue="STAFF">
+            <SelectField
+              label="Vai trò cấp phát"
+              name="role"
+              defaultValue="STAFF"
+            >
               <option value="STAFF">Nhân viên (STAFF)</option>
               <option value="ADMIN">Quản trị viên (ADMIN)</option>
             </SelectField>
@@ -253,7 +292,12 @@ export default function UserList() {
             hint={PASSWORD_RULE}
           />
           <div className="flex justify-end gap-11 mt-11">
-            <button type="button" onClick={() => setCreateOpen(false)} className={pillLine} disabled={loading}>
+            <button
+              type="button"
+              onClick={() => setCreateOpen(false)}
+              className={pillLine}
+              disabled={loading}
+            >
               Huỷ
             </button>
             <button type="submit" className={pillPrimary} disabled={loading}>
@@ -265,13 +309,19 @@ export default function UserList() {
 
       {/* Confirm Modal Khoá/Mở khoá */}
       <ConfirmModal
-        title={toggleTarget?.status === "ACTIVE" ? `Khoá tài khoản ${toggleTarget?.email}?` : `Mở khoá tài khoản ${toggleTarget?.email}?`}
+        title={
+          toggleTarget?.status === "ACTIVE"
+            ? `Khoá tài khoản ${toggleTarget?.email}?`
+            : `Mở khoá tài khoản ${toggleTarget?.email}?`
+        }
         message={
           toggleTarget?.status === "ACTIVE"
             ? `Tài khoản ${toggleTarget?.fullName} (${toggleTarget?.email}) sẽ bị mất hiệu lực ngay lập tức và không thể đăng nhập cho đến khi được mở lại (BR-102).`
             : `Tài khoản ${toggleTarget?.fullName} (${toggleTarget?.email}) sẽ được phục hồi quyền truy cập hệ thống bình thường.`
         }
-        confirmLabel={toggleTarget?.status === "ACTIVE" ? "Khoá tài khoản" : "Mở khoá"}
+        confirmLabel={
+          toggleTarget?.status === "ACTIVE" ? "Khoá tài khoản" : "Mở khoá"
+        }
         isOpen={toggleTarget !== null}
         isLoading={loading}
         onConfirm={handleToggleStatus}

@@ -91,21 +91,3 @@ export function bookingRequest(
     voucherCode: voucherCode || undefined,
   };
 }
-
-/** C-02 của lựa chọn này, cùng dạng URL mà C-01 tạo: để chọn lại khi chuyến đã chọn không còn bán (APP_FLOW C-07). */
-export function searchUrl(selection: Selection) {
-  const [out, ret] = selection.journeys;
-  const segs = out.itinerary.segments;
-  const p = new URLSearchParams({
-    from: segs[0].departure.airport,
-    to: segs[segs.length - 1].arrival.airport,
-    date: segs[0].departure.time.slice(0, 10),
-  });
-  if (ret)
-    p.set("returnDate", ret.itinerary.segments[0].departure.time.slice(0, 10));
-  p.set("adults", String(selection.adults));
-  p.set("children", String(selection.children));
-  p.set("infants", String(selection.infants));
-  p.set("cabin", out.fare.cabinClass);
-  return `/flights?${p}`;
-}

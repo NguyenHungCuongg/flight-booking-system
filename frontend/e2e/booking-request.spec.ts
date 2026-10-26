@@ -5,7 +5,6 @@ import {
   bookingRequest,
   isInternational,
   passengerTypes,
-  searchUrl,
 } from "../src/app/checkout/booking-request";
 import type { Schemas } from "../src/lib/api";
 import {
@@ -232,15 +231,6 @@ test("bookingRequest: khứ hồi quốc tế, hộ chiếu viết hoa, không v
     { passengerIndex: 0, direction: "RETURN", baggageOptionId: 31 },
   ]);
   expect(body.voucherCode).toBeUndefined();
-});
-
-test("searchUrl: mở lại C-02 với đúng điều kiện tìm", () => {
-  expect(searchUrl(domestic)).toBe(
-    "/flights?from=HAN&to=SGN&date=2026-12-01&adults=2&children=1&infants=1&cabin=ECONOMY",
-  );
-  expect(searchUrl(roundTrip)).toBe(
-    "/flights?from=SGN&to=SIN&date=2026-12-01&returnDate=2026-12-05&adults=1&children=0&infants=0&cabin=ECONOMY",
-  );
 });
 
 test("parseSelection: thiếu hoặc hỏng thì là null", () => {

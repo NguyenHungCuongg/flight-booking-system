@@ -217,9 +217,9 @@ export default function AirlineList() {
               name="code"
               required
               maxLength={2}
-              pattern="^[A-Z0-9]{2}$"
+              pattern="[A-Za-z0-9]{2}"
               placeholder="VN"
-              invalidMessage="Mã hãng bay gồm 2 ký tự in hoa/số (VD: VN, VJ, QH)"
+              invalidMessage="Mã hãng bay gồm 2 chữ cái hoặc chữ số (VD: VN, VJ, QH)"
             />
           )}
           <Field

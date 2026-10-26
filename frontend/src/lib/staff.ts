@@ -28,6 +28,16 @@ export function cabinLabel(id: string): string {
   return CABINS.find((c) => c.id === id)?.label ?? id;
 }
 
+/** Giá trị đang lọc trên URL luôn có trong ô chọn, kể cả khi sân bay/hãng đã tắt hoặc danh sách tải lỗi. */
+export function withCurrent(
+  options: { value: string; label: string }[],
+  current: string,
+) {
+  return current && !options.some((o) => o.value === current)
+    ? [...options, { value: current, label: current }]
+    : options;
+}
+
 /**
  * Đọc số trang từ URL params (đếm từ 1 như C-08).
  * Nếu thiếu, không hợp lệ hoặc nhỏ hơn 1 thì trả về 1.

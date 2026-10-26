@@ -444,7 +444,7 @@ export default function AirlineDetail() {
             label="Giá bán (₫)"
             name="price"
             type="number"
-            min={0}
+            min={10000}
             step={10000}
             required
             defaultValue={baggageModal?.item?.price ?? 150000}

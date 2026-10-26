@@ -218,7 +218,7 @@ export default function VoucherList() {
               label="Mức giảm tối đa (₫)"
               name="maxDiscount"
               type="number"
-              min={0}
+              min={1}
               defaultValue={modalState?.voucher?.maxDiscount ?? ""}
               placeholder="Để trống nếu không giới hạn"
             />

@@ -14,6 +14,7 @@ import {
 import PriceTable from "@/components/price-table";
 import { ApiError, apiFetch, type Schemas, type User } from "@/lib/api";
 import { DIRECTION_LABEL, PASSENGER_LABEL, dmy } from "@/lib/booking";
+import { flightsUrl } from "@/lib/search-query";
 import { clearSelection, type Journey, type Selection } from "@/lib/selection";
 import { duration, first, hhmm, last, vnd } from "../flights/itineraries";
 import {
@@ -21,7 +22,6 @@ import {
   bagField,
   bookingRequest,
   passengerTypes,
-  searchUrl,
   type PassengerType,
 } from "./booking-request";
 
@@ -339,7 +339,7 @@ export default function CheckoutForm({
       setPending(false);
       if (!(err instanceof ApiError)) throw err;
       if (UNAVAILABLE.includes(err.code)) {
-        router.push(`${searchUrl(selection)}&unavailable=1`);
+        router.push(`${flightsUrl(selection)}&unavailable=1`);
       } else {
         show(err);
       }
@@ -372,7 +372,7 @@ export default function CheckoutForm({
         <section aria-label="Hành trình" className="grid gap-16">
           <div className="flex flex-wrap items-center justify-between gap-16">
             <h2 className="text-subheading font-bold">Hành trình</h2>
-            <Link href={searchUrl(selection)} className={textLink}>
+            <Link href={flightsUrl(selection)} className={textLink}>
               Đổi chuyến bay
             </Link>
           </div>
@@ -579,7 +579,7 @@ export default function CheckoutForm({
             {unavailable && (
               <p className="mt-8">
                 <Link
-                  href={`${searchUrl(selection)}&unavailable=1`}
+                  href={`${flightsUrl(selection)}&unavailable=1`}
                   className={textLink}
                 >
                   Chọn chuyến khác

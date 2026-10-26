@@ -45,7 +45,7 @@ export default function FlightCreateForm() {
       ? (airlinesRes.data[0]?.code ?? "")
       : "");
   const faresRes = useApi<FareFamily[]>(
-    `/admin/airlines/${selectedAirline}/fare-families`,
+    selectedAirline ? `/admin/airlines/${selectedAirline}/fare-families` : null,
   );
   const loadingFares = faresRes === undefined;
   const fareFamilies =

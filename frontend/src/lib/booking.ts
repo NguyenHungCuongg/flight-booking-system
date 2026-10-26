@@ -34,7 +34,7 @@ export const REFUND_STATUS: Record<string, string> = {
 export const REFUND_SOURCE: Record<string, string> = {
   CUSTOMER: "Khách yêu cầu",
   FLIGHT_CANCELLED: "Chuyến bay bị huỷ",
-  INVALID_PAYMENT: "Thanh toán sau khi hết hạn giữ chỗ",
+  INVALID_PAYMENT: "Thanh toán trễ hoặc trùng",
 };
 
 /** APP_FLOW §4.6. */
@@ -77,8 +77,7 @@ export function journeyActions(
       (r.status === "PENDING" || r.status === "APPROVED"),
   );
   const openReschedule = booking.reschedules.some(
-    (r) =>
-      r.direction === journey.direction && r.status === "PENDING_PAYMENT",
+    (r) => r.direction === journey.direction && r.status === "PENDING_PAYMENT",
   );
   const eligible =
     now !== null &&

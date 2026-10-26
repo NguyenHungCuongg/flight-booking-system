@@ -49,10 +49,20 @@ class VnpayCallbackController {
 		}
 	}
 
-	/** AD-07: trình duyệt quay về; xử lý như IPN (idempotent) rồi chuyển về C-09 kèm kết quả. */
+	/**
+	 * AD-07: trình duyệt quay về; xử lý như IPN (idempotent) rồi chuyển về C-09 kèm kết quả. Lỗi không lường trước vẫn
+	 * chuyển về C-08 thay vì hiện JSON lỗi cho khách; IPN sẽ xử lý lại.
+	 */
 	@GetMapping("/return")
 	ResponseEntity<Void> back(@RequestParam Map<String, String> params) {
-		Outcome outcome = callbacks.handle(params);
+		Outcome outcome;
+		try {
+			outcome = callbacks.handle(params);
+		}
+		catch (RuntimeException e) {
+			log.error("VNPay Return lỗi: txnRef={}", params.get("vnp_TxnRef"), e);
+			outcome = new Outcome("99", "Unknown error", null, false);
+		}
 		logged("Return", params, outcome.rspCode());
 		String target = outcome.bookingCode() == null ? baseUrl + "/bookings?payment=failed"
 				: baseUrl + "/bookings/" + outcome.bookingCode() + "?payment=" + (outcome.paid() ? "success" : "failed");

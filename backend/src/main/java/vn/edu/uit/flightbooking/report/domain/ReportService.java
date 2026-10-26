@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
@@ -82,7 +83,7 @@ public class ReportService {
 
 	public LoadFactorReport getLoadFactor(LocalDate from, LocalDate to, String airline) {
 		ReportPeriod period = ReportPeriod.of(from, to);
-		String normalizedAirline = (airline != null && !airline.isBlank()) ? airline.strip().toUpperCase() : null;
+		String normalizedAirline = (airline != null && !airline.isBlank()) ? airline.strip().toUpperCase(Locale.ROOT) : null;
 		String sql = """
 				SELECT f.id                                           AS flight_id,
 				       f.flight_number                                AS flight_number,

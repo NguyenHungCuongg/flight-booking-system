@@ -220,9 +220,7 @@ function ReportBody({
                     {periodLabel(item.period, cashGroupBy)}
                   </td>
                   <td className={td}>{vnd(item.charged)}</td>
-                  <td className={`${td} text-danger`}>
-                    {vnd(item.refunded)}
-                  </td>
+                  <td className={`${td} text-danger`}>{vnd(item.refunded)}</td>
                   <td className={`${td} font-bold`}>{vnd(item.net)}</td>
                 </tr>
               ))}
@@ -272,8 +270,10 @@ function ReportBody({
               {data.items.map((item) => (
                 <tr key={item.groupKey}>
                   <td className={`${td} font-bold`}>
-                    {item.groupKey}{" "}
-                    {item.groupName ? `- ${item.groupName}` : ""}
+                    {/* Tuyến: groupName đã là "HAN → SGN", không cần nhắc lại groupKey. */}
+                    {salesGroupBy === "ROUTE"
+                      ? item.groupName
+                      : `${item.groupKey} - ${item.groupName}`}
                   </td>
                   <td className={td}>{item.ticketCount} vé</td>
                   <td className={`${td} font-bold`}>{vnd(item.revenue)}</td>
@@ -307,7 +307,7 @@ function ReportBody({
             <tr>
               <th className={th}>Chuyến</th>
               <th className={th}>Tuyến bay</th>
-              <th className={th}>Ngày cất cánh</th>
+              <th className={th}>Cất cánh (giờ Việt Nam)</th>
               <th className={th}>Tổng ghế</th>
               <th className={th}>Ghế đã lấp</th>
               <th className={th}>Tỉ lệ lấp đầy</th>

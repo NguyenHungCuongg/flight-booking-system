@@ -4,12 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import SiteHeader from "@/components/site-header";
 import { pillPrimary, pillLine } from "@/components/form";
 
-export const tableBox =
-  "card overflow-x-auto [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-tint/60";
-export const th =
-  "bg-tint/60 px-8 py-9 text-left text-table font-semibold whitespace-nowrap text-ink-2 first:pl-16 last:pr-16";
-export const td =
-  "border-t border-line px-8 py-9 text-left text-table align-top first:pl-16 last:pr-16";
+export { tableBox, td, th } from "../staff/staff-ui";
 
 /**
  * Khung giao diện chuẩn cho tất cả các màn hình Admin (A-01–A-10).

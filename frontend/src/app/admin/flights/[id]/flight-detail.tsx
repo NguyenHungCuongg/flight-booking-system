@@ -168,26 +168,26 @@ export default function FlightDetailView() {
               {detailRes.data.flight.status === "SCHEDULED" &&
                 now !== null &&
                 Date.parse(detailRes.data.flight.departureTime) > now && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActionError(null);
-                      setEditOpen(true);
-                    }}
-                    className={pillLine}
-                  >
-                    Sửa chuyến bay
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCancelOpen(true)}
-                    className={pillDanger}
-                  >
-                    Huỷ chuyến
-                  </button>
-                </>
-              )}
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionError(null);
+                        setEditOpen(true);
+                      }}
+                      className={pillLine}
+                    >
+                      Sửa chuyến bay
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCancelOpen(true)}
+                      className={pillDanger}
+                    >
+                      Huỷ chuyến
+                    </button>
+                  </>
+                )}
               {detailRes.data.bookingCount === 0 && (
                 <button
                   type="button"
@@ -204,7 +204,16 @@ export default function FlightDetailView() {
           <div className="grid gap-16 sm:grid-cols-2 lg:grid-cols-4">
             <div className="card p-16">
               <span className="text-caption text-muted">Trạng thái</span>
-              <p className="mt-4"><StatusBadge large status={detailRes.data.flight.status} label={FLIGHT_STATUS[detailRes.data.flight.status] ?? detailRes.data.flight.status} /></p>
+              <p className="mt-4">
+                <StatusBadge
+                  large
+                  status={detailRes.data.flight.status}
+                  label={
+                    FLIGHT_STATUS[detailRes.data.flight.status] ??
+                    detailRes.data.flight.status
+                  }
+                />
+              </p>
             </div>
             <div className="card p-16">
               <span className="text-caption text-muted">
@@ -389,7 +398,11 @@ export default function FlightDetailView() {
                 >
                   Huỷ
                 </button>
-                <button type="submit" className={pillPrimary} disabled={loading}>
+                <button
+                  type="submit"
+                  className={pillPrimary}
+                  disabled={loading}
+                >
                   {loading ? "Đang lưu..." : "Lưu thay đổi"}
                 </button>
               </div>
@@ -399,7 +412,7 @@ export default function FlightDetailView() {
           {/* Confirm Modal Huỷ chuyến bay (2 bước theo BR-84) */}
           <ConfirmModal
             title={`Huỷ chuyến bay ${detailRes.data.flight.flightNumber}?`}
-            message={`CẢNH BÁO: Huỷ chuyến bay là thao tác không thể hoàn tác (BR-84). Hệ thống sẽ tự động: (1) Huỷ mọi booking đang giữ chỗ PENDING_PAYMENT; (2) Huỷ các yêu cầu đổi chuyến đang chờ; (3) Tự động tạo yêu cầu hoàn 100% FLIGHT_CANCELLED cho mọi chiều đã xuất vé; (4) Gửi email thông báo cho hành khách.`}
+            message={`CẢNH BÁO: Huỷ chuyến bay là thao tác không thể hoàn tác (BR-84). Hệ thống sẽ tự động: (1) Huỷ mọi đặt chỗ đang chờ thanh toán; (2) Huỷ các yêu cầu đổi chuyến đang chờ thanh toán; (3) Tạo yêu cầu hoàn 100% cho mọi chiều đã xuất vé trên chuyến; (4) Gửi email thông báo cho hành khách.`}
             confirmLabel="Xác nhận huỷ chuyến"
             isOpen={cancelOpen}
             isLoading={loading}

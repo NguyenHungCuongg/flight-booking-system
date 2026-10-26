@@ -4,11 +4,18 @@ import Link from "next/link";
 import StatusBadge from "@/components/status-badge";
 import Form from "next/form";
 import { useSearchParams } from "next/navigation";
-import { Field, FormSkeleton, Notice, SelectField, pillPrimary, textLink } from "@/components/form";
+import {
+  Field,
+  FormSkeleton,
+  Notice,
+  SelectField,
+  pillPrimary,
+  textLink,
+} from "@/components/form";
 import type { Schemas } from "@/lib/api";
 import { useAirports } from "@/lib/airports";
 import { clock, dmy } from "@/lib/booking";
-import { FLIGHT_STATUS, cabinLabel, listQuery } from "@/lib/staff";
+import { FLIGHT_STATUS, cabinLabel, listQuery, withCurrent } from "@/lib/staff";
 import { useApi } from "@/lib/use-api";
 import { Pager, StaffPage, tableBox, td, th } from "../staff-ui";
 
@@ -34,15 +41,6 @@ export default function FlightList() {
   const flightsRes = useApi<Schemas["PagedModelFlightView"]>(
     `/staff/flights?${query}`,
   );
-
-  // Giá trị đang lọc trên URL luôn có trong ô chọn, kể cả khi sân bay/hãng đã tắt hoặc danh sách tải lỗi.
-  const withCurrent = (
-    options: { value: string; label: string }[],
-    current: string,
-  ) =>
-    current && !options.some((o) => o.value === current)
-      ? [...options, { value: current, label: current }]
-      : options;
 
   const airportOptions = [
     { value: "", label: "Tất cả" },
@@ -76,50 +74,29 @@ export default function FlightList() {
           key={params.toString()}
           className="grid gap-16 sm:grid-cols-[repeat(auto-fit,minmax(180px,1fr))] sm:items-end"
         >
-          <SelectField
-            label="Điểm đi"
-            name="from"
-            defaultValue={from}
-          >
+          <SelectField label="Điểm đi" name="from" defaultValue={from}>
             {withCurrent(airportOptions, from).map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
           </SelectField>
-          <SelectField
-            label="Điểm đến"
-            name="to"
-            defaultValue={to}
-          >
+          <SelectField label="Điểm đến" name="to" defaultValue={to}>
             {withCurrent(airportOptions, to).map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
           </SelectField>
-          <Field
-            label="Ngày bay"
-            name="date"
-            type="date"
-            defaultValue={date}
-          />
-          <SelectField
-            label="Hãng bay"
-            name="airline"
-            defaultValue={airline}
-          >
+          <Field label="Ngày bay" name="date" type="date" defaultValue={date} />
+          <SelectField label="Hãng bay" name="airline" defaultValue={airline}>
             {withCurrent(airlineOptions, airline).map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
           </SelectField>
-          <SelectField
-            label="Trạng thái"
-            name="status"
-            defaultValue={status}
-          >
+          <SelectField label="Trạng thái" name="status" defaultValue={status}>
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
@@ -176,7 +153,10 @@ export default function FlightList() {
                         </td>
                         <td className={td}>{f.aircraftModel}</td>
                         <td className={td}>
-                          <StatusBadge status={f.status} label={FLIGHT_STATUS[f.status] ?? f.status} />
+                          <StatusBadge
+                            status={f.status}
+                            label={FLIGHT_STATUS[f.status] ?? f.status}
+                          />
                         </td>
                         <td className={td}>
                           {f.cabins.map((c) => (
@@ -213,4 +193,3 @@ export default function FlightList() {
     </StaffPage>
   );
 }
-

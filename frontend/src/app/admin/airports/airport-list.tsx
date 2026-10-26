@@ -218,9 +218,9 @@ export default function AirportList() {
               name="code"
               required
               maxLength={3}
-              pattern="^[A-Z]{3}$"
+              pattern="[A-Za-z]{3}"
               placeholder="HAN"
-              invalidMessage="Mã sân bay phải gồm đúng 3 chữ in hoa (VD: HAN, SGN)"
+              invalidMessage="Mã sân bay gồm đúng 3 chữ cái (VD: HAN, SGN)"
             />
           )}
           <Field
@@ -243,10 +243,10 @@ export default function AirportList() {
               name="countryCode"
               required
               maxLength={2}
-              pattern="^[A-Z]{2}$"
+              pattern="[A-Za-z]{2}"
               defaultValue={modalState?.airport?.countryCode ?? "VN"}
               placeholder="VN"
-              invalidMessage="Mã quốc gia gồm 2 chữ cái in hoa theo ISO (VD: VN)"
+              invalidMessage="Mã quốc gia gồm 2 chữ cái theo ISO (VD: VN)"
             />
           </div>
           <Field
