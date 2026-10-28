@@ -12,6 +12,15 @@ uv run pytest
 
 Test chạy offline: model giả phát lại kịch bản, backend Spring giả bằng `httpx.MockTransport`.
 
+## Eval
+
+```bash
+uv run python -m evals.run              # 20 case, mỗi case 3 lần
+uv run python -m evals.run --k 1 --case noi-gia
+```
+
+Gọi model thật (cần `.env` thật, tốn tiền LLM), backend vẫn là backend giả nên dữ liệu ổn định. Không chạy trong `uv run pytest`. Mỗi case chấm bằng code: ràng buộc tách ra, trạng thái cuối (thẻ duyệt đúng chuyến và hành khách, câu trả lời, hay bàn giao đúng lý do) và vài chuỗi phải có hoặc không được có trong câu trả lời. Case đạt khi đạt cả k lần. Lượt dừng vì lỗi API model (429 của free tier Gemini, 15 request/phút) được chạy lại sau 60 giây; vẫn lỗi thì không tính vào tỉ lệ và in ở dòng "Lỗi hạ tầng". Trace của lượt trượt nằm ở `evals/results/<thời điểm>/`. Thêm case vào `evals/cases.py`; số liệu mỗi lần chạy ghi ở §3 của [lộ trình](../docs/superpowers/plans/2026-10-27-tro-ly-dat-ve-agent-roadmap-mo-rong.md).
+
 ## Chạy
 
 ```bash

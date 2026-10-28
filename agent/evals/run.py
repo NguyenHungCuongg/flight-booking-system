@@ -7,6 +7,8 @@ Một case đạt khi đạt cả k lần. Lượt trượt ghi trace ra evals/r
 import argparse
 import json
 import os
+import sys
+import time
 import unicodedata
 from datetime import datetime
 from pathlib import Path
@@ -17,6 +19,11 @@ from evals.cases import CASES, Case
 from flight_agent.chat import Chat, turn
 from flight_agent.core import Constraints, Harness
 from tests.fakes import FakeBackend
+
+# Gemini free tier cho 15 request/phút, retry của client chờ không đủ lâu: lượt dừng vì "infra" thì chờ
+# hết phút rồi chạy lại. Vẫn "infra" sau INFRA_RETRIES lần thì không tính vào tỉ lệ đạt.
+INFRA_WAIT = 60
+INFRA_RETRIES = 3
 
 
 def _norm(s: str) -> str:
@@ -45,6 +52,15 @@ def grade(case: Case, harness: Harness, reply: str) -> list[str]:
 
 
 def run_case(case: Case, model) -> dict:
+    for _ in range(INFRA_RETRIES):
+        r = _run_once(case, model)
+        if not r["infra"]:
+            return r
+        time.sleep(INFRA_WAIT)
+    return _run_once(case, model)
+
+
+def _run_once(case: Case, model) -> dict:
     fake, chat = FakeBackend(**case.backend), Chat("eval", "s1")
     turns, calls, reply = [], 0, ""
     with get_usage_metadata_callback() as cb:
@@ -58,12 +74,13 @@ def run_case(case: Case, model) -> dict:
         except Exception as e:      # một lượt hỏng không làm dừng cả bộ eval
             failures = [f"lỗi: {type(e).__name__}: {e}"]
     tokens = sum(u.get("total_tokens", 0) for u in cb.usage_metadata.values())
-    return {"passed": not failures, "failures": failures, "model_calls": calls, "tokens": tokens, "turns": turns}
+    return {"passed": not failures, "failures": failures, "model_calls": calls, "tokens": tokens, "turns": turns,
+            "infra": chat.harness.stop_reason == "infra"}
 
 
 def summarize(results: dict[str, list[dict]]) -> str:
     lines = [f"{'Case':<24} {'Đạt':>5}  {'':<6} {'Gọi model TB':>12} {'Token TB':>9}"]
-    runs = [r for rs in results.values() for r in rs]
+    runs = [r for rs in results.values() for r in rs if not r.get("infra")]
     for name, rs in results.items():
         ok = sum(r["passed"] for r in rs)
         lines.append(f"{name:<24} {ok:>3}/{len(rs)}  {'ĐẠT' if ok == len(rs) else 'TRƯỢT':<6} "
@@ -74,7 +91,8 @@ def summarize(results: dict[str, list[dict]]) -> str:
               f"Case đạt: {sum(all(r['passed'] for r in rs) for rs in results.values())}/{len(results)}",
               f"Lượt đạt: {passed}/{len(runs)} ({round(100 * passed / len(runs))}%)",
               f"Gọi model TB/lượt: {sum(r['model_calls'] for r in runs) / len(runs):.1f}",
-              f"Token TB/lượt: {sum(r['tokens'] for r in runs) // len(runs)}"]
+              f"Token TB/lượt: {sum(r['tokens'] for r in runs) // len(runs)}",
+              f"Lỗi hạ tầng (không tính): {sum(r.get('infra', False) for rs in results.values() for r in rs)}"]
     return "\n".join(lines)
 
 
@@ -83,6 +101,7 @@ def main() -> None:
     parser.add_argument("--k", type=int, default=3, help="số lần chạy mỗi case")
     parser.add_argument("--case", default="", help="chỉ chạy case có tên chứa chuỗi này")
     args = parser.parse_args()
+    sys.stdout.reconfigure(encoding="utf-8")       # Windows: stdout chuyển hướng ra file mặc định là cp1252
     from flight_agent.model import make_model     # đọc .env; import ở đây để test không cần key
     model = make_model()
     out_dir = Path(__file__).parent / "results" / datetime.now().strftime("%Y%m%d-%H%M%S")

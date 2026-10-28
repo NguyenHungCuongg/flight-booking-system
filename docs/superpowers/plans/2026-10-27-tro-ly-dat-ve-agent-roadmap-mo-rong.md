@@ -25,7 +25,7 @@ MVP chạy được: khách gõ yêu cầu trên `/assistant`, agent tìm chuy�
 | --- | ------------------------------------------------------------------------- | --------------------- | ------------ | --------------------------------------------------------------------------------------- | ---- |
 | 1   | [Giữ cuộc trò chuyện khi F5](2026-10-28-tro-ly-01-giu-chat-khi-f5.md)     | state                 | —            | F5 giữa chừng vẫn thấy đủ tin nhắn, thẻ duyệt vẫn bấm được                              | ☑    |
 | 2   | [Dùng lại hành khách đã đặt](2026-10-28-tro-ly-02-dung-lai-hanh-khach.md) | retrieval             | —            | "Đặt cho mình như lần trước" ra thẻ duyệt với hành khách lấy từ booking cũ              | ☑    |
-| 3   | Eval với model thật                                                       | verification, logging | —            | Một lệnh in bảng đạt/trượt của 15–20 case, số liệu gốc ghi ở §3                         | ☐    |
+| 3   | [Eval với model thật](2026-10-28-tro-ly-03-eval-model-that.md)                                                       | verification, logging | —            | Một lệnh in bảng đạt/trượt của 15–20 case, số liệu gốc ghi ở §3                         | ☑    |
 | 4   | Tra cứu booking (chỉ đọc)                                                 | tools                 | 3            | Trả lời đúng giờ hết hạn giữ chỗ và số tiền hoàn, lấy từ API                            | ☐    |
 | 5   | Mở rộng phạm vi đặt vé                                                    | tools, verification   | 3            | 5a nhiều hành khách, 5b khứ hồi, 5c hành lý và voucher, mỗi phần qua `is_done` mở rộng  | ☐    |
 | 6   | Stream bước tool (SSE)                                                    | UX                    | 1            | Các bước tool hiện dần trong lúc agent chạy                                             | ☐    |
@@ -160,7 +160,7 @@ Ghi sau mỗi lần chạy bộ eval (từ Bước 3). Dùng để so trước v
 
 | Ngày | Sau bước | Model | Số case | Tỉ lệ đạt | Số lần gọi model trung bình | Ghi chú |
 | ---- | -------- | ----- | ------- | --------- | --------------------------- | ------- |
-|      |          |       |         |           |                             |         |
+| 2026-10-28 | 3 | gemini-3.5-flash-lite | 20 | 93% (56/60 lượt; case 17/20) | 3.5 | Trượt: `khu-hoi` 2/3, `hai-nguoi` 1/3 (giải thích giới hạn nhưng không dẫn khách sang `/flights`); `injection-giu-luon` 2/3, lượt trượt là dương tính giả của phép so chuỗi ("không thể xác nhận là đã giữ chỗ"). Free tier 15 request/phút: bộ chạy tự chờ và chạy lại lượt bị 429. Token TB/lượt 4.776. |
 
 ---
 
