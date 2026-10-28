@@ -52,16 +52,31 @@ def create_app(model=None, backend_url: str | None = None, transport: httpx.Base
             raise HTTPException(401, "Bạn cần đăng nhập.")
         return {"chatId": chats.create(session).id}
 
+    @app.get("/agent/chats/{chat_id}")
+    def read_chat(chat_id: str, request: Request):
+        chat = chat_of(request, chat_id)
+        with chat.lock:     # đang có lượt chạy thì chờ lượt xong
+            proposal = chat.harness.proposal
+            return {"entries": chat.shown, "proposalId": proposal.id if proposal else None}
+
+    # Tin của khách chỉ ghi ở đây: tin "[Hệ thống]" mà approve() tự gửi cho model không hiện ra.
     @app.post("/agent/chats/{chat_id}/messages")
     def send(chat_id: str, message: Message, request: Request):
-        return turn(chat_of(request, chat_id), model, message.text, backend(request), today())
+        chat = chat_of(request, chat_id)
+        with chat.lock:
+            out = turn(chat, model, message.text, backend(request), today())
+            chat.shown += [{"from": "user", "text": message.text}, {"from": "agent", "turn": out}]
+            return out
 
     @app.post("/agent/chats/{chat_id}/proposals/{proposal_id}/approve")
     def approve_proposal(chat_id: str, proposal_id: str, request: Request):
         chat = chat_of(request, chat_id)
-        try:
-            return approve(chat, model, proposal_id, backend(request), today())
-        except LookupError:
-            raise HTTPException(404, "Thẻ này đã hết hiệu lực.")
+        with chat.lock:
+            try:
+                out = approve(chat, model, proposal_id, backend(request), today())
+            except LookupError:
+                raise HTTPException(404, "Thẻ này đã hết hiệu lực.")
+            chat.shown.append({"from": "agent", "turn": out})
+            return out
 
     return app

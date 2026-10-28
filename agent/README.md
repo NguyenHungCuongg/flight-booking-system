@@ -21,6 +21,8 @@ uv run uvicorn flight_agent.app:create_app --factory --port 8000
 
 Cần backend chạy profile `dev` trên cổng 8080 và frontend (`npm run dev`), frontend chuyển `/agent/*` tới `AGENT_URL` (mặc định `http://localhost:8000`).
 
+Chat nằm trong RAM của service. Trang giữ `chatId` trong `sessionStorage` và đọc lại bằng `GET /agent/chats/{id}` khi tải lại trang; restart service thì chat mất và trang mở chat trống.
+
 Biến trong `.env`:
 
 | Biến              | Ý nghĩa                                                       |

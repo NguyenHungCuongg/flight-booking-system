@@ -27,6 +27,8 @@ class Chat:
     session: str                # JSESSIONID lúc tạo chat
     harness: Harness = field(default_factory=Harness)
     history: list = field(default_factory=list)
+    # Các lượt trang đã hiển thị (tin của khách, kết quả mỗi lượt) để dựng lại khung chat khi F5.
+    shown: list = field(default_factory=list)
     lock: threading.RLock = field(default_factory=threading.RLock)
 
 
