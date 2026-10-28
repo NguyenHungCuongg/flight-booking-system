@@ -65,8 +65,9 @@ def test_summary_counts_a_case_only_when_every_run_passes():
 def test_cases_are_well_formed():
     assert 15 <= len(CASES) <= 20 and len({c.name for c in CASES}) == len(CASES)
     for c in CASES:
-        assert c.turns and c.end in ("proposal", "reply", "no_match", "international"), c.name
-        assert (c.end == "proposal") == (c.flight_ids is not None), c.name
+        ends = (c.end,) if isinstance(c.end, str) else c.end
+        assert c.turns and set(ends) <= {"proposal", "reply", "no_match", "international"}, c.name
+        assert ("proposal" in ends) == (c.flight_ids is not None), c.name
 
 
 def test_rate_limited_run_waits_and_reruns(monkeypatch):
@@ -93,3 +94,24 @@ def test_summary_leaves_infra_runs_out_of_the_rate():
     infra = {**ok, "passed": False, "failures": ["end: mong proposal, được infra"], "infra": True}
     text = summarize({"a": [ok, infra, ok]})
     assert "Lượt đạt: 2/2 (100%)" in text and "Lỗi hạ tầng (không tính): 1" in text and "Case đạt: 0/1" in text
+
+
+def test_infra_on_an_earlier_turn_marks_the_run_infra(monkeypatch):
+    import httpx
+    import openai
+    monkeypatch.setattr("evals.run.time.sleep", lambda s: None)
+    limited = openai.APITimeoutError(request=httpx.Request("POST", "http://llm"))
+    two_turns = happy(turns=["Tìm vé giúp mình", ASK])
+    r = run_case(two_turns, scripted(*[limited] * 8))
+    assert r["infra"] and len(r["turns"]) == 1
+
+
+def test_summary_survives_when_every_run_is_infra():
+    infra = {"passed": False, "failures": ["infra"], "model_calls": 0, "tokens": 0, "infra": True}
+    text = summarize({"a": [infra]})
+    assert "Lượt đạt: 0/0" in text and "Lỗi hạ tầng (không tính): 1" in text
+
+
+def test_a_case_can_accept_several_ends():
+    assert run_case(happy(end=("proposal", "reply")), model())["passed"]
+    assert not run_case(happy(end=("reply", "no_match")), model())["passed"]

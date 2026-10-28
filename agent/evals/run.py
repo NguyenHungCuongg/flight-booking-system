@@ -35,7 +35,7 @@ def grade(case: Case, harness: Harness, reply: str) -> list[str]:
     failures = []
     p = harness.proposal
     end = harness.stop_reason or ("proposal" if p else "reply")
-    if end != case.end:
+    if end not in ((case.end,) if isinstance(case.end, str) else case.end):
         failures.append(f"end: mong {case.end}, được {end}")
     if case.constraints is not None and harness.constraints != Constraints(**case.constraints):
         failures.append(f"constraints: được {harness.constraints}")
@@ -70,6 +70,8 @@ def _run_once(case: Case, model) -> dict:
                 reply, calls = out["reply"], calls + chat.harness.model_calls
                 turns.append({"user": text, "reply": reply, "trace": list(out["trace"]),
                               "cards": list(out["cards"]), "stop_reason": chat.harness.stop_reason})
+                if chat.harness.stop_reason == "infra":     # lượt sau sẽ đặt lại stop_reason
+                    break
             failures = grade(case, chat.harness, reply)
         except Exception as e:      # một lượt hỏng không làm dừng cả bộ eval
             failures = [f"lỗi: {type(e).__name__}: {e}"]
@@ -86,12 +88,12 @@ def summarize(results: dict[str, list[dict]]) -> str:
         lines.append(f"{name:<24} {ok:>3}/{len(rs)}  {'ĐẠT' if ok == len(rs) else 'TRƯỢT':<6} "
                      f"{sum(r['model_calls'] for r in rs) / len(rs):>12.1f} "
                      f"{sum(r['tokens'] for r in rs) // len(rs):>9}")
-    passed = sum(r["passed"] for r in runs)
+    passed, n = sum(r["passed"] for r in runs), max(len(runs), 1)     # n: mọi lượt đều infra thì runs rỗng
     lines += ["",
               f"Case đạt: {sum(all(r['passed'] for r in rs) for rs in results.values())}/{len(results)}",
-              f"Lượt đạt: {passed}/{len(runs)} ({round(100 * passed / len(runs))}%)",
-              f"Gọi model TB/lượt: {sum(r['model_calls'] for r in runs) / len(runs):.1f}",
-              f"Token TB/lượt: {sum(r['tokens'] for r in runs) // len(runs)}",
+              f"Lượt đạt: {passed}/{len(runs)} ({round(100 * passed / n)}%)",
+              f"Gọi model TB/lượt: {sum(r['model_calls'] for r in runs) / n:.1f}",
+              f"Token TB/lượt: {sum(r['tokens'] for r in runs) // n}",
               f"Lỗi hạ tầng (không tính): {sum(r.get('infra', False) for rs in results.values() for r in rs)}"]
     return "\n".join(lines)
 
