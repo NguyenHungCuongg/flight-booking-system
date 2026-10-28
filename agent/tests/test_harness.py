@@ -1,5 +1,7 @@
+import json
+
 from flight_agent.core import Harness
-from tests.fakes import FakeBackend, passenger
+from tests.fakes import FakeBackend, booking, journey, passenger
 
 ROUTE = dict(origin="SGN", destination="DAD", date="2026-10-30", depart_before="12:00", max_price=2_000_000)
 PAX = dict(full_name="Nguyễn Hùng Cường", gender="MALE", date_of_birth="2004-03-12")
@@ -177,3 +179,65 @@ def test_reused_multi_word_last_name_keeps_last_time_split():
     h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, **p))
     sent = h.proposal.body["passengers"][0]
     assert (sent["lastName"], sent["firstName"]) == ("TON NU", "THI HA")
+
+
+HELD = booking("K7M2QX", "PENDING_PAYMENT", hold_expires="2026-10-26T15:40:00+07:00")
+ISSUED = booking("ABC234", journeys=[journey(), journey("RETURN", 610, refundable=False)])
+LOOKUP = dict(bookings=[HELD, ISSUED], refunds={
+    ("ABC234", "OUTBOUND"): {"journeyValue": 1_850_000, "fee": 300_000, "refundAmount": 1_550_000},
+    ("ABC234", "RETURN"): (409, "FARE_RULE_NOT_ALLOWED")})
+
+
+def test_lookup_tools_need_no_constraints_and_only_get():
+    h, fake = ready(FakeBackend(**LOOKUP))
+    assert h.execute("list_my_bookings", {})["status"] == "ok"
+    assert h.execute("get_booking", {"code": "K7M2QX"})["status"] == "ok"
+    assert h.execute("refund_quote", {"code": "ABC234", "direction": "OUTBOUND"})["status"] == "ok"
+    assert [q.method for q in fake.requests] == ["GET"] * 3
+    assert fake.requests[0].url.params["size"] == "10"
+
+
+def test_my_bookings_show_state_total_route_and_hold_only_when_pending():
+    h, _ = ready(FakeBackend(**LOOKUP))
+    held, issued = h.execute("list_my_bookings", {})["bookings"]
+    assert held == {"code": "K7M2QX", "state": "chờ thanh toán", "total": "1.850.000 đ",
+                    "routes": ["SGN → DAD 08:10 ngày 30/10/2026"], "hold_expires_at": "15:40 ngày 26/10/2026"}
+    assert issued["state"] == "đã xuất vé" and "hold_expires_at" not in issued
+
+
+def test_get_booking_normalises_the_code_and_summarises():
+    h, fake = ready(FakeBackend(**LOOKUP))
+    r = h.execute("get_booking", {"code": " k7m2qx "})
+    assert fake.requests[-1].url.path == "/api/bookings/K7M2QX"
+    b = r["booking"]
+    assert (b["hold_expires_at"], b["page"], b["passengers"]) == \
+        ("15:40 ngày 26/10/2026", "/bookings/K7M2QX", ["NGUYEN HUNG CUONG"])
+    assert b["journeys"][0] == {
+        "direction": "OUTBOUND", "state": "ACTIVE", "fare": "Phổ thông", "refundable": True,
+        "refund_fee": "300.000 đ", "changeable": True, "change_fee": "300.000 đ",
+        "flights": ["VN122 SGN 08:10 ngày 30/10/2026 → DAD 09:30 ngày 30/10/2026"],
+        "refund_page": "/bookings/K7M2QX/refund/outbound", "reschedule_page": "/bookings/K7M2QX/reschedule/outbound"}
+    assert "B1234567" not in json.dumps(r)
+
+
+def test_bad_booking_code_or_direction_never_reaches_the_backend():
+    h, fake = ready(FakeBackend(**LOOKUP))
+    assert h.execute("get_booking", {"code": "../me"})["status"] == "invalid_param"
+    assert h.execute("get_booking", {"code": "K7M2Q0"})["status"] == "invalid_param"
+    assert h.execute("refund_quote", {"code": "ABC234", "direction": "BOTH"})["status"] == "invalid_param"
+    assert fake.requests == []
+
+
+def test_someone_elses_booking_is_not_found_for_the_model():
+    h, _ = ready(FakeBackend(**LOOKUP))
+    r = h.execute("get_booking", {"code": "ZZZ999"})
+    assert (r["status"], r["code"]) == ("backend_error", "NOT_FOUND") and h.stop_reason is None
+
+
+def test_refund_quote_formats_money_and_links_c10():
+    h, _ = ready(FakeBackend(**LOOKUP))
+    assert h.execute("refund_quote", {"code": "ABC234", "direction": "OUTBOUND"}) == {
+        "status": "ok", "journey_value": "1.850.000 đ", "fee": "300.000 đ", "refund_amount": "1.550.000 đ",
+        "page": "/bookings/ABC234/refund/outbound"}
+    r = h.execute("refund_quote", {"code": "abc234", "direction": "return"})
+    assert (r["status"], r["code"]) == ("backend_error", "FARE_RULE_NOT_ALLOWED") and h.stop_reason is None

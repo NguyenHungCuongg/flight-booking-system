@@ -21,6 +21,11 @@ BUDGET = 10          # tối đa số lần gọi model mỗi lượt chat
 LOOP_WINDOW = 6      # xét 6 lời gọi tool gần nhất ...
 LOOP_REPEAT = 3      # ... cùng (tool, args) 3 lần = lặp
 RECENT_BOOKINGS = 3  # số booking gần nhất mà list_recent_passengers đọc
+MY_BOOKINGS = 10     # số booking gần nhất mà list_my_bookings đọc
+STATES = {"PENDING_PAYMENT": "chờ thanh toán", "ISSUED": "đã xuất vé", "EXPIRED": "hết hạn giữ chỗ",
+          "CANCELLED": "đã huỷ", "REFUNDED": "đã hoàn"}
+BOOKING_CODE = re.compile(r"[A-HJ-NP-Z2-9]{6}")     # BR-46, như BookingCodes.ALPHABET của backend
+BAD_CODE = {"status": "invalid_param", "hint": "Mã booking gồm 6 chữ và số, ví dụ K7M2QX."}
 
 
 # =====================================================================
@@ -28,6 +33,15 @@ RECENT_BOOKINGS = 3  # số booking gần nhất mà list_recent_passengers đ�
 # =====================================================================
 def _vnd(n: int) -> str:
     return f"{n:,}".replace(",", ".")
+
+
+def _money(n: int) -> str:
+    return f"{_vnd(n)} đ"
+
+
+def _when(iso: str) -> str:
+    """Giờ ISO có offset của API → "08:10 ngày 30/10/2026", giữ nguyên múi giờ API đã trả."""
+    return f"{iso[11:16]} ngày {iso[8:10]}/{iso[5:7]}/{iso[:4]}"
 
 
 @dataclass(frozen=True)
@@ -85,6 +99,12 @@ def split_name(full_name: str) -> tuple[str, str] | None:
     return (words[0], " ".join(words[1:])) if len(words) >= 2 else None
 
 
+def _booking_code(code: str) -> str | None:
+    """Mã đã chuẩn hoá, hoặc None nếu không đúng dạng: chặn mọi chuỗi lạ trước khi ghép vào đường dẫn API."""
+    code = str(code).strip().upper()
+    return code if BOOKING_CODE.fullmatch(code) else None
+
+
 # =====================================================================
 # HARNESS
 # =====================================================================
@@ -128,7 +148,8 @@ class Harness:
 
     @property
     def tools(self) -> list:
-        return [self.set_constraints, self.search_flights, self.list_recent_passengers, self.propose_hold]
+        return [self.set_constraints, self.search_flights, self.list_recent_passengers, self.propose_hold,
+                self.list_my_bookings, self.get_booking, self.refund_quote]
 
     # ---- các tool của model
     def set_constraints(self, origin: str, destination: str, date: str, depart_before: str | None = None,
@@ -235,6 +256,57 @@ class Harness:
         self.proposal = Proposal(pid, body, total, card)
         self.cards.append(card)
         return {"status": "pending_approval", "total": total}
+
+    # ---- tra cứu: chỉ GET, mỗi tool một request; giờ và tiền định dạng sẵn để model chép nguyên văn
+    def list_my_bookings(self) -> dict:
+        """Các booking gần nhất của khách, mới nhất trước: mã, trạng thái, tổng tiền, chặng, hạn giữ chỗ (chỉ khi
+        đang chờ thanh toán). Dùng khi khách hỏi về booking mà không nói mã."""
+        page = self.backend.get("/api/bookings", {"size": MY_BOOKINGS})
+        out = []
+        for b in page["content"]:
+            item = {"code": b["code"], "state": STATES.get(b["status"], b["status"]), "total": _money(b["totalAmount"]),
+                    "routes": [f"{r['departureAirport']} → {r['arrivalAirport']} {_when(r['departureTime'])}"
+                               for r in b["routes"]]}
+            if b["status"] == "PENDING_PAYMENT":
+                item["hold_expires_at"] = _when(b["holdExpiresAt"])
+            out.append(item)
+        return {"status": "ok", "bookings": out}
+
+    def get_booking(self, code: str) -> dict:
+        """Chi tiết một booking của khách theo mã 6 ký tự: trạng thái, tổng tiền, hạn giữ chỗ (chỉ khi đang chờ thanh
+        toán), hành khách, từng chiều bay với điều kiện hoàn đổi của gói giá và trang để khách tự thao tác.
+        refund_fee chỉ là phí theo gói; số tiền hoàn thật phải hỏi refund_quote."""
+        if (code := _booking_code(code)) is None:
+            return BAD_CODE
+        b = self.backend.get(f"/api/bookings/{code}")
+        info = {"code": code, "state": STATES.get(b["status"], b["status"]), "total": _money(b["totalAmount"])}
+        if b["status"] == "PENDING_PAYMENT":
+            info["hold_expires_at"] = _when(b["holdExpiresAt"])
+        info["page"] = f"/bookings/{code}"
+        info["passengers"] = [f"{p['lastName']} {p['firstName']}" for p in b["passengers"]]
+        info["journeys"] = [{
+            "direction": j["direction"], "state": j["status"], "fare": j["fareFamilyName"],
+            "refundable": j["refundable"], "refund_fee": _money(j["refundFee"]),
+            "changeable": j["changeable"], "change_fee": _money(j["changeFee"]),
+            "flights": [f"{s['flightNumber']} {s['departureAirport']} {_when(s['departureTime'])} → "
+                        f"{s['arrivalAirport']} {_when(s['arrivalTime'])}" for s in j["segments"]],
+            "refund_page": f"/bookings/{code}/refund/{j['direction'].lower()}",
+            "reschedule_page": f"/bookings/{code}/reschedule/{j['direction'].lower()}",
+        } for j in b["journeys"]]
+        return {"status": "ok", "booking": info}
+
+    def refund_quote(self, code: str, direction: str) -> dict:
+        """Số tiền khách được hoàn nếu hoàn một chiều của booking, đã trừ phí và xét hạn hoàn. direction: OUTBOUND
+        (chiều đi) hoặc RETURN (chiều về). Không hoàn được thì backend_error có lý do trong detail. Trợ lý không gửi
+        yêu cầu hoàn: khách tự làm ở page."""
+        if (code := _booking_code(code)) is None:
+            return BAD_CODE
+        direction = direction.strip().upper()
+        if direction not in ("OUTBOUND", "RETURN"):
+            return {"status": "invalid_param", "hint": "direction phải là OUTBOUND (chiều đi) hoặc RETURN (chiều về)."}
+        q = self.backend.get(f"/api/bookings/{code}/journeys/{direction}/refund-quote")
+        return {"status": "ok", "journey_value": _money(q["journeyValue"]), "fee": _money(q["fee"]),
+                "refund_amount": _money(q["refundAmount"]), "page": f"/bookings/{code}/refund/{direction.lower()}"}
 
     def _found(self, flight_ids, fare_family_id) -> dict | None:
         return next((i for i in self.found

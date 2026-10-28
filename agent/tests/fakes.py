@@ -73,16 +73,42 @@ def passenger(last, first, gender="MALE", dob="2004-03-12", type="ADULT"):
             "nationality": "VN", "passportNumber": "B1234567", "passportExpiry": "2030-01-01", "tickets": []}
 
 
+def journey(direction="OUTBOUND", flight_id=122, refundable=True, refund_fee=300_000, changeable=True,
+            change_fee=300_000):
+    """Một chiều đúng dạng JourneyView, một chặng lấy từ FLIGHTS."""
+    s = next(s for i in FLIGHTS for s in i["segments"] if s["flightId"] == flight_id)
+    return {"direction": direction, "status": "ACTIVE", "airlineCode": s["airline"]["code"],
+            "fareFamilyName": "Phổ thông", "cabinClass": "ECONOMY", "carryOnKg": 7, "checkedBaggageKg": 0,
+            "refundable": refundable, "refundFee": refund_fee, "changeable": changeable, "changeFee": change_fee,
+            "discount": 0, "baggage": [],
+            "segments": [{"flightId": flight_id, "flightNumber": s["flightNumber"],
+                          "departureAirport": s["departure"]["airport"], "departureTime": s["departure"]["time"],
+                          "arrivalAirport": s["arrival"]["airport"], "arrivalTime": s["arrival"]["time"],
+                          "status": "SCHEDULED", "adultPrice": 1_850_000}]}
+
+
+def booking(code, status="ISSUED", hold_expires=EXPIRES, total=1_850_000, journeys=None, passengers=None):
+    """Một booking đúng dạng BookingDetail."""
+    return {"code": code, "status": status, "holdExpiresAt": hold_expires, "issuedAt": None,
+            "createdAt": "2026-10-26T15:20:00+07:00",
+            "contact": {"name": "Nguyễn Hùng Cường", "email": "customer@demo.local", "phone": "0901234567"},
+            "voucherCode": None, "fareTotal": total, "baggageTotal": 0, "discountTotal": 0, "totalAmount": total,
+            "journeys": journeys or [journey()], "passengers": passengers or [passenger("NGUYEN", "HUNG CUONG")],
+            "payments": [], "refundRequests": [], "reschedules": []}
+
+
 def problem(status, code, errors=()):
     return httpx.Response(status, json={"code": code, "detail": f"Lỗi {code}", "errors": list(errors)})
 
 
 class FakeBackend:
     def __init__(self, flights=FLIGHTS, me_status=200, quote_error=None, hold_error=None, detail_patch=None,
-                 hold_delay=0.0, search_delay=0.0, past=()):
+                 hold_delay=0.0, search_delay=0.0, past=(), bookings=(), refunds=None):
         self.flights, self.me_status, self.quote_error, self.hold_error = flights, me_status, quote_error, hold_error
         self.detail_patch, self.hold_delay, self.search_delay = detail_patch or {}, hold_delay, search_delay
         self.past = dict(past)      # mã booking cũ -> hành khách, mới nhất trước
+        self.bookings = {b["code"]: b for b in bookings}    # BookingDetail đầy đủ, mới nhất trước
+        self.refunds = refunds or {}    # (mã, chiều) -> RefundQuote, hoặc (status, code) lỗi
         self.requests: list[httpx.Request] = []
         self.holds: list[dict] = []
         self.transport = httpx.MockTransport(self.handle)
@@ -121,12 +147,21 @@ class FakeBackend:
                 return problem(*self.hold_error)
             return httpx.Response(201, json={"code": CODE, "status": "PENDING_PAYMENT", "holdExpiresAt": EXPIRES,
                                              "totalAmount": self._price(body["journeys"][0])})
+        if request.method == "GET" and (key := request.url.path.removeprefix("/api/bookings/")) in self.bookings:
+            return httpx.Response(200, json=self.bookings[key])     # trước CODE: booking dựng sẵn có thể trùng mã
         if route == ("GET", f"/api/bookings/{CODE}"):
             return httpx.Response(200, json=self._detail())
         if route == ("GET", "/api/bookings"):
             size = int(request.url.params.get("size", 20))
-            return httpx.Response(200, json={"content": [{"code": c} for c in list(self.past)[:size]],
-                                             "page": {"size": size, "number": 0, "totalElements": len(self.past)}})
+            content = [_summary(b) for b in self.bookings.values()] + [{"code": c} for c in self.past]
+            return httpx.Response(200, json={"content": content[:size],
+                                             "page": {"size": size, "number": 0, "totalElements": len(content)}})
+        if request.method == "GET" and request.url.path.endswith("/refund-quote"):
+            _, _, _, code, _, direction, _ = request.url.path.split("/")
+            quote = self.refunds.get((code, direction))
+            if isinstance(quote, tuple):
+                return problem(*quote)
+            return httpx.Response(200, json=quote) if quote else problem(404, "NOT_FOUND")
         if request.method == "GET" and (code := request.url.path.removeprefix("/api/bookings/")) in self.past:
             return httpx.Response(200, json={"code": code, "status": "ISSUED", "passengers": self.past[code]})
         return problem(404, "NOT_FOUND")
@@ -144,3 +179,12 @@ class FakeBackend:
                 "totalAmount": self._price(journey), "contact": body["contact"],
                 "journeys": [{"direction": journey["direction"], "segments": segments}],
                 "passengers": body["passengers"], **self.detail_patch}
+
+
+def _summary(b: dict) -> dict:
+    """BookingSummary của một BookingDetail."""
+    return {"code": b["code"], "status": b["status"], "contactName": b["contact"]["name"],
+            "totalAmount": b["totalAmount"], "holdExpiresAt": b["holdExpiresAt"], "createdAt": b["createdAt"],
+            "routes": [{"direction": j["direction"], "departureAirport": j["segments"][0]["departureAirport"],
+                        "arrivalAirport": j["segments"][-1]["arrivalAirport"],
+                        "departureTime": j["segments"][0]["departureTime"]} for j in b["journeys"]]}
