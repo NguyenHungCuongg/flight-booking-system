@@ -186,7 +186,8 @@ export default function AssistantChat() {
   // Đọc sessionStorage sau khi hydrate. Thẻ duyệt không phải đề xuất còn hiệu lực thì dựng lại không có nút.
   useEffect(() => {
     const id = sessionStorage.getItem(CHAT_KEY);
-    if (!id) return;
+    // StrictMode chạy effect hai lần: lần hai không đọc lại để khỏi ghi đè tin khách vừa gửi.
+    if (!id || chatId.current) return;
     chatId.current = id;
     void run(async () => {
       try {
@@ -251,6 +252,14 @@ export default function AssistantChat() {
 
   function close(proposalId: string) {
     setClosed((set) => new Set(set).add(proposalId));
+  }
+
+  // "Sửa": báo service bỏ đề xuất để F5 không mở lại thẻ. Lỗi thì bỏ qua, thẻ trên trang đã đóng.
+  function edit(proposalId: string) {
+    close(proposalId);
+    agentPost(`/chats/${chatId.current}/proposals/${proposalId}/dismiss`).catch(
+      () => {},
+    );
   }
 
   function hold(proposalId: string) {
@@ -321,7 +330,7 @@ export default function AssistantChat() {
                       card.type === "proposal" && hold(card.proposalId)
                     }
                     onEdit={() =>
-                      card.type === "proposal" && close(card.proposalId)
+                      card.type === "proposal" && edit(card.proposalId)
                     }
                   />
                 ))}

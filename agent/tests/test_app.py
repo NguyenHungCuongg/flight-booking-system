@@ -1,3 +1,5 @@
+import threading
+import time
 from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
@@ -105,3 +107,39 @@ def test_failed_approval_does_not_show_the_system_message_as_the_customer():
     c.post(f"/agent/chats/{chat}/proposals/{pid}/approve", headers=h)
     view = c.get(f"/agent/chats/{chat}", headers=h).json()
     assert [e["from"] for e in view["entries"]] == ["user", "agent", "agent"]
+
+
+def test_reading_back_waits_for_the_running_turn():
+    c = client(FakeBackend(search_delay=0.3), *hold_flow())
+    h = {"Cookie": COOKIE}
+    chat = c.post("/agent/chats", headers=h).json()["chatId"]
+    sending = threading.Thread(target=lambda: c.post(f"/agent/chats/{chat}/messages", json={"text": "Đặt vé"},
+                                                     headers=h))
+    sending.start()
+    time.sleep(0.1)                                     # lượt đang chờ search_flights
+    view = c.get(f"/agent/chats/{chat}", headers=h).json()
+    sending.join()
+    assert [e["from"] for e in view["entries"]] == ["user", "agent"]
+
+
+def test_crashed_turn_keeps_the_message_and_no_unseen_card_is_open():
+    app = create_app(model=scripted(call("set_constraints", **ROUTE), call("search_flights"),
+                                    call("propose_hold", flight_ids=[122], fare_family_id=1, **PAX),
+                                    RuntimeError("lỗi bất ngờ")),
+                     backend_url="http://be", transport=FakeBackend().transport, today=lambda: "2026-10-26")
+    c = TestClient(app, raise_server_exceptions=False)
+    h = {"Cookie": COOKIE}
+    chat = c.post("/agent/chats", headers=h).json()["chatId"]
+    assert c.post(f"/agent/chats/{chat}/messages", json={"text": "Đặt vé"}, headers=h).status_code == 500
+    assert c.get(f"/agent/chats/{chat}", headers=h).json() == {"entries": [{"from": "user", "text": "Đặt vé"}],
+                                                               "proposalId": None}
+
+
+def test_edit_closes_the_proposal_on_the_service_too():
+    c = client(FakeBackend(), *hold_flow())
+    h = {"Cookie": COOKIE}
+    chat = c.post("/agent/chats", headers=h).json()["chatId"]
+    pid = c.post(f"/agent/chats/{chat}/messages", json={"text": "Đặt vé"}, headers=h).json()["cards"][-1]["proposalId"]
+    assert c.post(f"/agent/chats/{chat}/proposals/{pid}/dismiss", headers=h).status_code == 200
+    assert c.get(f"/agent/chats/{chat}", headers=h).json()["proposalId"] is None
+    assert c.post(f"/agent/chats/{chat}/proposals/{pid}/approve", headers=h).status_code == 404

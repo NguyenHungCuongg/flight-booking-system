@@ -57,16 +57,27 @@ def create_app(model=None, backend_url: str | None = None, transport: httpx.Base
         chat = chat_of(request, chat_id)
         with chat.lock:     # đang có lượt chạy thì chờ lượt xong
             proposal = chat.harness.proposal
-            return {"entries": chat.shown, "proposalId": proposal.id if proposal else None}
+            # Bản sao: FastAPI chuyển sang JSON sau khi đã nhả lock.
+            return {"entries": list(chat.shown), "proposalId": proposal.id if proposal else None}
 
     # Tin của khách chỉ ghi ở đây: tin "[Hệ thống]" mà approve() tự gửi cho model không hiện ra.
+    # Ghi trước khi chạy lượt: lượt hỏng thì trang vẫn đang hiện tin này.
     @app.post("/agent/chats/{chat_id}/messages")
     def send(chat_id: str, message: Message, request: Request):
         chat = chat_of(request, chat_id)
         with chat.lock:
+            chat.shown.append({"from": "user", "text": message.text})
             out = turn(chat, model, message.text, backend(request), today())
-            chat.shown += [{"from": "user", "text": message.text}, {"from": "agent", "turn": out}]
+            chat.shown.append({"from": "agent", "turn": out})
             return out
+
+    # Khách bấm "Sửa": đề xuất hết hiệu lực, F5 thì thẻ không mở lại.
+    @app.post("/agent/chats/{chat_id}/proposals/{proposal_id}/dismiss")
+    def dismiss_proposal(chat_id: str, proposal_id: str, request: Request):
+        chat = chat_of(request, chat_id)
+        with chat.lock:
+            if chat.harness.proposal and chat.harness.proposal.id == proposal_id:
+                chat.harness.proposal = None
 
     @app.post("/agent/chats/{chat_id}/proposals/{proposal_id}/approve")
     def approve_proposal(chat_id: str, proposal_id: str, request: Request):

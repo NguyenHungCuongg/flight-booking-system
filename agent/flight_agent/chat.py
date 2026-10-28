@@ -62,12 +62,16 @@ def turn(chat: Chat, model, text: str, backend: Backend, today: str) -> dict:
     with chat.lock:
         h = chat.harness
         h.begin_turn(backend, today)
+        before = h.proposal
         try:
             reply, chat.history = run_turn(h, model, chat.history, text)
         except StopRun:
             pass
         except INFRA_ERRORS:
             h.stop("infra")
+        except Exception:
+            h.proposal = before     # lượt hỏng không trả thẻ nào, nên đề xuất của nó không được duyệt
+            raise
         if h.stop_reason:
             # Lần invoke bị huỷ có thể còn tool call chưa có kết quả: chỉ giữ tin nhắn của khách.
             return _handoff(chat, HumanMessage(text))
