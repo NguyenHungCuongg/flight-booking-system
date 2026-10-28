@@ -42,6 +42,13 @@ export type Turn = {
   cards: Card[];
 };
 
+export type Entry =
+  | { from: "user"; text: string }
+  | { from: "agent"; turn: Turn };
+
+/** GET /agent/chats/{id}: các lượt đã hiển thị và đề xuất còn duyệt được (null khi không còn). */
+export type ChatView = { entries: Entry[]; proposalId: string | null };
+
 export class AgentError extends Error {
   constructor(
     readonly status: number,
@@ -59,11 +66,23 @@ export async function agentPost<T>(path: string, body?: unknown): Promise<T> {
   if (body !== undefined) headers.set("Content-Type", "application/json");
   const token = await csrfToken();
   if (token) headers.set("X-XSRF-TOKEN", token);
+  return agentFetch("POST", path, headers, body);
+}
 
+export function agentGet<T>(path: string): Promise<T> {
+  return agentFetch("GET", path, new Headers());
+}
+
+async function agentFetch<T>(
+  method: string,
+  path: string,
+  headers: Headers,
+  body?: unknown,
+): Promise<T> {
   let res: Response;
   try {
     res = await fetch("/agent" + path, {
-      method: "POST",
+      method,
       headers,
       credentials: "same-origin",
       body: body === undefined ? undefined : JSON.stringify(body),

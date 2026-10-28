@@ -1,14 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import SiteHeader from "@/components/site-header";
 import { Notice, pillLine, pillPrimary } from "@/components/form";
 import { clock, dmy } from "@/lib/booking";
 import { vnd } from "../flights/itineraries";
-import { AgentError, agentPost, type Card, type Turn } from "./agent-api";
+import {
+  AgentError,
+  agentGet,
+  agentPost,
+  type Card,
+  type ChatView,
+  type Entry,
+  type Turn,
+} from "./agent-api";
 
-type Entry = { from: "user"; text: string } | { from: "agent"; turn: Turn };
+/** chatId của tab này: F5 thì đọc lại chat, đóng tab thì hết. */
+const CHAT_KEY = "assistant-chat";
+
+function proposalIds(entries: Entry[]) {
+  return entries.flatMap((e) =>
+    e.from === "agent"
+      ? e.turn.cards.flatMap((c) =>
+          c.type === "proposal" ? [c.proposalId] : [],
+        )
+      : [],
+  );
+}
 
 const chip =
   "rounded-inner border border-line bg-surface px-11 py-4 text-caption";
@@ -162,23 +181,44 @@ export default function AssistantChat() {
   // Thẻ duyệt đã bấm "Giữ chỗ" hoặc "Sửa" thì không còn nút.
   const [closed, setClosed] = useState<ReadonlySet<string>>(new Set());
 
-  const proposals = entries.flatMap((e) =>
-    e.from === "agent" ? e.turn.cards.filter((c) => c.type === "proposal") : [],
-  );
-  const latest = proposals.at(-1)?.proposalId;
+  const latest = proposalIds(entries).at(-1);
+
+  // Đọc sessionStorage sau khi hydrate. Thẻ duyệt không phải đề xuất còn hiệu lực thì dựng lại không có nút.
+  useEffect(() => {
+    const id = sessionStorage.getItem(CHAT_KEY);
+    if (!id) return;
+    chatId.current = id;
+    void run(async () => {
+      try {
+        const view = await agentGet<ChatView>(`/chats/${id}`);
+        setEntries(view.entries);
+        setClosed(
+          new Set(
+            proposalIds(view.entries).filter((p) => p !== view.proposalId),
+          ),
+        );
+      } catch (e) {
+        // Service đã restart hoặc phiên đăng nhập đã đổi: mở chat trống, không báo lỗi.
+        if (!(e instanceof AgentError && e.status === 404)) throw e;
+        sessionStorage.removeItem(CHAT_KEY);
+        chatId.current = null;
+      }
+    });
+  }, []);
 
   async function newChat() {
     const { chatId: id } = await agentPost<{ chatId: string }>("/chats");
     chatId.current = id;
+    sessionStorage.setItem(CHAT_KEY, id);
     return id;
   }
 
-  async function run(work: () => Promise<Turn>) {
+  async function run(work: () => Promise<Turn | void>) {
     setBusy(true);
     setError(null);
     try {
       const turn = await work();
-      setEntries((list) => [...list, { from: "agent", turn }]);
+      if (turn) setEntries((list) => [...list, { from: "agent", turn }]);
     } catch (e) {
       setError(
         e instanceof AgentError ? e.message : "Đã có lỗi xảy ra. Hãy thử lại.",
