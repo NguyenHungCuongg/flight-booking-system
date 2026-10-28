@@ -23,6 +23,8 @@ Cần backend chạy profile `dev` trên cổng 8080 và frontend (`npm run dev`
 
 Chat nằm trong RAM của service. Trang giữ `chatId` trong `sessionStorage` và đọc lại bằng `GET /agent/chats/{id}` khi tải lại trang; restart service thì chat mất và trang mở chat trống.
 
+Khách muốn "đặt như lần trước" thì tool `list_recent_passengers` đọc hành khách người lớn từ 3 booking gần nhất (chỉ GET, không trả số giấy tờ). Không có kho memory riêng: dữ liệu luôn lấy từ backend.
+
 Biến trong `.env`:
 
 | Biến              | Ý nghĩa                                                       |
