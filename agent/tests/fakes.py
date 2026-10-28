@@ -67,15 +67,22 @@ CODE = "K7M2QX"
 EXPIRES = "2026-10-30T06:25:00+07:00"
 
 
+def passenger(last, first, gender="MALE", dob="2004-03-12", type="ADULT"):
+    """Một hành khách đúng dạng PassengerView của chi tiết booking."""
+    return {"type": type, "lastName": last, "firstName": first, "gender": gender, "dateOfBirth": dob,
+            "nationality": "VN", "passportNumber": "B1234567", "passportExpiry": "2030-01-01", "tickets": []}
+
+
 def problem(status, code, errors=()):
     return httpx.Response(status, json={"code": code, "detail": f"Lỗi {code}", "errors": list(errors)})
 
 
 class FakeBackend:
     def __init__(self, flights=FLIGHTS, me_status=200, quote_error=None, hold_error=None, detail_patch=None,
-                 hold_delay=0.0, search_delay=0.0):
+                 hold_delay=0.0, search_delay=0.0, past=()):
         self.flights, self.me_status, self.quote_error, self.hold_error = flights, me_status, quote_error, hold_error
         self.detail_patch, self.hold_delay, self.search_delay = detail_patch or {}, hold_delay, search_delay
+        self.past = dict(past)      # mã booking cũ -> hành khách, mới nhất trước
         self.requests: list[httpx.Request] = []
         self.holds: list[dict] = []
         self.transport = httpx.MockTransport(self.handle)
@@ -116,6 +123,12 @@ class FakeBackend:
                                              "totalAmount": self._price(body["journeys"][0])})
         if route == ("GET", f"/api/bookings/{CODE}"):
             return httpx.Response(200, json=self._detail())
+        if route == ("GET", "/api/bookings"):
+            size = int(request.url.params.get("size", 20))
+            return httpx.Response(200, json={"content": [{"code": c} for c in list(self.past)[:size]],
+                                             "page": {"size": size, "number": 0, "totalElements": len(self.past)}})
+        if request.method == "GET" and (code := request.url.path.removeprefix("/api/bookings/")) in self.past:
+            return httpx.Response(200, json={"code": code, "status": "ISSUED", "passengers": self.past[code]})
         return problem(404, "NOT_FOUND")
 
     def _detail(self):

@@ -20,6 +20,7 @@ KEYS = ("depart_before", "max_price")
 BUDGET = 10          # tối đa số lần gọi model mỗi lượt chat
 LOOP_WINDOW = 6      # xét 6 lời gọi tool gần nhất ...
 LOOP_REPEAT = 3      # ... cùng (tool, args) 3 lần = lặp
+RECENT_BOOKINGS = 3  # số booking gần nhất mà list_recent_passengers đọc
 
 
 # =====================================================================
@@ -125,9 +126,9 @@ class Harness:
 
     @property
     def tools(self) -> list:
-        return [self.set_constraints, self.search_flights, self.propose_hold]
+        return [self.set_constraints, self.search_flights, self.list_recent_passengers, self.propose_hold]
 
-    # ---- ba tool của model
+    # ---- các tool của model
     def set_constraints(self, origin: str, destination: str, date: str, depart_before: str | None = None,
                         max_price: int | None = None) -> dict:
         """Đặt hoặc thay ràng buộc của chuyến cần tìm. origin, destination: mã IATA sân bay. date: ngày cất cánh
@@ -186,6 +187,23 @@ class Harness:
         if not matching:
             self.stop("no_match")
         return {"status": "ok", "matching": matching, "nearest": self._nearest()}
+
+    def list_recent_passengers(self) -> dict:
+        """Hành khách người lớn trong vài booking gần nhất của khách, không trùng nhau, mới nhất trước. Dùng khi
+        khách muốn đặt cho mình hoặc cho người đã đặt trước đây; đọc tên ra và hỏi khách xác nhận trước khi
+        propose_hold. Danh sách rỗng thì hỏi khách thông tin hành khách."""
+        page = self.backend.get("/api/bookings", {"size": RECENT_BOOKINGS})
+        passengers = []
+        for summary in page["content"]:
+            for p in self.backend.get(f"/api/bookings/{summary['code']}")["passengers"]:
+                if p["type"] != "ADULT":
+                    continue
+                # Không trả số giấy tờ: model chỉ cần đủ tham số cho propose_hold.
+                item = {"full_name": f"{p['lastName']} {p['firstName']}", "gender": p["gender"],
+                        "date_of_birth": p["dateOfBirth"]}
+                if item not in passengers:
+                    passengers.append(item)
+        return {"status": "ok", "passengers": passengers}
 
     def propose_hold(self, flight_ids: list[int], fare_family_id: int, full_name: str, gender: str,
                      date_of_birth: str) -> dict:

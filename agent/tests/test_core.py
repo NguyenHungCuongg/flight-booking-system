@@ -43,3 +43,4 @@ def test_split_name_follows_br12():
     assert split_name("Đặng Thị Ánh") == ("DANG", "THI ANH")
     assert split_name("  nguyễn   văn  a ") == ("NGUYEN", "VAN A")
     assert split_name("Cường") is None
+    assert split_name("NGUYEN HUNG CUONG") == ("NGUYEN", "HUNG CUONG")     # tên lấy lại từ booking cũ

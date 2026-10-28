@@ -1,5 +1,5 @@
 from flight_agent.core import Harness
-from tests.fakes import FakeBackend
+from tests.fakes import FakeBackend, passenger
 
 ROUTE = dict(origin="SGN", destination="DAD", date="2026-10-30", depart_before="12:00", max_price=2_000_000)
 PAX = dict(full_name="Nguyễn Hùng Cường", gender="MALE", date_of_birth="2004-03-12")
@@ -131,3 +131,41 @@ def test_handoff_has_one_question_and_the_trace():
     card = h.handoff()
     assert card["type"] == "handoff" and card["question"].count("?") == 1
     assert card["tried"][-1].startswith("search_flights")
+
+
+CUONG = passenger("NGUYEN", "HUNG CUONG")
+PAST = [("AAA111", [CUONG, passenger("TRAN", "THI MAI", "FEMALE", "2005-01-02")]),
+        ("BBB222", [CUONG, passenger("NGUYEN", "BE NA", type="CHILD", dob="2020-05-05")]),
+        ("CCC333", [passenger("LE", "VAN AN", dob="1990-09-09")]),
+        ("DDD444", [passenger("PHAM", "MINH", dob="1980-01-01")])]
+
+
+def test_recent_passengers_are_unique_adults_without_documents():
+    h, _ = ready(FakeBackend(past=PAST))
+    r = h.execute("list_recent_passengers", {})      # không cần ràng buộc trước
+    assert r == {"status": "ok", "passengers": [
+        {"full_name": "NGUYEN HUNG CUONG", "gender": "MALE", "date_of_birth": "2004-03-12"},
+        {"full_name": "TRAN THI MAI", "gender": "FEMALE", "date_of_birth": "2005-01-02"},
+        {"full_name": "LE VAN AN", "gender": "MALE", "date_of_birth": "1990-09-09"}]}
+
+
+def test_recent_passengers_reads_at_most_three_bookings_with_get_only():
+    h, fake = ready(FakeBackend(past=PAST))
+    h.execute("list_recent_passengers", {})
+    assert all(q.method == "GET" for q in fake.requests) and len(fake.requests) == 4
+    assert fake.requests[0].url.params["size"] == "3"
+    assert "/api/bookings/DDD444" not in [q.url.path for q in fake.requests]
+
+
+def test_no_past_booking_gives_an_empty_list():
+    h, _ = ready()
+    assert h.execute("list_recent_passengers", {}) == {"status": "ok", "passengers": []}
+
+
+def test_reused_passenger_goes_into_the_hold_unchanged():
+    h, _ = searched(FakeBackend(past=PAST))
+    p = h.execute("list_recent_passengers", {})["passengers"][0]
+    h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, **p))
+    sent = h.proposal.body["passengers"][0]
+    assert (sent["lastName"], sent["firstName"], sent["gender"], sent["dateOfBirth"]) == \
+        ("NGUYEN", "HUNG CUONG", "MALE", "2004-03-12")
