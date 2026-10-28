@@ -21,15 +21,15 @@ MVP chạy được: khách gõ yêu cầu trên `/assistant`, agent tìm chuy�
 
 ## 1. Danh sách bước
 
-| #   | Bước                                                                  | Lớp harness (Buổi 1)  | Cần có trước | Kết quả kiểm chứng được                                                                 | Xong |
-| --- | --------------------------------------------------------------------- | --------------------- | ------------ | --------------------------------------------------------------------------------------- | ---- |
-| 1   | [Giữ cuộc trò chuyện khi F5](2026-10-28-tro-ly-01-giu-chat-khi-f5.md) | state                 | —            | F5 giữa chừng vẫn thấy đủ tin nhắn, thẻ duyệt vẫn bấm được                              | ☑    |
-| 2   | Dùng lại hành khách đã đặt                                            | retrieval             | —            | "Đặt cho mình như lần trước" ra thẻ duyệt với hành khách lấy từ booking cũ              | ☐    |
-| 3   | Eval với model thật                                                   | verification, logging | —            | Một lệnh in bảng đạt/trượt của 15–20 case, số liệu gốc ghi ở §3                         | ☐    |
-| 4   | Tra cứu booking (chỉ đọc)                                             | tools                 | 3            | Trả lời đúng giờ hết hạn giữ chỗ và số tiền hoàn, lấy từ API                            | ☐    |
-| 5   | Mở rộng phạm vi đặt vé                                                | tools, verification   | 3            | 5a nhiều hành khách, 5b khứ hồi, 5c hành lý và voucher, mỗi phần qua `is_done` mở rộng  | ☐    |
-| 6   | Stream bước tool (SSE)                                                | UX                    | 1            | Các bước tool hiện dần trong lúc agent chạy                                             | ☐    |
-| 7   | Hỏi đáp chính sách hãng                                               | retrieval             | 3            | Trả lời hành lý, phí hoàn, phí đổi từ dữ liệu thật; không có dữ liệu thì nói không biết | ☐    |
+| #   | Bước                                                                      | Lớp harness (Buổi 1)  | Cần có trước | Kết quả kiểm chứng được                                                                 | Xong |
+| --- | ------------------------------------------------------------------------- | --------------------- | ------------ | --------------------------------------------------------------------------------------- | ---- |
+| 1   | [Giữ cuộc trò chuyện khi F5](2026-10-28-tro-ly-01-giu-chat-khi-f5.md)     | state                 | —            | F5 giữa chừng vẫn thấy đủ tin nhắn, thẻ duyệt vẫn bấm được                              | ☑    |
+| 2   | [Dùng lại hành khách đã đặt](2026-10-28-tro-ly-02-dung-lai-hanh-khach.md) | retrieval             | —            | "Đặt cho mình như lần trước" ra thẻ duyệt với hành khách lấy từ booking cũ              | ☑    |
+| 3   | Eval với model thật                                                       | verification, logging | —            | Một lệnh in bảng đạt/trượt của 15–20 case, số liệu gốc ghi ở §3                         | ☐    |
+| 4   | Tra cứu booking (chỉ đọc)                                                 | tools                 | 3            | Trả lời đúng giờ hết hạn giữ chỗ và số tiền hoàn, lấy từ API                            | ☐    |
+| 5   | Mở rộng phạm vi đặt vé                                                    | tools, verification   | 3            | 5a nhiều hành khách, 5b khứ hồi, 5c hành lý và voucher, mỗi phần qua `is_done` mở rộng  | ☐    |
+| 6   | Stream bước tool (SSE)                                                    | UX                    | 1            | Các bước tool hiện dần trong lúc agent chạy                                             | ☐    |
+| 7   | Hỏi đáp chính sách hãng                                                   | retrieval             | 3            | Trả lời hành lý, phí hoàn, phí đổi từ dữ liệu thật; không có dữ liệu thì nói không biết | ☐    |
 
 Bước 1–3 là nhóm nên làm ngay: rẻ, an toàn, và Bước 3 cho số liệu để mọi bước sau dám sửa prompt và tool.
 
