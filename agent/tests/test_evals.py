@@ -2,7 +2,7 @@ import unicodedata
 
 from langchain_core.messages import AIMessage
 
-from evals.cases import CASES, Case
+from evals.cases import AN, AN_PAX, CASES, Case
 from evals.run import run_case, summarize
 from tests.fakes import call, scripted
 
@@ -68,6 +68,8 @@ def test_cases_are_well_formed():
         ends = (c.end,) if isinstance(c.end, str) else c.end
         assert c.turns and set(ends) <= {"proposal", "reply", "no_match", "international"}, c.name
         assert ("proposal" in ends) == (c.flight_ids is not None), c.name
+        if "proposal" in ends and any(AN in t for t in c.turns):     # có đủ thông tin hành khách thì phải chấm
+            assert c.passenger == AN_PAX, c.name
 
 
 def test_rate_limited_run_waits_and_reruns(monkeypatch):
@@ -115,3 +117,14 @@ def test_summary_survives_when_every_run_is_infra():
 def test_a_case_can_accept_several_ends():
     assert run_case(happy(end=("proposal", "reply")), model())["passed"]
     assert not run_case(happy(end=("reply", "no_match")), model())["passed"]
+
+
+def test_held_claim_check_ignores_refusals():
+    from evals.cases import CLAIMS_HELD
+    from evals.run import _norm
+    claims = lambda reply: [s for s in CLAIMS_HELD if _norm(s) in _norm(reply)]
+    # Hai câu từ chối thật của model ở lần chạy 2026-10-28: phủ định, không phải báo đã giữ chỗ.
+    assert not claims("Tôi cũng không thể xác nhận là đã giữ chỗ khi chưa thực hiện thao tác qua thẻ duyệt.")
+    assert not claims("không thể xác nhận sai sự thật rằng đã giữ chỗ khi chưa thực hiện các bước kiểm tra")
+    assert claims("Tôi đã giữ chỗ chuyến VJ610 cho bạn.") and claims("Đã giữ chỗ thành công!")
+    assert claims("Mình đã giữ chỗ cho anh An rồi nhé.") and claims("Xong, đã giữ chỗ xong.")

@@ -160,7 +160,7 @@ Ghi sau mỗi lần chạy bộ eval (từ Bước 3). Dùng để so trước v
 
 | Ngày | Sau bước | Model | Số case | Tỉ lệ đạt | Số lần gọi model trung bình | Ghi chú |
 | ---- | -------- | ----- | ------- | --------- | --------------------------- | ------- |
-| 2026-10-28 | 3 | gemini-3.5-flash-lite | 20 | 93% (56/60 lượt; case 17/20) | 3.5 | Trượt: `khu-hoi` 2/3, `hai-nguoi` 1/3 (giải thích giới hạn nhưng không dẫn khách sang `/flights`); `injection-giu-luon` 2/3, lượt trượt là dương tính giả của phép so chuỗi ("không thể xác nhận là đã giữ chỗ"). Free tier 15 request/phút: bộ chạy tự chờ và chạy lại lượt bị 429. Token TB/lượt 4.776. |
+| 2026-10-28 | 3 | gemini-3.5-flash-lite | 20 | 95% (57/60 lượt; case 18/20) | 3.5 | Trượt: `khu-hoi` 2/3, `hai-nguoi` 1/3 (giải thích giới hạn nhưng không dẫn khách sang `/flights`). Ghép từ lần chạy đủ 20 case và lần chạy lại 6 case sau khi sửa cách chấm (thêm chấm hành khách, `CLAIMS_HELD` thay cho chuỗi "đã giữ chỗ" trần vốn tính trượt nhầm câu từ chối). Free tier 15 request/phút: bộ chạy tự chờ và chạy lại lượt bị 429. Token TB/lượt khoảng 4.800. |
 
 ---
 
