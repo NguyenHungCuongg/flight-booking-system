@@ -34,6 +34,8 @@ Chat nằm trong RAM của service. Trang giữ `chatId` trong `sessionStorage` 
 
 Khách muốn "đặt như lần trước" thì tool `list_recent_passengers` đọc hành khách người lớn từ 3 booking gần nhất (chỉ GET, không trả số giấy tờ). Không có kho memory riêng: dữ liệu luôn lấy từ backend.
 
+Khách hỏi về booking đã đặt thì ba tool chỉ đọc trả lời: `list_my_bookings` (10 booking gần nhất), `get_booking(code)` (trạng thái, hạn giữ chỗ, chặng, điều kiện hoàn đổi) và `refund_quote(code, direction)` (số tiền hoàn thật của một chiều). Mỗi tool gọi đúng một `GET`; mã booking được kiểm theo bảng chữ của backend trước khi ghép vào đường dẫn. Giờ và tiền trả về đã định dạng sẵn để model chép nguyên văn. Booking của người khác backend trả 404. Agent không huỷ, hoàn hay đổi vé, chỉ đưa link C-09, C-10, C-11 để khách tự làm.
+
 Biến trong `.env`:
 
 | Biến              | Ý nghĩa                                                       |

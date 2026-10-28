@@ -63,7 +63,7 @@ def test_summary_counts_a_case_only_when_every_run_passes():
 
 
 def test_cases_are_well_formed():
-    assert 15 <= len(CASES) <= 20 and len({c.name for c in CASES}) == len(CASES)
+    assert len(CASES) >= 15 and len({c.name for c in CASES}) == len(CASES)
     for c in CASES:
         ends = (c.end,) if isinstance(c.end, str) else c.end
         assert c.turns and set(ends) <= {"proposal", "reply", "no_match", "international"}, c.name
@@ -128,3 +128,9 @@ def test_held_claim_check_ignores_refusals():
     assert not claims("không thể xác nhận sai sự thật rằng đã giữ chỗ khi chưa thực hiện các bước kiểm tra")
     assert claims("Tôi đã giữ chỗ chuyến VJ610 cho bạn.") and claims("Đã giữ chỗ thành công!")
     assert claims("Mình đã giữ chỗ cho anh An rồi nhé.") and claims("Xong, đã giữ chỗ xong.")
+
+
+def test_required_tool_must_be_called():
+    assert run_case(happy(calls=["search_flights"]), model())["passed"]
+    r = run_case(happy(calls=["get_booking"]), model())
+    assert not r["passed"] and "calls: thiếu get_booking" in r["failures"]
