@@ -109,6 +109,8 @@ class Harness:
     found: list[dict] = field(default_factory=list)     # hành trình rút gọn của lần tìm gần nhất
     proposal: Proposal | None = None                     # đề xuất duy nhất còn hiệu lực
     airports: dict[str, dict] | None = None              # cache GET /api/airports theo code
+    # full_name -> (họ, tên) của hành khách cũ: họ nhiều chữ ("TON NU") thì split_name tách sai.
+    known_names: dict[str, tuple[str, str]] = field(default_factory=dict)
     # Đặt lại mỗi lượt
     trace: list[dict] = field(default_factory=list)
     cards: list[dict] = field(default_factory=list)
@@ -203,6 +205,7 @@ class Harness:
                         "date_of_birth": p["dateOfBirth"]}
                 if item not in passengers:
                     passengers.append(item)
+                    self.known_names[item["full_name"]] = (p["lastName"], p["firstName"])
         return {"status": "ok", "passengers": passengers}
 
     def propose_hold(self, flight_ids: list[int], fare_family_id: int, full_name: str, gender: str,
@@ -212,7 +215,7 @@ class Harness:
         Chỉ trả pending_approval: khách tự bấm Giữ chỗ trên thẻ."""
         if gender not in ("MALE", "FEMALE"):
             return {"status": "invalid_param", "hint": "gender phải là MALE hoặc FEMALE."}
-        if (name := split_name(full_name)) is None:
+        if (name := self.known_names.get(full_name) or split_name(full_name)) is None:
             return {"status": "invalid_param", "hint": "Cần đủ họ và tên của hành khách, ví dụ Nguyễn Văn An."}
         me = self.backend.get("/api/me")
         passenger = {"type": "ADULT", "lastName": name[0], "firstName": name[1], "gender": gender,

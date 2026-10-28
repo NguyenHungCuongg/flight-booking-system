@@ -169,3 +169,11 @@ def test_reused_passenger_goes_into_the_hold_unchanged():
     sent = h.proposal.body["passengers"][0]
     assert (sent["lastName"], sent["firstName"], sent["gender"], sent["dateOfBirth"]) == \
         ("NGUYEN", "HUNG CUONG", "MALE", "2004-03-12")
+
+
+def test_reused_multi_word_last_name_keeps_last_time_split():
+    h, _ = searched(FakeBackend(past=[("AAA111", [passenger("TON NU", "THI HA", "FEMALE")])]))
+    p = h.execute("list_recent_passengers", {})["passengers"][0]
+    h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, **p))
+    sent = h.proposal.body["passengers"][0]
+    assert (sent["lastName"], sent["firstName"]) == ("TON NU", "THI HA")
