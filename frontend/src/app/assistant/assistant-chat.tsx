@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import SiteHeader from "@/components/site-header";
 import { Notice, pillLine, pillPrimary } from "@/components/form";
-import { clock, dmy } from "@/lib/booking";
+import { clock, dmy, PASSENGER_LABEL } from "@/lib/booking";
 import { vnd } from "../flights/itineraries";
 import {
   AgentError,
@@ -49,6 +49,18 @@ function ConstraintsCard({
         <li className={chip}>{`${card.origin} → ${card.destination}`}</li>
         <li className={chip}>{dmy(card.date)}</li>
         <li className={chip}>
+          {(
+            [
+              ["ADULT", card.adults],
+              ["CHILD", card.children],
+              ["INFANT", card.infants],
+            ] as const
+          )
+            .filter(([type, n]) => n > 0 || type === "ADULT")
+            .map(([type, n]) => `${n} ${PASSENGER_LABEL[type].toLowerCase()}`)
+            .join(", ")}
+        </li>
+        <li className={chip}>
           {card.departBefore
             ? `Cất cánh trước ${card.departBefore}`
             : "Giờ bay: không giới hạn"}
@@ -76,7 +88,6 @@ function ProposalCard({
   onHold: () => void;
   onEdit: () => void;
 }) {
-  const p = card.passenger;
   return (
     <div className="grid gap-12 card-hi p-16">
       <p className="text-caption font-semibold text-muted">Duyệt giữ chỗ</p>
@@ -91,7 +102,25 @@ function ProposalCard({
         <dt className="text-muted">Gói giá</dt>
         <dd>{card.fare}</dd>
         <dt className="text-muted">Hành khách</dt>
-        <dd>{`${p.lastName} ${p.firstName}, ${p.gender === "MALE" ? "Nam" : "Nữ"}, sinh ${dmy(p.dateOfBirth)}`}</dd>
+        <dd>
+          <ul className="grid gap-2">
+            {card.passengers.map((p, i) => (
+              <li key={i}>
+                {`${p.lastName} ${p.firstName}, ${p.gender === "MALE" ? "Nam" : "Nữ"}, ${PASSENGER_LABEL[p.type]}, sinh ${dmy(p.dateOfBirth)}`}
+              </li>
+            ))}
+          </ul>
+        </dd>
+        <dt className="text-muted">Giá vé</dt>
+        <dd>
+          <ul className="grid gap-2">
+            {card.fares.map((f) => (
+              <li key={f.type}>
+                {`${f.count} ${PASSENGER_LABEL[f.type].toLowerCase()} × ${vnd(f.unitPrice)} = ${vnd(f.total)}`}
+              </li>
+            ))}
+          </ul>
+        </dd>
         <dt className="text-muted">Liên hệ</dt>
         <dd>{`${card.contact.name}, ${card.contact.email}, ${card.contact.phone}`}</dd>
       </dl>

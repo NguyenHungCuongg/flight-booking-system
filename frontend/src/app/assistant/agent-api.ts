@@ -10,6 +10,8 @@ export type Segment = {
   arrive: string;
 };
 
+export type PassengerType = "ADULT" | "CHILD" | "INFANT";
+
 export type Card =
   | {
       type: "constraints";
@@ -18,18 +20,28 @@ export type Card =
       date: string;
       departBefore: string | null;
       maxPrice: number | null;
+      adults: number;
+      children: number;
+      infants: number;
     }
   | {
       type: "proposal";
       proposalId: string;
       segments: Segment[];
       fare: string;
-      passenger: {
+      passengers: {
         lastName: string;
         firstName: string;
         gender: "MALE" | "FEMALE";
         dateOfBirth: string;
-      };
+        type: PassengerType;
+      }[];
+      fares: {
+        type: PassengerType;
+        count: number;
+        unitPrice: number;
+        total: number;
+      }[];
       contact: { name: string; email: string; phone: string };
       totalAmount: number;
     }
