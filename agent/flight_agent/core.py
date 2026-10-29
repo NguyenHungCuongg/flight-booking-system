@@ -270,11 +270,14 @@ class Harness:
         tên đầy đủ, gender: MALE hoặc FEMALE, date_of_birth: YYYY-MM-DD. Loại khách do hệ thống tính từ ngày sinh.
         Chỉ trả pending_approval: khách tự bấm Giữ chỗ trên thẻ."""
         c = self.constraints
-        if not passengers:
-            return {"status": "invalid_param", "hint": "Cần ít nhất một hành khách."}
+        # Model có thể gửi sai dạng (chuỗi JSON, object đơn): trả invalid_param để model tự sửa, không làm hỏng lượt chat.
+        if not isinstance(passengers, list) or not passengers:
+            return {"status": "invalid_param", "hint": "passengers là danh sách, ít nhất một hành khách."}
         built = []
         for i, p in enumerate(passengers, 1):
             bad = lambda hint: {"status": "invalid_param", "hint": f"Hành khách {i}: {hint}"}
+            if not isinstance(p, dict):
+                return bad("phải là object có full_name, gender, date_of_birth.")
             if p.get("gender") not in ("MALE", "FEMALE"):
                 return bad("gender phải là MALE hoặc FEMALE.")
             full_name = str(p.get("full_name", ""))
@@ -356,7 +359,7 @@ class Harness:
         yêu cầu hoàn: khách tự làm ở page."""
         if (code := _booking_code(code)) is None:
             return BAD_CODE
-        direction = direction.strip().upper()
+        direction = str(direction).strip().upper()
         if direction not in ("OUTBOUND", "RETURN"):
             return {"status": "invalid_param", "hint": "direction phải là OUTBOUND (chiều đi) hoặc RETURN (chiều về)."}
         q = self.backend.get(f"/api/bookings/{code}/journeys/{direction}/refund-quote")

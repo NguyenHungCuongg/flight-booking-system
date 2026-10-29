@@ -141,3 +141,14 @@ def test_cases_cover_many_passengers():
     group = [c for c in CASES if c.group == "nhiều khách"]
     assert len(group) == 4 and all(c.constraints for c in group)
     assert next(c for c in CASES if c.name == "hai-nguoi").constraints["adults"] == 2
+
+
+def test_passengers_are_graded_in_any_order():
+    mai = dict(full_name="Trần Thị Mai", gender="FEMALE", date_of_birth="2005-01-02")
+    route = {**ROUTE, "max_price": 4_000_000, "adults": 2}
+    two = scripted(call("set_constraints", **route), call("search_flights"),
+                   call("propose_hold", flight_ids=[122], fare_family_id=1, passengers=[mai, PAX]),
+                   AIMessage("Bạn bấm Giữ chỗ trên thẻ nhé."))
+    case = happy(constraints=route, passengers=[("NGUYEN", "VAN AN", "MALE", "2004-03-12"),
+                                                ("TRAN", "THI MAI", "FEMALE", "2005-01-02")])
+    assert run_case(case, two)["passed"]

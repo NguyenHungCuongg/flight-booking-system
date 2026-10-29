@@ -310,3 +310,15 @@ def test_refund_quote_formats_money_and_links_c10():
         "page": "/bookings/ABC234/refund/outbound"}
     r = h.execute("refund_quote", {"code": "abc234", "direction": "return"})
     assert (r["status"], r["code"]) == ("backend_error", "FARE_RULE_NOT_ALLOWED") and h.stop_reason is None
+
+
+def test_malformed_passengers_are_invalid_not_a_crash():
+    h, _ = searched()
+    for bad in (["Nguyễn Văn An"], '[{"full_name": "x"}]', {"full_name": "Nguyễn Văn An"}, [None]):
+        r = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=bad))
+        assert r["status"] == "invalid_param"
+
+
+def test_missing_refund_direction_is_invalid_not_a_crash():
+    h, _ = ready(FakeBackend(**LOOKUP))
+    assert h.execute("refund_quote", {"code": "ABC234", "direction": None})["status"] == "invalid_param"
