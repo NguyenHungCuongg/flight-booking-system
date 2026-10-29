@@ -26,7 +26,7 @@ MVP chạy được: khách gõ yêu cầu trên `/assistant`, agent tìm chuy�
 | 1   | [Giữ cuộc trò chuyện khi F5](2026-10-28-tro-ly-01-giu-chat-khi-f5.md)     | state                 | —            | F5 giữa chừng vẫn thấy đủ tin nhắn, thẻ duyệt vẫn bấm được                              | ☑    |
 | 2   | [Dùng lại hành khách đã đặt](2026-10-28-tro-ly-02-dung-lai-hanh-khach.md) | retrieval             | —            | "Đặt cho mình như lần trước" ra thẻ duyệt với hành khách lấy từ booking cũ              | ☑    |
 | 3   | [Eval với model thật](2026-10-28-tro-ly-03-eval-model-that.md)                                                       | verification, logging | —            | Một lệnh in bảng đạt/trượt của 15–20 case, số liệu gốc ghi ở §3                         | ☑    |
-| 4   | Tra cứu booking (chỉ đọc)                                                 | tools                 | 3            | Trả lời đúng giờ hết hạn giữ chỗ và số tiền hoàn, lấy từ API                            | ☐    |
+| 4   | [Tra cứu booking (chỉ đọc)](2026-10-28-tro-ly-04-tra-cuu-booking.md)       | tools                 | 3            | Trả lời đúng giờ hết hạn giữ chỗ và số tiền hoàn, lấy từ API                            | ☑    |
 | 5   | Mở rộng phạm vi đặt vé                                                    | tools, verification   | 3            | 5a nhiều hành khách, 5b khứ hồi, 5c hành lý và voucher, mỗi phần qua `is_done` mở rộng  | ☐    |
 | 6   | Stream bước tool (SSE)                                                    | UX                    | 1            | Các bước tool hiện dần trong lúc agent chạy                                             | ☐    |
 | 7   | Hỏi đáp chính sách hãng                                                   | retrieval             | 3            | Trả lời hành lý, phí hoàn, phí đổi từ dữ liệu thật; không có dữ liệu thì nói không biết | ☐    |
@@ -161,6 +161,7 @@ Ghi sau mỗi lần chạy bộ eval (từ Bước 3). Dùng để so trước v
 | Ngày | Sau bước | Model | Số case | Tỉ lệ đạt | Số lần gọi model trung bình | Ghi chú |
 | ---- | -------- | ----- | ------- | --------- | --------------------------- | ------- |
 | 2026-10-28 | 3 | gemini-3.5-flash-lite | 20 | 95% (57/60 lượt; case 18/20) | 3.5 | Trượt: `khu-hoi` 2/3, `hai-nguoi` 1/3 (giải thích giới hạn nhưng không dẫn khách sang `/flights`). Ghép từ lần chạy đủ 20 case và lần chạy lại 6 case sau khi sửa cách chấm (thêm chấm hành khách, `CLAIMS_HELD` thay cho chuỗi "đã giữ chỗ" trần vốn tính trượt nhầm câu từ chối). Free tier 15 request/phút: bộ chạy tự chờ và chạy lại lượt bị 429. Token TB/lượt khoảng 4.800. |
+| 2026-10-29 | 4 | gemini-3.5-flash-lite | 24 (đo được 17) | 100% (51/51 lượt; case 17/17 đo được) | 2.9 | 4 case tra cứu mới đạt 12/12 (chạy riêng cũng 12/12). 7 case cũ (`thuan-mot-cau` tới `tien-2tr5`, chạy đầu tiên) dừng vì lỗi API model cả 21 lượt, kể cả sau 3 lần chờ 60 giây, nên chưa đo lại; 13 case cũ đo được đều 3/3, gồm `khu-hoi` và `hai-nguoi` vốn trượt ở mốc Bước 3. Token TB/lượt khoảng 5.100. |
 
 ---
 
