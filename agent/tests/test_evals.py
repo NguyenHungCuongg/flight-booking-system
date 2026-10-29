@@ -135,3 +135,9 @@ def test_required_tool_must_be_called():
     assert run_case(happy(calls=["search_flights"]), model())["passed"]
     r = run_case(happy(calls=["get_booking"]), model())
     assert not r["passed"] and "calls: thiếu get_booking" in r["failures"]
+
+
+def test_cases_cover_many_passengers():
+    group = [c for c in CASES if c.group == "nhiều khách"]
+    assert len(group) == 4 and all(c.constraints for c in group)
+    assert next(c for c in CASES if c.name == "hai-nguoi").constraints["adults"] == 2

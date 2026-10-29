@@ -15,7 +15,7 @@ Test chạy offline: model giả phát lại kịch bản, backend Spring giả 
 ## Eval
 
 ```bash
-uv run python -m evals.run              # 20 case, mỗi case 3 lần
+uv run python -m evals.run              # mọi case, mỗi case 3 lần
 uv run python -m evals.run --k 1 --case noi-gia
 ```
 
@@ -32,7 +32,9 @@ Cần backend chạy profile `dev` trên cổng 8080 và frontend (`npm run dev`
 
 Chat nằm trong RAM của service. Trang giữ `chatId` trong `sessionStorage` và đọc lại bằng `GET /agent/chats/{id}` khi tải lại trang; restart service thì chat mất và trang mở chat trống.
 
-Khách muốn "đặt như lần trước" thì tool `list_recent_passengers` đọc hành khách người lớn từ 3 booking gần nhất (chỉ GET, không trả số giấy tờ). Không có kho memory riêng: dữ liệu luôn lấy từ backend.
+Một booking có thể gồm nhiều người lớn, trẻ em và em bé (một chiều, hạng phổ thông). Số khách nằm trong ràng buộc và được gửi khi tìm chuyến, nên `max_price` là tổng tiền cả booking. Loại khách do code tính từ ngày sinh tại ngày bay (BR-10); số khách theo loại phải khớp ràng buộc thì mới báo giá. Thẻ duyệt hiện từng hành khách và giá từng loại khách, và `is_done` so từng hành khách của booking đọc lại với thẻ đã duyệt.
+
+Khách muốn "đặt như lần trước" thì tool `list_recent_passengers` đọc hành khách (kể cả trẻ em) từ 3 booking gần nhất (chỉ GET, không trả số giấy tờ). Không có kho memory riêng: dữ liệu luôn lấy từ backend.
 
 Khách hỏi về booking đã đặt thì ba tool chỉ đọc trả lời: `list_my_bookings` (10 booking gần nhất), `get_booking(code)` (trạng thái, hạn giữ chỗ, chặng, điều kiện hoàn đổi) và `refund_quote(code, direction)` (số tiền hoàn thật của một chiều). Mỗi tool gọi đúng một `GET`; mã booking được kiểm theo bảng chữ của backend trước khi ghép vào đường dẫn. Giờ và tiền trả về đã định dạng sẵn để model chép nguyên văn. Booking của người khác backend trả 404. Agent không huỷ, hoàn hay đổi vé, chỉ đưa link C-09, C-10, C-11 để khách tự làm.
 
