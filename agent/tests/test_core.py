@@ -25,6 +25,11 @@ def test_prompt_states_every_constraint():
         assert part in text
 
 
+def test_prompt_states_passenger_counts():
+    text = Constraints("SGN", "DAD", "2026-10-30", adults=2, children=1, infants=1).to_prompt()
+    assert "2 người lớn, 1 trẻ em, 1 em bé" in text and "tổng" in text
+
+
 def test_normalise_pads_time_and_reads_grouped_prices():
     assert normalise("depart_before", "9:00") == ("09:00", None)
     assert normalise("max_price", "2.000.000") == (2_000_000, None)

@@ -63,6 +63,13 @@ AIRPORTS = [{"code": code, "name": code, "city": code, "countryCode": country, "
             for code, country, tz in (("SGN", "VN", "Asia/Ho_Chi_Minh"), ("DAD", "VN", "Asia/Ho_Chi_Minh"),
                                       ("HAN", "VN", "Asia/Ho_Chi_Minh"), ("BKK", "TH", "Asia/Bangkok"))]
 
+PERCENT = {"ADULT": 100, "CHILD": 90, "INFANT": 10}     # BR-21, mặc định pricing.*_percent
+
+
+def fare_total(price: int, types) -> int:
+    return sum(price * PERCENT[t] // 100 for t in types)
+
+
 CODE = "K7M2QX"
 EXPIRES = "2026-10-30T06:25:00+07:00"
 
@@ -133,7 +140,11 @@ class FakeBackend:
                                              "role": "CUSTOMER", "status": "ACTIVE"})
         if route == ("GET", "/api/flights/search"):
             time.sleep(self.search_delay)
-            return httpx.Response(200, json={"itineraries": self.flights})
+            n = {k: int(request.url.params.get(k, d)) for k, d in (("adults", 1), ("children", 0), ("infants", 0))}
+            types = ["ADULT"] * n["adults"] + ["CHILD"] * n["children"] + ["INFANT"] * n["infants"]
+            priced = [{**i, "fareOptions": [{**f, "totalPrice": fare_total(f["adultPrice"], types)}
+                                            for f in i["fareOptions"]]} for i in self.flights]
+            return httpx.Response(200, json={"itineraries": priced})
         if route == ("POST", "/api/bookings/quote"):
             if self.quote_error:
                 return problem(*self.quote_error)

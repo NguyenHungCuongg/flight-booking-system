@@ -35,6 +35,30 @@ def test_set_constraints_normalises_and_shows_a_card():
     assert h.cards[-1]["type"] == "constraints"
 
 
+def test_set_constraints_takes_passenger_counts():
+    h, _ = ready()
+    assert h.execute("set_constraints", {**ROUTE, "adults": "2", "infants": 1})["status"] == "ok"
+    assert (h.constraints.adults, h.constraints.children, h.constraints.infants) == (2, 0, 1)
+    assert (h.cards[-1]["adults"], h.cards[-1]["children"], h.cards[-1]["infants"]) == (2, 0, 1)
+
+
+def test_bad_passenger_counts_are_invalid():
+    h, _ = ready()
+    for bad in ({"adults": 0}, {"children": -1}, {"infants": "một"}):
+        assert h.execute("set_constraints", {**ROUTE, **bad})["status"] == "invalid_param"
+    assert h.constraints is None
+
+
+def test_search_sends_the_passenger_counts_and_prices_the_whole_booking():
+    h, fake = ready()
+    h.execute("set_constraints", {**ROUTE, "max_price": 4_000_000, "adults": 2, "children": 1})
+    r = h.execute("search_flights", {})
+    q = next(q for q in fake.requests if q.url.path == "/api/flights/search")
+    assert (q.url.params["adults"], q.url.params["children"], q.url.params["infants"]) == ("2", "1", "0")
+    # VN122 1.850.000 x (2 + 0,9) = 5.365.000 vượt 4 triệu; không còn chuyến nào trước 12h thoả
+    assert r["matching"] == [] and h.stop_reason == "no_match"
+
+
 def test_unknown_airport_and_past_date_are_invalid():
     h, _ = ready()
     assert h.execute("set_constraints", {**ROUTE, "destination": "XXX"})["status"] == "invalid_param"

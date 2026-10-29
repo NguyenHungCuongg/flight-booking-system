@@ -50,13 +50,20 @@ class Constraints:
     destination: str
     date: str                           # ngày cất cánh theo giờ sân bay đi, YYYY-MM-DD
     depart_before: str | None = None    # HH:MM có số 0 ở đầu; None = không giới hạn
-    max_price: int | None = None        # VND; None = không giới hạn
+    max_price: int | None = None        # VND, tổng cả booking; None = không giới hạn
+    adults: int = 1
+    children: int = 0
+    infants: int = 0
+
+    @property
+    def counts(self) -> str:
+        return f"{self.adults} người lớn, {self.children} trẻ em, {self.infants} em bé"
 
     def to_prompt(self) -> str:
         before = self.depart_before or "không giới hạn"
         price = f"{_vnd(self.max_price)} đ" if self.max_price is not None else "không giới hạn"
-        return (f"Ràng buộc hiện tại: {self.origin} → {self.destination} ngày {self.date}, "
-                f"cất cánh trước {before}, giá tối đa {price}.")
+        return (f"Ràng buộc hiện tại: {self.origin} → {self.destination} ngày {self.date} cho {self.counts}, "
+                f"cất cánh trước {before}, giá tối đa (tổng cả booking) {price}.")
 
     def broken(self, origin: str, destination: str, departure: str, price: int) -> list[str]:
         """Tên các ràng buộc bị vi phạm. `departure` là giờ địa phương ISO có offset, vd 2026-10-30T08:10:00+07:00."""
@@ -153,10 +160,17 @@ class Harness:
 
     # ---- các tool của model
     def set_constraints(self, origin: str, destination: str, date: str, depart_before: str | None = None,
-                        max_price: int | None = None) -> dict:
+                        max_price: int | None = None, adults: int = 1, children: int = 0, infants: int = 0) -> dict:
         """Đặt hoặc thay ràng buộc của chuyến cần tìm. origin, destination: mã IATA sân bay. date: ngày cất cánh
         YYYY-MM-DD. depart_before: giờ cất cánh chậm nhất HH:MM, bỏ trống nếu khách không nói. max_price: giá tối đa
-        (VND, số nguyên), bỏ trống nếu khách không nói."""
+        của cả booking (VND, số nguyên), bỏ trống nếu khách không nói. adults, children (2 đến dưới 12 tuổi), infants
+        (dưới 2 tuổi): số khách theo tuổi tại ngày bay."""
+        try:
+            counts = {"adults": int(adults), "children": int(children), "infants": int(infants)}
+        except (TypeError, ValueError):
+            counts = None
+        if counts is None or counts["adults"] < 1 or min(counts.values()) < 0:
+            return {"status": "invalid_param", "hint": "adults là số nguyên từ 1, children và infants từ 0."}
         limits = {}
         for key, value in (("depart_before", depart_before), ("max_price", max_price)):
             if value is not None:
@@ -178,18 +192,20 @@ class Harness:
             past = True
         if past:
             return {"status": "invalid_param", "hint": f"date phải là ngày YYYY-MM-DD từ hôm nay ({self.today})."}
-        self.constraints = c = Constraints(origin, destination, date, **limits)
+        self.constraints = c = Constraints(origin, destination, date, **limits, **counts)
         self.found, self.proposal = [], None
         self.cards.append({"type": "constraints", "origin": c.origin, "destination": c.destination, "date": c.date,
-                           "departBefore": c.depart_before, "maxPrice": c.max_price})
+                           "departBefore": c.depart_before, "maxPrice": c.max_price, **counts})
         return {"status": "ok", "constraints": c.to_prompt()}
 
     def search_flights(self) -> dict:
-        """Tìm chuyến một chiều cho 1 người lớn, hạng phổ thông, theo ràng buộc hiện tại. matching: các hành trình
-        thoả mọi ràng buộc, rẻ nhất trước. nearest: tối đa 2 hành trình rẻ nhất chỉ vi phạm một ràng buộc."""
+        """Tìm chuyến một chiều hạng phổ thông cho số khách trong ràng buộc hiện tại; price là tổng cả booking.
+        matching: các hành trình thoả mọi ràng buộc, rẻ nhất trước. nearest: tối đa 2 hành trình rẻ nhất chỉ vi phạm
+        một ràng buộc."""
         c = self.constraints
         data = self.backend.get("/api/flights/search", {"from": c.origin, "to": c.destination, "date": c.date,
-                                                        "adults": 1, "cabin": "ECONOMY"})
+                                                        "adults": c.adults, "children": c.children,
+                                                        "infants": c.infants, "cabin": "ECONOMY"})
         self.found = []
         for it in data["itineraries"]:
             if not it["fareOptions"]:
