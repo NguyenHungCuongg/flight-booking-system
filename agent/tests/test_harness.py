@@ -24,7 +24,7 @@ def searched(fake=None):
 def test_search_and_hold_are_denied_before_constraints():
     h, _ = ready()
     assert h.execute("search_flights", {})["status"] == "denied"
-    assert h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, **PAX))["status"] == "denied"
+    assert h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=[PAX]))["status"] == "denied"
 
 
 def test_set_constraints_normalises_and_shows_a_card():
@@ -90,7 +90,7 @@ def test_no_matching_flight_stops_with_the_nearest_in_the_question():
 
 def test_hold_on_a_flight_that_breaks_constraints_is_denied():
     h, fake = searched()
-    r = h.execute("propose_hold", dict(flight_ids=[610], fare_family_id=1, **PAX))
+    r = h.execute("propose_hold", dict(flight_ids=[610], fare_family_id=1, passengers=[PAX]))
     assert r["status"] == "denied"
     assert h.proposal is None and not [c for c in h.cards if c["type"] == "proposal"]
     assert not [q for q in fake.requests if q.url.path == "/api/bookings/quote"]
@@ -98,12 +98,12 @@ def test_hold_on_a_flight_that_breaks_constraints_is_denied():
 
 def test_hold_on_a_flight_not_in_the_search_is_denied():
     h, _ = searched()
-    assert h.execute("propose_hold", dict(flight_ids=[999], fare_family_id=1, **PAX))["status"] == "denied"
+    assert h.execute("propose_hold", dict(flight_ids=[999], fare_family_id=1, passengers=[PAX]))["status"] == "denied"
 
 
 def test_valid_hold_quotes_and_waits_for_approval():
     h, fake = searched()
-    r = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, **PAX))
+    r = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=[PAX]))
     assert r["status"] == "pending_approval"
     body = h.proposal.body
     assert body["journeys"] == [{"direction": "OUTBOUND", "flightIds": [122], "fareFamilyId": 1}]
@@ -117,13 +117,57 @@ def test_valid_hold_quotes_and_waits_for_approval():
 
 def test_one_word_name_is_invalid():
     h, _ = searched()
-    assert h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, full_name="Cường",
-                                          gender="MALE", date_of_birth="2004-03-12"))["status"] == "invalid_param"
+    r = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=[{**PAX, "full_name": "Cường"}]))
+    assert r["status"] == "invalid_param"
+
+
+FAMILY = [PAX, dict(full_name="Nguyễn Bảo Ngọc", gender="FEMALE", date_of_birth="2018-06-01"),
+          dict(full_name="Nguyễn Minh Khang", gender="MALE", date_of_birth="2026-02-10")]
+
+
+def family():
+    h, fake = ready()
+    h.execute("set_constraints", {**ROUTE, "max_price": 5_000_000, "children": 1, "infants": 1})
+    h.execute("search_flights", {})
+    return h, fake
+
+
+def test_family_hold_types_each_passenger_and_shows_fares():
+    h, _ = family()
+    r = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=FAMILY))
+    assert r == {"status": "pending_approval", "total": 1_850_000 + 1_665_000 + 185_000}
+    assert [p["type"] for p in h.proposal.body["passengers"]] == ["ADULT", "CHILD", "INFANT"]
+    card = h.cards[-1]
+    assert [(p["lastName"], p["firstName"], p["type"]) for p in card["passengers"]] == [
+        ("NGUYEN", "HUNG CUONG", "ADULT"), ("NGUYEN", "BAO NGOC", "CHILD"), ("NGUYEN", "MINH KHANG", "INFANT")]
+    assert [(f["type"], f["count"], f["unitPrice"]) for f in card["fares"]] == [
+        ("ADULT", 1, 1_850_000), ("CHILD", 1, 1_665_000), ("INFANT", 1, 185_000)]
+
+
+def test_passengers_not_matching_the_counts_are_invalid():
+    h, fake = searched()                                   # ràng buộc 1 người lớn
+    r = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=FAMILY[:2]))
+    assert r["status"] == "invalid_param" and "1 người lớn, 1 trẻ em, 0 em bé" in r["hint"]
+    assert not [q for q in fake.requests if q.url.path == "/api/bookings/quote"]
+
+
+def test_bad_birth_date_names_the_passenger():
+    h, _ = searched()
+    for dob in ("12/03/2004", "2026-10-31"):
+        r = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1,
+                                           passengers=[{**PAX, "date_of_birth": dob}]))
+        assert r["status"] == "invalid_param" and "Hành khách 1" in r["hint"]
+
+
+def test_no_passenger_is_invalid():
+    h, _ = searched()
+    r = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=[]))
+    assert r["status"] == "invalid_param"
 
 
 def test_changing_constraints_drops_the_pending_proposal():
     h, _ = searched()
-    h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, **PAX))
+    h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=[PAX]))
     h.execute("set_constraints", {**ROUTE, "max_price": 1_900_000})
     assert h.proposal is None and h.found == []
 
@@ -131,7 +175,7 @@ def test_changing_constraints_drops_the_pending_proposal():
 def test_backend_validation_error_goes_back_to_the_model():
     h, _ = searched(FakeBackend(quote_error=(400, "PASSENGER_RULES_VIOLATED",
                                              [{"field": "passengers[0].dateOfBirth", "message": "Sai loại khách"}])))
-    r = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, **PAX))
+    r = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=[PAX]))
     assert r["status"] == "backend_error" and r["code"] == "PASSENGER_RULES_VIOLATED"
     assert h.stop_reason is None
 
@@ -139,14 +183,14 @@ def test_backend_validation_error_goes_back_to_the_model():
 def test_passport_error_hands_off_as_international():
     h, _ = searched(FakeBackend(quote_error=(400, "PASSENGER_RULES_VIOLATED",
                                              [{"field": "passengers[0].passportNumber", "message": "Cần hộ chiếu"}])))
-    h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, **PAX))
+    h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=[PAX]))
     assert h.stop_reason == "international"
 
 
 def test_expired_session_and_staff_account_hand_off():
     for status, reason in ((401, "unauthenticated"), (403, "forbidden")):
         h, _ = searched(FakeBackend(me_status=status))
-        h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, **PAX))
+        h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=[PAX]))
         assert h.stop_reason == reason
 
 
@@ -166,12 +210,13 @@ PAST = [("AAA111", [CUONG, passenger("TRAN", "THI MAI", "FEMALE", "2005-01-02")]
         ("DDD444", [passenger("PHAM", "MINH", dob="1980-01-01")])]
 
 
-def test_recent_passengers_are_unique_adults_without_documents():
+def test_recent_passengers_are_unique_and_include_children_without_documents():
     h, _ = ready(FakeBackend(past=PAST))
     r = h.execute("list_recent_passengers", {})      # không cần ràng buộc trước
     assert r == {"status": "ok", "passengers": [
         {"full_name": "NGUYEN HUNG CUONG", "gender": "MALE", "date_of_birth": "2004-03-12"},
         {"full_name": "TRAN THI MAI", "gender": "FEMALE", "date_of_birth": "2005-01-02"},
+        {"full_name": "NGUYEN BE NA", "gender": "MALE", "date_of_birth": "2020-05-05"},
         {"full_name": "LE VAN AN", "gender": "MALE", "date_of_birth": "1990-09-09"}]}
 
 
@@ -191,7 +236,7 @@ def test_no_past_booking_gives_an_empty_list():
 def test_reused_passenger_goes_into_the_hold_unchanged():
     h, _ = searched(FakeBackend(past=PAST))
     p = h.execute("list_recent_passengers", {})["passengers"][0]
-    h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, **p))
+    h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=[p]))
     sent = h.proposal.body["passengers"][0]
     assert (sent["lastName"], sent["firstName"], sent["gender"], sent["dateOfBirth"]) == \
         ("NGUYEN", "HUNG CUONG", "MALE", "2004-03-12")
@@ -200,7 +245,7 @@ def test_reused_passenger_goes_into_the_hold_unchanged():
 def test_reused_multi_word_last_name_keeps_last_time_split():
     h, _ = searched(FakeBackend(past=[("AAA111", [passenger("TON NU", "THI HA", "FEMALE")])]))
     p = h.execute("list_recent_passengers", {})["passengers"][0]
-    h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, **p))
+    h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=[p]))
     sent = h.proposal.body["passengers"][0]
     assert (sent["lastName"], sent["firstName"]) == ("TON NU", "THI HA")
 

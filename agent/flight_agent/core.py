@@ -12,6 +12,7 @@ import unicodedata
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import date as Date
+from typing import TypedDict
 from uuid import uuid4
 
 from flight_agent.backend import Backend, BackendError
@@ -26,6 +27,7 @@ STATES = {"PENDING_PAYMENT": "chờ thanh toán", "ISSUED": "đã xuất vé", "
           "CANCELLED": "đã huỷ", "REFUNDED": "đã hoàn"}
 BOOKING_CODE = re.compile(r"[A-HJ-NP-Z2-9]{6}")     # BR-46, như BookingCodes.ALPHABET của backend
 BAD_CODE = {"status": "invalid_param", "hint": "Mã booking gồm 6 chữ và số, ví dụ K7M2QX."}
+PAX_KEYS = ("type", "lastName", "firstName", "gender", "dateOfBirth")
 
 
 # =====================================================================
@@ -106,6 +108,17 @@ def split_name(full_name: str) -> tuple[str, str] | None:
     return (words[0], " ".join(words[1:])) if len(words) >= 2 else None
 
 
+def passenger_type(dob: Date, day: Date) -> str:
+    """BR-10: loại khách theo tuổi tròn năm tại ngày bay, như PassengerRules.typeAt; backend vẫn kiểm lại."""
+    age = day.year - dob.year - ((day.month, day.day) < (dob.month, dob.day))
+    return "ADULT" if age >= 12 else "CHILD" if age >= 2 else "INFANT"
+
+
+def _people(passengers: list[dict]) -> list[tuple]:
+    """Tập hành khách không theo thứ tự: backend có thể sắp lại."""
+    return sorted(tuple(p.get(k) for k in PAX_KEYS) for p in passengers)
+
+
 def _booking_code(code: str) -> str | None:
     """Mã đã chuẩn hoá, hoặc None nếu không đúng dạng: chặn mọi chuỗi lạ trước khi ghép vào đường dẫn API."""
     code = str(code).strip().upper()
@@ -117,6 +130,14 @@ def _booking_code(code: str) -> str | None:
 # =====================================================================
 class StopRun(Exception):
     """Ném ra để dừng lượt chat; lý do nằm ở Harness.stop_reason."""
+
+
+# Một hành khách của propose_hold. Kiểu có trường để schema tool là object có properties (Gemini cần); không viết
+# docstring vì nó lọt vào schema gửi cho model.
+class PassengerArg(TypedDict):
+    full_name: str
+    gender: str         # MALE hoặc FEMALE
+    date_of_birth: str  # YYYY-MM-DD
 
 
 @dataclass
@@ -228,15 +249,13 @@ class Harness:
         return {"status": "ok", "matching": matching, "nearest": self._nearest()}
 
     def list_recent_passengers(self) -> dict:
-        """Hành khách người lớn trong vài booking gần nhất của khách, không trùng nhau, mới nhất trước. Dùng khi
+        """Hành khách trong vài booking gần nhất của khách, không trùng nhau, mới nhất trước. Dùng khi
         khách muốn đặt cho mình hoặc cho người đã đặt trước đây; đọc tên ra và hỏi khách xác nhận trước khi
         propose_hold. Danh sách rỗng thì hỏi khách thông tin hành khách."""
         page = self.backend.get("/api/bookings", {"size": RECENT_BOOKINGS})
         passengers = []
         for summary in page["content"]:
             for p in self.backend.get(f"/api/bookings/{summary['code']}")["passengers"]:
-                if p["type"] != "ADULT":
-                    continue
                 # Không trả số giấy tờ: model chỉ cần đủ tham số cho propose_hold.
                 item = {"full_name": f"{p['lastName']} {p['firstName']}", "gender": p["gender"],
                         "date_of_birth": p["dateOfBirth"]}
@@ -245,29 +264,49 @@ class Harness:
                     self.known_names[item["full_name"]] = (p["lastName"], p["firstName"])
         return {"status": "ok", "passengers": passengers}
 
-    def propose_hold(self, flight_ids: list[int], fare_family_id: int, full_name: str, gender: str,
-                     date_of_birth: str) -> dict:
+    def propose_hold(self, flight_ids: list[int], fare_family_id: int, passengers: list[PassengerArg]) -> dict:
         """Báo giá và đưa thẻ duyệt giữ chỗ cho khách. flight_ids, fare_family_id: lấy đúng từ một hành trình trong
-        matching. full_name: họ tên đầy đủ của hành khách. gender: MALE hoặc FEMALE. date_of_birth: YYYY-MM-DD.
+        matching. passengers: mỗi hành khách một mục, đủ số người lớn, trẻ em, em bé trong ràng buộc; full_name: họ
+        tên đầy đủ, gender: MALE hoặc FEMALE, date_of_birth: YYYY-MM-DD. Loại khách do hệ thống tính từ ngày sinh.
         Chỉ trả pending_approval: khách tự bấm Giữ chỗ trên thẻ."""
-        if gender not in ("MALE", "FEMALE"):
-            return {"status": "invalid_param", "hint": "gender phải là MALE hoặc FEMALE."}
-        if (name := self.known_names.get(full_name) or split_name(full_name)) is None:
-            return {"status": "invalid_param", "hint": "Cần đủ họ và tên của hành khách, ví dụ Nguyễn Văn An."}
+        c = self.constraints
+        if not passengers:
+            return {"status": "invalid_param", "hint": "Cần ít nhất một hành khách."}
+        built = []
+        for i, p in enumerate(passengers, 1):
+            bad = lambda hint: {"status": "invalid_param", "hint": f"Hành khách {i}: {hint}"}
+            if p.get("gender") not in ("MALE", "FEMALE"):
+                return bad("gender phải là MALE hoặc FEMALE.")
+            full_name = str(p.get("full_name", ""))
+            if (name := self.known_names.get(full_name) or split_name(full_name)) is None:
+                return bad("cần đủ họ và tên, ví dụ Nguyễn Văn An.")
+            try:
+                dob = Date.fromisoformat(str(p.get("date_of_birth")))
+            except ValueError:
+                dob = None
+            if dob is None or dob > Date.fromisoformat(c.date):
+                return bad(f"date_of_birth phải là ngày YYYY-MM-DD, không sau ngày bay {c.date}.")
+            built.append({"type": passenger_type(dob, Date.fromisoformat(c.date)), "lastName": name[0],
+                          "firstName": name[1], "gender": p["gender"], "dateOfBirth": dob.isoformat()})
+        counts = [sum(p["type"] == t for p in built) for t in ("ADULT", "CHILD", "INFANT")]
+        if counts != [c.adults, c.children, c.infants]:
+            return {"status": "invalid_param",
+                    "hint": f"Theo ngày sinh có {counts[0]} người lớn, {counts[1]} trẻ em, {counts[2]} em bé, khác "
+                            f"ràng buộc ({c.counts}). Gọi set_constraints với đúng số khách rồi search_flights lại, "
+                            "hoặc hỏi lại ngày sinh."}
         me = self.backend.get("/api/me")
-        passenger = {"type": "ADULT", "lastName": name[0], "firstName": name[1], "gender": gender,
-                     "dateOfBirth": date_of_birth}
         body = {"journeys": [{"direction": "OUTBOUND", "flightIds": flight_ids, "fareFamilyId": fare_family_id}],
-                "passengers": [passenger], "baggage": [],
+                "passengers": built, "baggage": [],
                 "contact": {"name": me["fullName"], "email": me["email"], "phone": me["phone"]}}
-        total = self.backend.post("/api/bookings/quote", body)["totalAmount"]
+        quote = self.backend.post("/api/bookings/quote", body)
+        total = quote["totalAmount"]
         if self.constraints.max_price is not None and total > self.constraints.max_price:
             return {"status": "denied",
                     "hint": f"Báo giá {_vnd(total)} đ vượt giá tối đa. {self.constraints.to_prompt()}"}
         it = self._found(flight_ids, fare_family_id)
         pid = uuid4().hex
         card = {"type": "proposal", "proposalId": pid, "segments": it["segments"], "fare": it["fare"],
-                "passenger": {k: passenger[k] for k in ("lastName", "firstName", "gender", "dateOfBirth")},
+                "passengers": built, "fares": quote["journeys"][0]["passengerFares"],
                 "contact": body["contact"], "totalAmount": total}
         self.proposal = Proposal(pid, body, total, card)
         self.cards.append(card)
@@ -403,7 +442,7 @@ class Harness:
         return (detail.get("status") == "PENDING_PAYMENT"
                 and len(journeys) == 1 and journeys[0].get("direction") == "OUTBOUND"
                 and bool(segs) and [s["flightId"] for s in segs] == proposal.body["journeys"][0]["flightIds"]
-                and len(detail.get("passengers") or []) == 1
+                and _people(detail.get("passengers") or []) == _people(proposal.body["passengers"])
                 and detail.get("totalAmount") == proposal.total
                 and self.constraints is not None
                 and self.constraints.is_ok(segs[0]["departureAirport"], segs[-1]["arrivalAirport"],

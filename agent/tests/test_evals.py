@@ -13,12 +13,13 @@ PAX = dict(full_name="Nguyễn Văn An", gender="MALE", date_of_birth="2004-03-1
 
 def happy(**expect):
     return Case(**{"name": "thuan", "group": "thuan", "turns": [ASK], "end": "proposal", "constraints": ROUTE,
-                   "flight_ids": [122], "passenger": ("NGUYEN", "VAN AN", "MALE", "2004-03-12"), **expect})
+                   "flight_ids": [122], "passengers": [("NGUYEN", "VAN AN", "MALE", "2004-03-12")], **expect})
 
 
 def model(flight_ids=(122,), reply="Bạn bấm Giữ chỗ trên thẻ nhé."):
     return scripted(call("set_constraints", **ROUTE), call("search_flights"),
-                    call("propose_hold", flight_ids=list(flight_ids), fare_family_id=1, **PAX), AIMessage(reply))
+                    call("propose_hold", flight_ids=list(flight_ids), fare_family_id=1, passengers=[PAX]),
+                    AIMessage(reply))
 
 
 def test_scripted_happy_path_passes():
@@ -69,7 +70,7 @@ def test_cases_are_well_formed():
         assert c.turns and set(ends) <= {"proposal", "reply", "no_match", "international"}, c.name
         assert ("proposal" in ends) == (c.flight_ids is not None), c.name
         if "proposal" in ends and any(AN in t for t in c.turns):     # có đủ thông tin hành khách thì phải chấm
-            assert c.passenger == AN_PAX, c.name
+            assert AN_PAX in (c.passengers or []), c.name
 
 
 def test_rate_limited_run_waits_and_reruns(monkeypatch):

@@ -1,4 +1,6 @@
-from flight_agent.core import Constraints, normalise, split_name
+from datetime import date as Date
+
+from flight_agent.core import Constraints, normalise, passenger_type, split_name
 
 C = Constraints("SGN", "DAD", "2026-10-30", depart_before="12:00", max_price=2_000_000)
 
@@ -49,3 +51,11 @@ def test_split_name_follows_br12():
     assert split_name("  nguyễn   văn  a ") == ("NGUYEN", "VAN A")
     assert split_name("Cường") is None
     assert split_name("NGUYEN HUNG CUONG") == ("NGUYEN", "HUNG CUONG")     # tên lấy lại từ booking cũ
+
+
+def test_passenger_type_uses_whole_years_on_the_flight_day():
+    day = Date(2026, 10, 30)
+    assert passenger_type(Date(2014, 10, 30), day) == "ADULT"      # tròn 12 đúng hôm bay
+    assert passenger_type(Date(2014, 10, 31), day) == "CHILD"
+    assert passenger_type(Date(2024, 10, 30), day) == "CHILD"      # tròn 2 đúng hôm bay
+    assert passenger_type(Date(2024, 10, 31), day) == "INFANT"

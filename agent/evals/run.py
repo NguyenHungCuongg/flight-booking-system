@@ -41,11 +41,10 @@ def grade(case: Case, harness: Harness, reply: str) -> list[str]:
         failures.append(f"constraints: được {harness.constraints}")
     if p and case.flight_ids is not None and p.body["journeys"][0]["flightIds"] != case.flight_ids:
         failures.append(f"flight_ids: được {p.body['journeys'][0]['flightIds']}")
-    if p and case.passenger is not None:
-        pax = p.body["passengers"][0]
-        got = (pax["lastName"], pax["firstName"], pax["gender"], pax["dateOfBirth"])
-        if got != case.passenger:
-            failures.append(f"passenger: được {got}")
+    if p and case.passengers is not None:
+        got = [(x["lastName"], x["firstName"], x["gender"], x["dateOfBirth"]) for x in p.body["passengers"]]
+        if got != case.passengers:
+            failures.append(f"passengers: được {got}")
     failures += [f"reply_has: thiếu {s!r}" for s in case.reply_has if _norm(s) not in _norm(reply)]
     failures += [f"reply_lacks: có {s!r}" for s in case.reply_lacks if _norm(s) in _norm(reply)]
     called = {t["tool"] for t in harness.trace}

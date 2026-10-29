@@ -11,10 +11,10 @@ PAX = dict(full_name="Nguyễn Hùng Cường", gender="MALE", date_of_birth="20
 TODAY = "2026-10-26"
 
 
-def proposed(fake, *extra):
+def proposed(fake, *extra, route=ROUTE, passengers=(PAX,)):
     chat = Chats().create("s1")
-    model = scripted(call("set_constraints", **ROUTE), call("search_flights"),
-                     call("propose_hold", flight_ids=[122], fare_family_id=1, **PAX),
+    model = scripted(call("set_constraints", **route), call("search_flights"),
+                     call("propose_hold", flight_ids=[122], fare_family_id=1, passengers=list(passengers)),
                      AIMessage(content="Bạn bấm Giữ chỗ để mình giữ ghế nhé."), *extra)
     out = turn(chat, model, "Đặt giúp mình 1 vé SGN đi Đà Nẵng thứ 6 này, trước 12h, dưới 2 triệu",
                fake.backend(), TODAY)
@@ -63,8 +63,8 @@ def test_approving_replaced_proposal_is_refused():
     fake = FakeBackend()
     chat = Chats().create("s1")
     out = turn(chat, scripted(call("set_constraints", **ROUTE), call("search_flights"),
-                              call("propose_hold", flight_ids=[122], fare_family_id=1, **PAX),
-                              call("propose_hold", flight_ids=[104], fare_family_id=1, **PAX),
+                              call("propose_hold", flight_ids=[122], fare_family_id=1, passengers=[PAX]),
+                              call("propose_hold", flight_ids=[104], fare_family_id=1, passengers=[PAX]),
                               AIMessage(content="Mình đổi sang QH104.")), "Đặt vé", fake.backend(), TODAY)
     first = [c for c in out["cards"] if c["type"] == "proposal"][0]["proposalId"]
     with pytest.raises(LookupError):
@@ -98,9 +98,27 @@ def test_read_back_mismatch_hands_off_instead_of_held():
         assert "K7M2QX" in result["cards"][0]["question"]
 
 
+def test_read_back_with_other_passengers_hands_off():
+    other = {"type": "ADULT", "lastName": "TRAN", "firstName": "THI MAI", "gender": "FEMALE",
+             "dateOfBirth": "2005-01-02"}
+    for patch in (lambda ps: ps + [other], lambda ps: [], lambda ps: [{**ps[0], "type": "CHILD"}]):
+        fake = FakeBackend(passengers_patch=patch)
+        chat, model, out = proposed(fake)
+        result = approve(chat, model, out["cards"][-1]["proposalId"], fake.backend(), TODAY)
+        assert [c["type"] for c in result["cards"]] == ["handoff"]
+
+
+def test_read_back_in_another_order_is_done():
+    mai = dict(full_name="Trần Thị Mai", gender="FEMALE", date_of_birth="2005-01-02")
+    fake = FakeBackend(passengers_patch=lambda ps: ps[::-1])
+    chat, model, out = proposed(fake, route={**ROUTE, "max_price": 4_000_000, "adults": 2}, passengers=[PAX, mai])
+    result = approve(chat, model, out["cards"][-1]["proposalId"], fake.backend(), TODAY)
+    assert [c["type"] for c in result["cards"]] == ["held"]
+
+
 def test_sold_out_on_approval_lets_the_agent_propose_another_flight():
     fake = FakeBackend(hold_error=(409, "SEATS_UNAVAILABLE"))
-    chat, model, out = proposed(fake, call("propose_hold", flight_ids=[104], fare_family_id=1, **PAX),
+    chat, model, out = proposed(fake, call("propose_hold", flight_ids=[104], fare_family_id=1, passengers=[PAX]),
                                 AIMessage(content="VN122 vừa hết ghế, bạn duyệt QH104 nhé."))
     result = approve(chat, model, out["cards"][-1]["proposalId"], fake.backend(), TODAY)
     proposals = [c for c in result["cards"] if c["type"] == "proposal"]

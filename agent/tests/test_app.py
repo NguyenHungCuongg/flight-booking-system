@@ -21,7 +21,7 @@ def client(fake, *replies):
 
 def hold_flow():
     return (call("set_constraints", **ROUTE), call("search_flights"),
-            call("propose_hold", flight_ids=[122], fare_family_id=1, **PAX), AIMessage(content="Bấm Giữ chỗ nhé."))
+            call("propose_hold", flight_ids=[122], fare_family_id=1, passengers=[PAX]), AIMessage(content="Bấm Giữ chỗ nhé."))
 
 
 def test_vn_today_uses_utc_plus_7():
@@ -88,7 +88,7 @@ def test_owner_reads_back_every_turn_and_only_the_live_proposal_is_open():
 
 
 def test_a_new_proposal_closes_the_old_card_in_the_read_back():
-    c = client(FakeBackend(), *hold_flow(), call("propose_hold", flight_ids=[104], fare_family_id=1, **PAX),
+    c = client(FakeBackend(), *hold_flow(), call("propose_hold", flight_ids=[104], fare_family_id=1, passengers=[PAX]),
                AIMessage(content="Mình đổi sang QH104."))
     h = {"Cookie": COOKIE}
     chat = c.post("/agent/chats", headers=h).json()["chatId"]
@@ -100,7 +100,7 @@ def test_a_new_proposal_closes_the_old_card_in_the_read_back():
 
 def test_failed_approval_does_not_show_the_system_message_as_the_customer():
     c = client(FakeBackend(hold_error=(409, "SEATS_UNAVAILABLE")), *hold_flow(),
-               call("propose_hold", flight_ids=[104], fare_family_id=1, **PAX), AIMessage(content="Duyệt QH104 nhé."))
+               call("propose_hold", flight_ids=[104], fare_family_id=1, passengers=[PAX]), AIMessage(content="Duyệt QH104 nhé."))
     h = {"Cookie": COOKIE}
     chat = c.post("/agent/chats", headers=h).json()["chatId"]
     pid = c.post(f"/agent/chats/{chat}/messages", json={"text": "Đặt vé"}, headers=h).json()["cards"][-1]["proposalId"]
@@ -124,7 +124,7 @@ def test_reading_back_waits_for_the_running_turn():
 
 def test_crashed_turn_keeps_the_message_and_no_unseen_card_is_open():
     app = create_app(model=scripted(call("set_constraints", **ROUTE), call("search_flights"),
-                                    call("propose_hold", flight_ids=[122], fare_family_id=1, **PAX),
+                                    call("propose_hold", flight_ids=[122], fare_family_id=1, passengers=[PAX]),
                                     RuntimeError("lỗi bất ngờ")),
                      backend_url="http://be", transport=FakeBackend().transport, today=lambda: "2026-10-26")
     c = TestClient(app, raise_server_exceptions=False)

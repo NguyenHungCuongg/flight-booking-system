@@ -110,12 +110,13 @@ def problem(status, code, errors=()):
 
 class FakeBackend:
     def __init__(self, flights=FLIGHTS, me_status=200, quote_error=None, hold_error=None, detail_patch=None,
-                 hold_delay=0.0, search_delay=0.0, past=(), bookings=(), refunds=None):
+                 hold_delay=0.0, search_delay=0.0, past=(), bookings=(), refunds=None, passengers_patch=None):
         self.flights, self.me_status, self.quote_error, self.hold_error = flights, me_status, quote_error, hold_error
         self.detail_patch, self.hold_delay, self.search_delay = detail_patch or {}, hold_delay, search_delay
         self.past = dict(past)      # mã booking cũ -> hành khách, mới nhất trước
         self.bookings = {b["code"]: b for b in bookings}    # BookingDetail đầy đủ, mới nhất trước
         self.refunds = refunds or {}    # (mã, chiều) -> RefundQuote, hoặc (status, code) lỗi
+        self.passengers_patch = passengers_patch    # hành khách đã gửi -> hành khách của booking đọc lại
         self.requests: list[httpx.Request] = []
         self.holds: list[dict] = []
         self.transport = httpx.MockTransport(self.handle)
@@ -123,9 +124,22 @@ class FakeBackend:
     def backend(self, csrf="t") -> Backend:
         return Backend("http://be", "JSESSIONID=s1", csrf, self.transport)
 
-    def _price(self, journey):
+    def _adult_price(self, journey):
         it = next(i for i in self.flights if [s["flightId"] for s in i["segments"]] == journey["flightIds"])
-        return next(f["totalPrice"] for f in it["fareOptions"] if f["fareFamilyId"] == journey["fareFamilyId"])
+        return next(f["adultPrice"] for f in it["fareOptions"] if f["fareFamilyId"] == journey["fareFamilyId"])
+
+    def _price(self, body):
+        return fare_total(self._adult_price(body["journeys"][0]), [p["type"] for p in body["passengers"]])
+
+    def _quote(self, body):
+        """QuoteResponse một chiều: passengerFares theo thứ tự ADULT, CHILD, INFANT như QuoteService."""
+        price, types = self._adult_price(body["journeys"][0]), [p["type"] for p in body["passengers"]]
+        fares = [{"type": t, "count": types.count(t), "unitPrice": price * PERCENT[t] // 100,
+                  "total": types.count(t) * (price * PERCENT[t] // 100)} for t in PERCENT if t in types]
+        total = fare_total(price, types)
+        return {"journeys": [{"direction": "OUTBOUND", "fareTotal": total, "baggageTotal": 0, "discount": 0,
+                              "passengerFares": fares}],
+                "fareTotal": total, "baggageTotal": 0, "discountTotal": 0, "totalAmount": total}
 
     def handle(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
@@ -148,8 +162,7 @@ class FakeBackend:
         if route == ("POST", "/api/bookings/quote"):
             if self.quote_error:
                 return problem(*self.quote_error)
-            body = json.loads(request.content)
-            return httpx.Response(200, json={"totalAmount": self._price(body["journeys"][0])})
+            return httpx.Response(200, json=self._quote(json.loads(request.content)))
         if route == ("POST", "/api/bookings"):
             body = json.loads(request.content)
             self.holds.append(body)
@@ -157,7 +170,7 @@ class FakeBackend:
             if self.hold_error and len(self.holds) == 1:
                 return problem(*self.hold_error)
             return httpx.Response(201, json={"code": CODE, "status": "PENDING_PAYMENT", "holdExpiresAt": EXPIRES,
-                                             "totalAmount": self._price(body["journeys"][0])})
+                                             "totalAmount": self._price(body)})
         if request.method == "GET" and (key := request.url.path.removeprefix("/api/bookings/")) in self.bookings:
             return httpx.Response(200, json=self.bookings[key])     # trước CODE: booking dựng sẵn có thể trùng mã
         if route == ("GET", f"/api/bookings/{CODE}"):
@@ -187,9 +200,9 @@ class FakeBackend:
                      "arrivalAirport": by_id[f]["arrival"]["airport"], "arrivalTime": by_id[f]["arrival"]["time"]}
                     for f in journey["flightIds"]]
         return {"code": CODE, "status": "PENDING_PAYMENT", "holdExpiresAt": EXPIRES,
-                "totalAmount": self._price(journey), "contact": body["contact"],
+                "totalAmount": self._price(body), "contact": body["contact"],
                 "journeys": [{"direction": journey["direction"], "segments": segments}],
-                "passengers": body["passengers"], **self.detail_patch}
+                "passengers": (self.passengers_patch or list)(body["passengers"]), **self.detail_patch}
 
 
 def _summary(b: dict) -> dict:
