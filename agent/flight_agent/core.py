@@ -373,7 +373,9 @@ class Harness:
             kg = -1
         if kg < 0 or (kg and kg not in on_sale):
             return {"status": "invalid_param",
-                    "hint": f"baggage_kg phải là một trong các mức {', '.join(map(str, on_sale))} kg, hoặc bỏ trống."}
+                    "hint": f"baggage_kg phải là một trong các mức {', '.join(map(str, on_sale))} kg, hoặc bỏ trống."
+                    if on_sale else "Hành trình này không có mức hành lý ký gửi nào bán cho mọi chiều: bỏ trống "
+                                    "baggage_kg."}
         body = {"journeys": [{"direction": d, "flightIds": j["flight_ids"], "fareFamilyId": j["fare_family_id"]}
                              for d, j in zip(DIRECTIONS, _journeys(it))],
                 "passengers": built,
@@ -402,9 +404,9 @@ class Harness:
         self.proposal = Proposal(pid, body, total, card)
         self.cards.append(card)
         result = {"status": "pending_approval", "total": total}
-        if not kg and (offer := {d: [f"{o['weightKg']} kg: {_money(o['price'])}" for o in p]
-                                 for d, p in prices.items() if p}):
-            result["baggage_options"] = offer
+        if not kg and on_sale:      # chỉ mời mức mua được: mọi chiều đều bán
+            result["baggage_options"] = {d: [f"{o['weightKg']} kg: {_money(o['price'])}" for o in p
+                                             if o["weightKg"] in on_sale] for d, p in prices.items()}
         return result
 
     # ---- tra cứu: chỉ GET, mỗi tool một request; giờ và tiền định dạng sẵn để model chép nguyên văn

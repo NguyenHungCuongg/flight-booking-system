@@ -1,7 +1,7 @@
 import json
 
 from flight_agent.core import Harness
-from tests.fakes import FakeBackend, booking, journey, passenger
+from tests.fakes import BAGGAGE, FakeBackend, booking, journey, passenger
 
 ROUTE = dict(origin="SGN", destination="DAD", date="2026-10-30", depart_before="12:00", max_price=2_000_000)
 PAX = dict(full_name="Nguyễn Hùng Cường", gender="MALE", date_of_birth="2004-03-12")
@@ -322,6 +322,19 @@ def test_hold_offers_baggage_prices_per_direction():
     assert [j["baggage"] for j in h.cards[-1]["journeys"]] == [None, None]
     paths = {q.url.path for q in fake.requests}
     assert {"/api/airlines/VN/baggage-options", "/api/airlines/VJ/baggage-options"} <= paths
+
+
+def test_only_weights_sold_on_every_direction_are_offered(monkeypatch):
+    monkeypatch.setitem(BAGGAGE, "VJ", BAGGAGE["VJ"][:2])      # hãng chiều về chỉ bán 15 và 20 kg
+    h, _ = round_trip()
+    r = h.execute("propose_hold", {**ROUND, "passengers": [PAX]})
+    assert r["baggage_options"] == {"OUTBOUND": PRICES[:2], "RETURN": PRICES[:2]}
+    monkeypatch.setitem(BAGGAGE, "VJ", [])                     # hãng chiều về không bán hành lý
+    h, _ = round_trip()
+    r = h.execute("propose_hold", {**ROUND, "passengers": [PAX]})
+    assert r["status"] == "pending_approval" and "baggage_options" not in r
+    r = h.execute("propose_hold", {**ROUND, "passengers": [PAX], "baggage_kg": 20})
+    assert r["status"] == "invalid_param" and "không có mức hành lý" in r["hint"]
 
 
 def test_baggage_goes_to_every_adult_and_child_on_every_direction():
