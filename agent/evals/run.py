@@ -41,6 +41,10 @@ def grade(case: Case, harness: Harness, reply: str) -> list[str]:
         failures.append(f"constraints: được {harness.constraints}")
     if p and case.flight_ids is not None and p.body["journeys"][0]["flightIds"] != case.flight_ids:
         failures.append(f"flight_ids: được {p.body['journeys'][0]['flightIds']}")
+    if p and case.return_flight_ids is not None:
+        got = p.body["journeys"][1]["flightIds"] if len(p.body["journeys"]) > 1 else None
+        if got != case.return_flight_ids:
+            failures.append(f"return_flight_ids: được {got}")
     if p and case.passengers is not None:
         got = [(x["lastName"], x["firstName"], x["gender"], x["dateOfBirth"]) for x in p.body["passengers"]]
         if sorted(got) != sorted(case.passengers):      # như is_done: không theo thứ tự

@@ -32,7 +32,7 @@ Cần backend chạy profile `dev` trên cổng 8080 và frontend (`npm run dev`
 
 Chat nằm trong RAM của service. Trang giữ `chatId` trong `sessionStorage` và đọc lại bằng `GET /agent/chats/{id}` khi tải lại trang; restart service thì chat mất và trang mở chat trống.
 
-Một booking có thể gồm nhiều người lớn, trẻ em và em bé (một chiều, hạng phổ thông). Số khách nằm trong ràng buộc và được gửi khi tìm chuyến, nên `max_price` là tổng tiền cả booking. Loại khách do code tính từ ngày sinh tại ngày bay (BR-10); số khách theo loại phải khớp ràng buộc thì mới báo giá. Thẻ duyệt hiện từng hành khách và giá từng loại khách, và `is_done` so từng hành khách của booking đọc lại với thẻ đã duyệt.
+Một booking có thể gồm nhiều người lớn, trẻ em và em bé, một chiều hoặc khứ hồi, hạng phổ thông. Số khách nằm trong ràng buộc và được gửi khi tìm chuyến, nên `max_price` là tổng tiền cả booking. Loại khách do code tính từ ngày sinh tại ngày bay (BR-10); số khách theo loại phải khớp ràng buộc thì mới báo giá. Khứ hồi: `search_flights` tìm cả hai chiều trong một lần gọi và ghép thành cặp thoả BR-04 (chiều về cất cánh sau khi chiều đi hạ cánh), mỗi cặp có giá là tổng hai chiều; `max_price` là tổng hai chiều, `depart_before` chỉ áp cho chiều đi. Thẻ duyệt hiện từng chiều (chặng, gói giá, giá từng loại khách) và từng hành khách. `is_done` so hướng, chuyến và gói giá của từng chiều, cùng từng hành khách của booking đọc lại, với thẻ đã duyệt.
 
 Khách muốn "đặt như lần trước" thì tool `list_recent_passengers` đọc hành khách (kể cả trẻ em) từ 3 booking gần nhất (chỉ GET, không trả số giấy tờ). Không có kho memory riêng: dữ liệu luôn lấy từ backend.
 

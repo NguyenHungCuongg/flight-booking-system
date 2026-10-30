@@ -116,7 +116,7 @@ Thêm `reschedule-options` nếu cần. Agent trả lời rồi dẫn khách san
 Chia ba plan, làm theo thứ tự nhu cầu thực tế giảm dần:
 
 - **5a. [Nhiều hành khách](2026-10-29-tro-ly-05a-nhieu-hanh-khach.md)** (người lớn, trẻ em, em bé).
-- **5b. Khứ hồi.**
+- **5b. [Khứ hồi](2026-10-30-tro-ly-05b-khu-hoi.md)**. 5b xong.
 - **5c. Hành lý và voucher.**
 
 **Mỗi phần chạm vào:** `Constraints`, tham số tìm chuyến (`adults`, `children`, `infants`), tham số `propose_hold`, body báo giá, thẻ duyệt, `is_done`, câu bàn giao và case eval. Quy tắc hành khách (BR-10–13), voucher (BR-30) và giá hành lý do backend kiểm; lỗi chuyển cho model dạng `backend_error` như MVP.
@@ -163,6 +163,7 @@ Ghi sau mỗi lần chạy bộ eval (từ Bước 3). Dùng để so trước v
 | 2026-10-28 | 3        | gemini-3.5-flash-lite | 20              | 95% (57/60 lượt; case 18/20)          | 3.5                         | Trượt: `khu-hoi` 2/3, `hai-nguoi` 1/3 (giải thích giới hạn nhưng không dẫn khách sang `/flights`). Ghép từ lần chạy đủ 20 case và lần chạy lại 6 case sau khi sửa cách chấm (thêm chấm hành khách, `CLAIMS_HELD` thay cho chuỗi "đã giữ chỗ" trần vốn tính trượt nhầm câu từ chối). Free tier 15 request/phút: bộ chạy tự chờ và chạy lại lượt bị 429. Token TB/lượt khoảng 4.800. |
 | 2026-10-29 | 4        | gemini-3.5-flash-lite | 24 (đo được 17) | 100% (51/51 lượt; case 17/17 đo được) | 2.9                         | 4 case tra cứu mới đạt 12/12 (chạy riêng cũng 12/12). 7 case cũ (`thuan-mot-cau` tới `tien-2tr5`, chạy đầu tiên) dừng vì lỗi API model cả 21 lượt, kể cả sau 3 lần chờ 60 giây, nên chưa đo lại; 13 case cũ đo được đều 3/3, gồm `khu-hoi` và `hai-nguoi` vốn trượt ở mốc Bước 3. Token TB/lượt khoảng 5.100.                                                                      |
 | 2026-10-30 | 5a       | gemini-3.5-flash-lite | 28              | 99% (83/84 lượt; case 27/28)          | 3.5                         | Mốc cho Bước 5. 4 case nhiều khách mới đạt 12/12; 7 case cũ chưa đo ở Bước 4 đều 3/3. Lượt trượt duy nhất `thu-6-nay` #2: tool và ngày đúng nhưng model trả câu rác thay cho câu hỏi ngày sinh. Không lỗi hạ tầng. Token TB/lượt khoảng 7.000 (prompt và schema `propose_hold` dài hơn).                                                                                           |
+| 2026-10-30 | 5b       | gemini-3.5-flash-lite | 5 (chỉ khứ hồi) | 100% (15/15 lượt; case 5/5)           | 4.4                         | Chỉ chạy `--case khu-hoi`; đủ bộ chạy lại sau 5c. `khu-hoi` nay hỏi ngày sinh thay vì mời sang `/flights`. `khu-hoi-them-chieu-ve` (2 lượt) giữ được `depart_before` ở lượt 2 mà không cần thêm câu prompt dự phòng. Không lỗi hạ tầng. Token TB/lượt khoảng 12.800 (kết quả tìm khứ hồi dài hơn; riêng case 2 lượt khoảng 26.000).                                                |
 
 ---
 

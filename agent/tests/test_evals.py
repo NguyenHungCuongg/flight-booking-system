@@ -71,6 +71,28 @@ def test_cases_are_well_formed():
         assert ("proposal" in ends) == (c.flight_ids is not None), c.name
         if "proposal" in ends and any(AN in t for t in c.turns):     # có đủ thông tin hành khách thì phải chấm
             assert AN_PAX in (c.passengers or []), c.name
+        assert c.return_flight_ids is None or "proposal" in ends, c.name
+
+
+TRIP = {**ROUTE, "max_price": 4_000_000, "return_date": "2026-11-02"}
+
+
+def test_cases_cover_round_trips():
+    group = [c for c in CASES if c.group == "khứ hồi"]
+    assert len(group) == 5 and all(c.name.startswith("khu-hoi") for c in group)     # --case khu-hoi chạy đủ nhóm
+    assert all(c.constraints["return_date"] == "2026-11-02" for c in group)
+    assert all(c.return_flight_ids for c in group if c.end == "proposal")
+
+
+def test_return_flight_is_graded():
+    def trip(back):
+        return scripted(call("set_constraints", **TRIP), call("search_flights"),
+                        call("propose_hold", flight_ids=[122], fare_family_id=1, return_flight_ids=[back],
+                             return_fare_family_id=1, passengers=[PAX]), AIMessage("Bạn bấm Giữ chỗ trên thẻ nhé."))
+    case = happy(constraints=TRIP, return_flight_ids=[611])
+    assert run_case(case, trip(611))["passed"]
+    r = run_case(case, trip(123))
+    assert not r["passed"] and any("return_flight_ids" in f for f in r["failures"])
 
 
 def test_rate_limited_run_waits_and_reruns(monkeypatch):
