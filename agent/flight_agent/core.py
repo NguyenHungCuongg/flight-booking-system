@@ -446,10 +446,16 @@ class Harness:
             it = self._found(*(args.get(k) for k in ("flight_ids", "fare_family_id", "return_flight_ids",
                                                      "return_fare_family_id")))
             if it is None or it["broken"]:
-                trip = (" Khứ hồi: return_flight_ids và return_fare_family_id lấy từ return của cùng mục trong matching."
-                        if self.constraints.return_date else "")
-                return (f"Hành trình {args.get('flight_ids')} với gói {args.get('fare_family_id')} không có trong "
-                        f"matching của lần tìm gần nhất.{trip} {self.constraints.to_prompt()}")
+                chosen = f"Hành trình {args.get('flight_ids')} với gói {args.get('fare_family_id')}"
+                back = args.get("return_flight_ids") is not None or args.get("return_fare_family_id") is not None
+                if back:
+                    chosen += f", chiều về {args.get('return_flight_ids')} với gói {args.get('return_fare_family_id')}"
+                if self.constraints.return_date:
+                    trip = " Khứ hồi: return_flight_ids và return_fare_family_id lấy từ return của cùng mục trong matching."
+                else:
+                    trip = " Một chiều: không truyền return_flight_ids, return_fare_family_id." if back else ""
+                return (f"{chosen} không có trong matching của lần tìm gần nhất.{trip} "
+                        f"{self.constraints.to_prompt()}")
         return None
 
     # ---- phát hiện lặp: cùng (tool, args) nhiều lần

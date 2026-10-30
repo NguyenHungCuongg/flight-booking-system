@@ -299,6 +299,16 @@ def test_hold_needs_exactly_the_listed_journeys():
     assert h.execute("propose_hold", {**ROUND, "passengers": [PAX]})["status"] == "denied"
 
 
+def test_denied_hold_hint_names_the_real_cause():
+    h, _ = searched()                       # một chiều: model điền tham số chiều về rỗng thay vì bỏ trống
+    r = h.execute("propose_hold", {"flight_ids": [122], "fare_family_id": 1, "return_flight_ids": [],
+                                   "return_fare_family_id": 0, "passengers": [PAX]})
+    assert r["status"] == "denied" and "Một chiều: không truyền return_flight_ids" in r["hint"]
+    h, _ = round_trip()
+    r = h.execute("propose_hold", {**ROUND, "return_flight_ids": [999], "passengers": [PAX]})
+    assert r["status"] == "denied" and "chiều về [999]" in r["hint"]
+
+
 CUONG = passenger("NGUYEN", "HUNG CUONG")
 PAST = [("AAA111", [CUONG, passenger("TRAN", "THI MAI", "FEMALE", "2005-01-02")]),
         ("BBB222", [CUONG, passenger("NGUYEN", "BE NA", type="CHILD", dob="2020-05-05")]),
