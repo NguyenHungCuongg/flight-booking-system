@@ -38,6 +38,7 @@ export type Card =
           unitPrice: number;
           total: number;
         }[];
+        baggage: { weightKg: number; count: number; total: number } | null;
       }[];
       passengers: {
         lastName: string;
@@ -47,6 +48,7 @@ export type Card =
         type: PassengerType;
       }[];
       contact: { name: string; email: string; phone: string };
+      discount: { code: string; amount: number } | null;
       totalAmount: number;
     }
   | { type: "held"; code: string; holdExpiresAt: string; totalAmount: number }

@@ -122,6 +122,12 @@ function ProposalCard({
                 ))}
               </ul>
             </dd>
+            {j.baggage && (
+              <>
+                <dt className="text-muted">Hành lý ký gửi</dt>
+                <dd>{`${j.baggage.count} kiện ${j.baggage.weightKg} kg = ${vnd(j.baggage.total)}`}</dd>
+              </>
+            )}
           </dl>
         </section>
       ))}
@@ -136,6 +142,12 @@ function ProposalCard({
             ))}
           </ul>
         </dd>
+        {card.discount && (
+          <>
+            <dt className="text-muted">Giảm giá</dt>
+            <dd>{`${card.discount.code}: −${vnd(card.discount.amount)}`}</dd>
+          </>
+        )}
         <dt className="text-muted">Liên hệ</dt>
         <dd>{`${card.contact.name}, ${card.contact.email}, ${card.contact.phone}`}</dd>
       </dl>
@@ -327,8 +339,8 @@ export default function AssistantChat() {
           <p className="text-muted">
             Gõ yêu cầu bằng lời, ví dụ “Đặt giúp mình 1 vé SGN đi Đà Nẵng thứ 6
             này, bay trước 12h, dưới 2 triệu”. Trợ lý đặt được vé một chiều hoặc
-            khứ hồi, hạng phổ thông, cho nhiều hành khách, và chỉ giữ chỗ khi
-            bạn bấm “Giữ chỗ”.
+            khứ hồi, hạng phổ thông, cho nhiều hành khách, kèm hành lý ký gửi và
+            mã giảm giá, và chỉ giữ chỗ khi bạn bấm “Giữ chỗ”.
           </p>
         )}
         <ol aria-label="Cuộc trò chuyện" className="grid gap-16">
