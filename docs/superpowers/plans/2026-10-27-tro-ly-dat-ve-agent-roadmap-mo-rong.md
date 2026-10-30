@@ -25,8 +25,8 @@ MVP chạy được: khách gõ yêu cầu trên `/assistant`, agent tìm chuy�
 | --- | ------------------------------------------------------------------------- | --------------------- | ------------ | --------------------------------------------------------------------------------------- | ---- |
 | 1   | [Giữ cuộc trò chuyện khi F5](2026-10-28-tro-ly-01-giu-chat-khi-f5.md)     | state                 | —            | F5 giữa chừng vẫn thấy đủ tin nhắn, thẻ duyệt vẫn bấm được                              | ☑    |
 | 2   | [Dùng lại hành khách đã đặt](2026-10-28-tro-ly-02-dung-lai-hanh-khach.md) | retrieval             | —            | "Đặt cho mình như lần trước" ra thẻ duyệt với hành khách lấy từ booking cũ              | ☑    |
-| 3   | [Eval với model thật](2026-10-28-tro-ly-03-eval-model-that.md)                                                       | verification, logging | —            | Một lệnh in bảng đạt/trượt của 15–20 case, số liệu gốc ghi ở §3                         | ☑    |
-| 4   | [Tra cứu booking (chỉ đọc)](2026-10-28-tro-ly-04-tra-cuu-booking.md)       | tools                 | 3            | Trả lời đúng giờ hết hạn giữ chỗ và số tiền hoàn, lấy từ API                            | ☑    |
+| 3   | [Eval với model thật](2026-10-28-tro-ly-03-eval-model-that.md)            | verification, logging | —            | Một lệnh in bảng đạt/trượt của 15–20 case, số liệu gốc ghi ở §3                         | ☑    |
+| 4   | [Tra cứu booking (chỉ đọc)](2026-10-28-tro-ly-04-tra-cuu-booking.md)      | tools                 | 3            | Trả lời đúng giờ hết hạn giữ chỗ và số tiền hoàn, lấy từ API                            | ☑    |
 | 5   | Mở rộng phạm vi đặt vé                                                    | tools, verification   | 3            | 5a nhiều hành khách, 5b khứ hồi, 5c hành lý và voucher, mỗi phần qua `is_done` mở rộng  | ☐    |
 | 6   | Stream bước tool (SSE)                                                    | UX                    | 1            | Các bước tool hiện dần trong lúc agent chạy                                             | ☐    |
 | 7   | Hỏi đáp chính sách hãng                                                   | retrieval             | 3            | Trả lời hành lý, phí hoàn, phí đổi từ dữ liệu thật; không có dữ liệu thì nói không biết | ☐    |
@@ -115,7 +115,7 @@ Thêm `reschedule-options` nếu cần. Agent trả lời rồi dẫn khách san
 
 Chia ba plan, làm theo thứ tự nhu cầu thực tế giảm dần:
 
-- **5a. Nhiều hành khách** (người lớn, trẻ em, em bé).
+- **5a. [Nhiều hành khách](2026-10-29-tro-ly-05a-nhieu-hanh-khach.md)** (người lớn, trẻ em, em bé).
 - **5b. Khứ hồi.**
 - **5c. Hành lý và voucher.**
 
@@ -123,9 +123,9 @@ Chia ba plan, làm theo thứ tự nhu cầu thực tế giảm dần:
 
 **Rủi ro chính.** Điều cần tránh số 1 (spec §2): booking tạo ra khác thẻ khách đã duyệt. Thẻ phải hiện mọi khoản bị tính: từng hành khách, từng chiều, từng kiện hành lý, giảm giá voucher. `is_done` phải kiểm đủ: số hành khách, có cả `OUTBOUND` và `RETURN` khi khứ hồi, tổng tiền có hành lý và voucher.
 
-**Kiểm chứng.** Với mỗi phần: test `is_done` cho từng kiểu lệch (thiếu hành khách, sai chuyến về, sai tổng tiền hành lý); tỉ lệ đạt eval không thấp hơn mốc.
+**Kiểm chứng.** Với mỗi phần: test `is_done` cho từng kiểu lệch (thiếu hành khách, sai chuyến về, sai tổng tiền hành lý). Eval (chủ dự án chọn, 2026-10-30, để tiết kiệm quota free tier): sau 5a chạy đủ bộ k=3 làm mốc; 5b và 5c chỉ chạy case mới của phần đó bằng `--case`; xong 5c chạy lại đủ bộ k=3, tỉ lệ đạt không thấp hơn mốc sau 5a.
 
-**Cần quyết khi viết plan.** 5b: `max_price` tính cho tổng hai chiều hay từng chiều; tìm hai chiều trong một lượt hay hai bước như C-02. 5c: agent tự gợi ý hành lý hay chỉ thêm khi khách yêu cầu.
+**Đã quyết (chủ dự án, 2026-10-29).** 5b: `max_price` là tổng hai chiều (như 5a: tổng cả booking), tìm cả hai chiều trong một lượt. 5c: agent tự hỏi khách có thêm hành lý ký gửi không, kèm giá. Trước khi làm 5b, cho `is_done` so cả gói giá (đang hoãn từ review 5a).
 
 ### Bước 6 — Stream bước tool (SSE)
 
@@ -158,10 +158,11 @@ Chia ba plan, làm theo thứ tự nhu cầu thực tế giảm dần:
 
 Ghi sau mỗi lần chạy bộ eval (từ Bước 3). Dùng để so trước và sau mỗi bước.
 
-| Ngày | Sau bước | Model | Số case | Tỉ lệ đạt | Số lần gọi model trung bình | Ghi chú |
-| ---- | -------- | ----- | ------- | --------- | --------------------------- | ------- |
-| 2026-10-28 | 3 | gemini-3.5-flash-lite | 20 | 95% (57/60 lượt; case 18/20) | 3.5 | Trượt: `khu-hoi` 2/3, `hai-nguoi` 1/3 (giải thích giới hạn nhưng không dẫn khách sang `/flights`). Ghép từ lần chạy đủ 20 case và lần chạy lại 6 case sau khi sửa cách chấm (thêm chấm hành khách, `CLAIMS_HELD` thay cho chuỗi "đã giữ chỗ" trần vốn tính trượt nhầm câu từ chối). Free tier 15 request/phút: bộ chạy tự chờ và chạy lại lượt bị 429. Token TB/lượt khoảng 4.800. |
-| 2026-10-29 | 4 | gemini-3.5-flash-lite | 24 (đo được 17) | 100% (51/51 lượt; case 17/17 đo được) | 2.9 | 4 case tra cứu mới đạt 12/12 (chạy riêng cũng 12/12). 7 case cũ (`thuan-mot-cau` tới `tien-2tr5`, chạy đầu tiên) dừng vì lỗi API model cả 21 lượt, kể cả sau 3 lần chờ 60 giây, nên chưa đo lại; 13 case cũ đo được đều 3/3, gồm `khu-hoi` và `hai-nguoi` vốn trượt ở mốc Bước 3. Token TB/lượt khoảng 5.100. |
+| Ngày       | Sau bước | Model                 | Số case         | Tỉ lệ đạt                             | Số lần gọi model trung bình | Ghi chú                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------- | -------- | --------------------- | --------------- | ------------------------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-28 | 3        | gemini-3.5-flash-lite | 20              | 95% (57/60 lượt; case 18/20)          | 3.5                         | Trượt: `khu-hoi` 2/3, `hai-nguoi` 1/3 (giải thích giới hạn nhưng không dẫn khách sang `/flights`). Ghép từ lần chạy đủ 20 case và lần chạy lại 6 case sau khi sửa cách chấm (thêm chấm hành khách, `CLAIMS_HELD` thay cho chuỗi "đã giữ chỗ" trần vốn tính trượt nhầm câu từ chối). Free tier 15 request/phút: bộ chạy tự chờ và chạy lại lượt bị 429. Token TB/lượt khoảng 4.800. |
+| 2026-10-29 | 4        | gemini-3.5-flash-lite | 24 (đo được 17) | 100% (51/51 lượt; case 17/17 đo được) | 2.9                         | 4 case tra cứu mới đạt 12/12 (chạy riêng cũng 12/12). 7 case cũ (`thuan-mot-cau` tới `tien-2tr5`, chạy đầu tiên) dừng vì lỗi API model cả 21 lượt, kể cả sau 3 lần chờ 60 giây, nên chưa đo lại; 13 case cũ đo được đều 3/3, gồm `khu-hoi` và `hai-nguoi` vốn trượt ở mốc Bước 3. Token TB/lượt khoảng 5.100.                                                                      |
+| 2026-10-30 | 5a       | gemini-3.5-flash-lite | 28              | 99% (83/84 lượt; case 27/28)          | 3.5                         | Mốc cho Bước 5. 4 case nhiều khách mới đạt 12/12; 7 case cũ chưa đo ở Bước 4 đều 3/3. Lượt trượt duy nhất `thu-6-nay` #2: tool và ngày đúng nhưng model trả câu rác thay cho câu hỏi ngày sinh. Không lỗi hạ tầng. Token TB/lượt khoảng 7.000 (prompt và schema `propose_hold` dài hơn).                                                                                           |
 
 ---
 
