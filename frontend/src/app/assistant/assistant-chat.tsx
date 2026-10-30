@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import SiteHeader from "@/components/site-header";
 import { Notice, pillLine, pillPrimary } from "@/components/form";
-import { clock, dmy, PASSENGER_LABEL } from "@/lib/booking";
+import { clock, DIRECTION_LABEL, dmy, PASSENGER_LABEL } from "@/lib/booking";
 import { vnd } from "../flights/itineraries";
 import {
   AgentError,
@@ -47,7 +47,11 @@ function ConstraintsCard({
       <p className="text-caption font-semibold text-muted">Ràng buộc</p>
       <ul className="flex flex-wrap gap-8">
         <li className={chip}>{`${card.origin} → ${card.destination}`}</li>
-        <li className={chip}>{dmy(card.date)}</li>
+        <li className={chip}>
+          {card.returnDate
+            ? `Đi ${dmy(card.date)}, về ${dmy(card.returnDate)}`
+            : dmy(card.date)}
+        </li>
         <li className={chip}>
           {(
             [
@@ -91,32 +95,43 @@ function ProposalCard({
   return (
     <div className="grid gap-12 card-hi p-16">
       <p className="text-caption font-semibold text-muted">Duyệt giữ chỗ</p>
-      <ul className="grid gap-4">
-        {card.segments.map((s) => (
-          <li key={s.flightNumber + s.depart} className="font-semibold">
-            {`${s.flightNumber}: ${s.from} ${clock(s.depart)} → ${s.to} ${clock(s.arrive)}, ${dmy(s.depart)}`}
-          </li>
-        ))}
-      </ul>
+      {card.journeys.map((j) => (
+        <section
+          key={j.direction}
+          aria-label={DIRECTION_LABEL[j.direction]}
+          className="grid gap-8"
+        >
+          <p className="font-bold">{DIRECTION_LABEL[j.direction]}</p>
+          <ul className="grid gap-4">
+            {j.segments.map((s) => (
+              <li key={s.flightNumber + s.depart} className="font-semibold">
+                {`${s.flightNumber}: ${s.from} ${clock(s.depart)} → ${s.to} ${clock(s.arrive)}, ${dmy(s.depart)}`}
+              </li>
+            ))}
+          </ul>
+          <dl className="grid gap-4 text-caption sm:grid-cols-[120px_minmax(0,1fr)]">
+            <dt className="text-muted">Gói giá</dt>
+            <dd>{j.fare}</dd>
+            <dt className="text-muted">Giá vé</dt>
+            <dd>
+              <ul className="grid gap-2">
+                {j.fares.map((f) => (
+                  <li key={f.type}>
+                    {`${f.count} ${PASSENGER_LABEL[f.type].toLowerCase()} × ${vnd(f.unitPrice)} = ${vnd(f.total)}`}
+                  </li>
+                ))}
+              </ul>
+            </dd>
+          </dl>
+        </section>
+      ))}
       <dl className="grid gap-4 text-caption sm:grid-cols-[120px_minmax(0,1fr)]">
-        <dt className="text-muted">Gói giá</dt>
-        <dd>{card.fare}</dd>
         <dt className="text-muted">Hành khách</dt>
         <dd>
           <ul className="grid gap-2">
             {card.passengers.map((p, i) => (
               <li key={i}>
                 {`${p.lastName} ${p.firstName}, ${p.gender === "MALE" ? "Nam" : "Nữ"}, ${PASSENGER_LABEL[p.type]}, sinh ${dmy(p.dateOfBirth)}`}
-              </li>
-            ))}
-          </ul>
-        </dd>
-        <dt className="text-muted">Giá vé</dt>
-        <dd>
-          <ul className="grid gap-2">
-            {card.fares.map((f) => (
-              <li key={f.type}>
-                {`${f.count} ${PASSENGER_LABEL[f.type].toLowerCase()} × ${vnd(f.unitPrice)} = ${vnd(f.total)}`}
               </li>
             ))}
           </ul>
@@ -311,8 +326,9 @@ export default function AssistantChat() {
         {entries.length === 0 && (
           <p className="text-muted">
             Gõ yêu cầu bằng lời, ví dụ “Đặt giúp mình 1 vé SGN đi Đà Nẵng thứ 6
-            này, bay trước 12h, dưới 2 triệu”. Trợ lý chỉ đặt vé một chiều cho
-            một người lớn, và chỉ giữ chỗ khi bạn bấm “Giữ chỗ”.
+            này, bay trước 12h, dưới 2 triệu”. Trợ lý đặt được vé một chiều hoặc
+            khứ hồi, hạng phổ thông, cho nhiều hành khách, và chỉ giữ chỗ khi
+            bạn bấm “Giữ chỗ”.
           </p>
         )}
         <ol aria-label="Cuộc trò chuyện" className="grid gap-16">

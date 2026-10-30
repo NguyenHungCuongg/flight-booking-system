@@ -18,6 +18,7 @@ export type Card =
       origin: string;
       destination: string;
       date: string;
+      returnDate: string | null;
       departBefore: string | null;
       maxPrice: number | null;
       adults: number;
@@ -27,20 +28,23 @@ export type Card =
   | {
       type: "proposal";
       proposalId: string;
-      segments: Segment[];
-      fare: string;
+      journeys: {
+        direction: "OUTBOUND" | "RETURN";
+        segments: Segment[];
+        fare: string;
+        fares: {
+          type: PassengerType;
+          count: number;
+          unitPrice: number;
+          total: number;
+        }[];
+      }[];
       passengers: {
         lastName: string;
         firstName: string;
         gender: "MALE" | "FEMALE";
         dateOfBirth: string;
         type: PassengerType;
-      }[];
-      fares: {
-        type: PassengerType;
-        count: number;
-        unitPrice: number;
-        total: number;
       }[];
       contact: { name: string; email: string; phone: string };
       totalAmount: number;
