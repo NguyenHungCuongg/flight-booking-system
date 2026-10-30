@@ -135,7 +135,7 @@ def family():
 def test_family_hold_types_each_passenger_and_shows_fares():
     h, _ = family()
     r = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=FAMILY))
-    assert r == {"status": "pending_approval", "total": 1_850_000 + 1_665_000 + 185_000}
+    assert (r["status"], r["total"]) == ("pending_approval", 1_850_000 + 1_665_000 + 185_000)
     assert [p["type"] for p in h.proposal.body["passengers"]] == ["ADULT", "CHILD", "INFANT"]
     card = h.cards[-1]
     assert [(p["lastName"], p["firstName"], p["type"]) for p in card["passengers"]] == [
@@ -283,7 +283,7 @@ def round_trip():
 def test_round_trip_hold_quotes_both_journeys_and_shows_each():
     h, _ = round_trip()
     r = h.execute("propose_hold", {**ROUND, "passengers": [PAX]})
-    assert r == {"status": "pending_approval", "total": 2_900_000}
+    assert (r["status"], r["total"]) == ("pending_approval", 2_900_000)
     assert h.proposal.body["journeys"] == [{"direction": "OUTBOUND", "flightIds": [122], "fareFamilyId": 1},
                                            {"direction": "RETURN", "flightIds": [611], "fareFamilyId": 1}]
     assert [(j["direction"], j["segments"][0]["flightNumber"], j["fare"], j["fares"][0]["total"])
@@ -310,6 +310,49 @@ def test_denied_hold_hint_names_the_real_cause():
     h, _ = round_trip()
     r = h.execute("propose_hold", {**ROUND, "return_flight_ids": [999], "passengers": [PAX]})
     assert r["status"] == "denied" and "chiều về [999]" in r["hint"]
+
+
+PRICES = ["15 kg: 250.000 đ", "20 kg: 350.000 đ", "25 kg: 450.000 đ", "30 kg: 550.000 đ"]
+
+
+def test_hold_offers_baggage_prices_per_direction():
+    h, fake = round_trip()                                   # VN122 đi, VJ611 về: hai hãng
+    r = h.execute("propose_hold", {**ROUND, "passengers": [PAX]})
+    assert r["baggage_options"] == {"OUTBOUND": PRICES, "RETURN": PRICES}
+    assert [j["baggage"] for j in h.cards[-1]["journeys"]] == [None, None]
+    paths = {q.url.path for q in fake.requests}
+    assert {"/api/airlines/VN/baggage-options", "/api/airlines/VJ/baggage-options"} <= paths
+
+
+def test_baggage_goes_to_every_adult_and_child_on_every_direction():
+    h, _ = ready()
+    h.execute("set_constraints", {**TRIP, "max_price": 8_000_000, "children": 1, "infants": 1})
+    h.execute("search_flights", {})
+    r = h.execute("propose_hold", {**ROUND, "passengers": FAMILY, "baggage_kg": 20})
+    assert (r["status"], r["total"]) == ("pending_approval", 5_800_000 + 4 * 350_000) and "baggage_options" not in r
+    assert h.proposal.body["baggage"] == [                   # em bé (BR-22) không mua
+        {"passengerIndex": 0, "direction": "OUTBOUND", "baggageOptionId": 22},
+        {"passengerIndex": 1, "direction": "OUTBOUND", "baggageOptionId": 22},
+        {"passengerIndex": 0, "direction": "RETURN", "baggageOptionId": 12},
+        {"passengerIndex": 1, "direction": "RETURN", "baggageOptionId": 12}]
+    assert [j["baggage"] for j in h.cards[-1]["journeys"]] == [{"weightKg": 20, "count": 2, "total": 700_000}] * 2
+
+
+def test_baggage_weight_must_be_on_sale_or_empty():
+    h, fake = searched()
+    for bad in (23, "hai mươi", -5):
+        r = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=[PAX], baggage_kg=bad))
+        assert r["status"] == "invalid_param" and "15, 20, 25, 30" in r["hint"]
+    assert not [q for q in fake.requests if q.url.path == "/api/bookings/quote"]
+    r = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=[PAX], baggage_kg=0))
+    assert r["status"] == "pending_approval" and h.proposal.body["baggage"] == []
+
+
+def test_baggage_over_the_price_limit_is_denied_with_a_hint():
+    h, _ = searched()                                        # tối đa 2 triệu; VN122 1.850.000 + 20 kg 350.000
+    r = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=[PAX], baggage_kg=20))
+    assert r["status"] == "denied" and "2.200.000" in r["hint"] and "bỏ hành lý" in r["hint"]
+    assert h.proposal is None
 
 
 CUONG = passenger("NGUYEN", "HUNG CUONG")

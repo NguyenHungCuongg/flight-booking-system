@@ -69,7 +69,8 @@ class Constraints:
         price = f"{_vnd(self.max_price)} đ" if self.max_price is not None else "không giới hạn"
         back = f", về ngày {self.return_date}" if self.return_date else ", một chiều"
         return (f"Ràng buộc hiện tại: {self.origin} → {self.destination} ngày {self.date}{back} cho {self.counts}, "
-                f"chiều đi cất cánh trước {before}, giá tối đa (tổng cả booking, mọi chiều) {price}.")
+                f"chiều đi cất cánh trước {before}, giá tối đa (tổng khách trả: mọi chiều, gồm hành lý, sau giảm giá) "
+                f"{price}.")
 
     def broken(self, origin: str, destination: str, departure: str, price: int,
                back: tuple[str, str, str] | None = None) -> list[str]:
@@ -128,6 +129,14 @@ def _people(passengers: list[dict]) -> list[tuple]:
     return sorted(tuple(p.get(k) for k in PAX_KEYS) for p in passengers)
 
 
+def _bags(lines: list[tuple], passengers: list[dict]) -> list[tuple]:
+    """Các cặp (passengerIndex, kg) của một chiều thành các cặp (hành khách, kg) không theo thứ tự.
+    Chỉ số không trỏ tới hành khách nào thì hành khách là ()."""
+    pax = lambda i: (tuple(passengers[i].get(k) for k in PAX_KEYS)
+                     if isinstance(i, int) and 0 <= i < len(passengers) else ())
+    return sorted((pax(i), kg) for i, kg in lines)
+
+
 def _booking_code(code: str) -> str | None:
     """Mã đã chuẩn hoá, hoặc None nếu không đúng dạng: chặn mọi chuỗi lạ trước khi ghép vào đường dẫn API."""
     code = str(code).strip().upper()
@@ -179,6 +188,8 @@ class Harness:
     found: list[dict] = field(default_factory=list)     # hành trình rút gọn của lần tìm gần nhất
     proposal: Proposal | None = None                     # đề xuất duy nhất còn hiệu lực
     airports: dict[str, dict] | None = None              # cache GET /api/airports theo code
+    # cache GET /api/airlines/{code}/baggage-options theo hãng: các mức {id, weightKg, price}, kg tăng dần
+    baggage_prices: dict[str, list[dict]] = field(default_factory=dict)
     # full_name -> (họ, tên) của hành khách cũ: họ nhiều chữ ("TON NU") thì split_name tách sai.
     known_names: dict[str, tuple[str, str]] = field(default_factory=dict)
     # Đặt lại mỗi lượt
@@ -206,11 +217,11 @@ class Harness:
                         max_price: int | None = None, adults: int = 1, children: int = 0, infants: int = 0,
                         return_date: str | None = None) -> dict:
         """Đặt hoặc thay ràng buộc của chuyến cần tìm. origin, destination: mã IATA sân bay. date: ngày cất cánh
-        YYYY-MM-DD. depart_before: giờ cất cánh chậm nhất HH:MM, bỏ trống nếu khách không nói. max_price: giá tối đa
-        của cả booking (VND, số nguyên), bỏ trống nếu khách không nói. adults, children (2 đến dưới 12 tuổi), infants
-        (dưới 2 tuổi): số khách theo tuổi tại ngày bay. return_date: ngày cất cánh chiều về YYYY-MM-DD nếu khách cần
-        khứ hồi, không trước date; bỏ trống nếu một chiều. depart_before chỉ áp cho chiều đi; max_price là tổng cả
-        hai chiều."""
+        YYYY-MM-DD. depart_before: giờ cất cánh chậm nhất HH:MM, bỏ trống nếu khách không nói. max_price: số tiền tối
+        đa khách trả cho cả booking (VND, số nguyên), gồm hành lý và sau giảm giá, bỏ trống nếu khách không nói.
+        adults, children (2 đến dưới 12 tuổi), infants (dưới 2 tuổi): số khách theo tuổi tại ngày bay. return_date:
+        ngày cất cánh chiều về YYYY-MM-DD nếu khách cần khứ hồi, không trước date; bỏ trống nếu một chiều.
+        depart_before chỉ áp cho chiều đi; max_price là tổng cả hai chiều."""
         try:
             counts = {"adults": int(adults), "children": int(children), "infants": int(infants)}
         except (TypeError, ValueError):
@@ -281,6 +292,7 @@ class Harness:
             segs, fare = it["segments"], it["fareOptions"][0]      # gói rẻ nhất
             legs.append({
                 "flight_ids": [s["flightId"] for s in segs],
+                "airline": segs[0]["airline"]["code"],     # hãng của itinerary là hãng chặng đầu, như FlightApi
                 "flights": "+".join(s["flightNumber"] for s in segs),
                 "segments": [{"flightNumber": s["flightNumber"], "from": s["departure"]["airport"],
                               "to": s["arrival"]["airport"], "depart": s["departure"]["time"],
@@ -307,11 +319,14 @@ class Harness:
         return {"status": "ok", "passengers": passengers}
 
     def propose_hold(self, flight_ids: list[int], fare_family_id: int, passengers: list[PassengerArg],
-                     return_flight_ids: list[int] | None = None, return_fare_family_id: int | None = None) -> dict:
+                     return_flight_ids: list[int] | None = None, return_fare_family_id: int | None = None,
+                     baggage_kg: int | None = None) -> dict:
         """Báo giá và đưa thẻ duyệt giữ chỗ cho khách. flight_ids, fare_family_id: lấy đúng từ một hành trình trong
         matching. Khứ hồi: return_flight_ids, return_fare_family_id lấy từ return của cùng mục trong matching.
         passengers: mỗi hành khách một mục, đủ số người lớn, trẻ em, em bé trong ràng buộc; full_name: họ tên đầy đủ,
         gender: MALE hoặc FEMALE, date_of_birth: YYYY-MM-DD. Loại khách do hệ thống tính từ ngày sinh.
+        baggage_kg: số kg hành lý ký gửi mua thêm cho mỗi người lớn và trẻ em trên mỗi chiều, chọn từ
+        baggage_options; bỏ trống nếu khách không mua.
         Chỉ trả pending_approval: khách tự bấm Giữ chỗ trên thẻ."""
         c = self.constraints
         # Model có thể gửi sai dạng (chuỗi JSON, object đơn): trả invalid_param để model tự sửa, không làm hỏng lượt chat.
@@ -343,23 +358,49 @@ class Harness:
                             "hoặc hỏi lại ngày sinh."}
         me = self.backend.get("/api/me")
         it = self._found(flight_ids, fare_family_id, return_flight_ids, return_fare_family_id)
+        # Bảng giá hành lý của hãng chặng đầu mỗi chiều: backend so mức hành lý với hãng của itinerary.
+        for j in _journeys(it):
+            if j["airline"] not in self.baggage_prices:
+                options = self.backend.get(f"/api/airlines/{j['airline']}/baggage-options")
+                self.baggage_prices[j["airline"]] = sorted(
+                    ({k: o[k] for k in ("id", "weightKg", "price")} for o in options), key=lambda o: o["weightKg"])
+        prices = {d: self.baggage_prices[j["airline"]] for d, j in zip(DIRECTIONS, _journeys(it))}
+        on_sale = sorted(set.intersection(*({o["weightKg"] for o in p} for p in prices.values())))
+        try:
+            kg = int(baggage_kg or 0)       # None và 0 là không mua
+        except (TypeError, ValueError):
+            kg = -1
+        if kg < 0 or (kg and kg not in on_sale):
+            return {"status": "invalid_param",
+                    "hint": f"baggage_kg phải là một trong các mức {', '.join(map(str, on_sale))} kg, hoặc bỏ trống."}
         body = {"journeys": [{"direction": d, "flightIds": j["flight_ids"], "fareFamilyId": j["fare_family_id"]}
                              for d, j in zip(DIRECTIONS, _journeys(it))],
-                "passengers": built, "baggage": [],
+                "passengers": built,
+                # BR-22: em bé không mua hành lý
+                "baggage": [{"passengerIndex": i, "direction": d, "baggageOptionId": o["id"]}
+                            for d, p in prices.items() for o in p if kg and o["weightKg"] == kg
+                            for i, x in enumerate(built) if x["type"] != "INFANT"],
                 "contact": {"name": me["fullName"], "email": me["email"], "phone": me["phone"]}}
         quote = self.backend.post("/api/bookings/quote", body)
         total = quote["totalAmount"]
         if self.constraints.max_price is not None and total > self.constraints.max_price:
+            drop = " Hỏi khách bỏ hành lý hay nới giá tối đa." if kg else ""
             return {"status": "denied",
-                    "hint": f"Báo giá {_vnd(total)} đ vượt giá tối đa. {self.constraints.to_prompt()}"}
+                    "hint": f"Báo giá {_vnd(total)} đ vượt giá tối đa.{drop} {self.constraints.to_prompt()}"}
         pid = uuid4().hex
+        count = sum(x["type"] != "INFANT" for x in built)
         card = {"type": "proposal", "proposalId": pid,
-                "journeys": [{"direction": d, "segments": j["segments"], "fare": j["fare"], "fares": q["passengerFares"]}
+                "journeys": [{"direction": d, "segments": j["segments"], "fare": j["fare"], "fares": q["passengerFares"],
+                              "baggage": {"weightKg": kg, "count": count, "total": q["baggageTotal"]} if kg else None}
                              for d, j, q in zip(DIRECTIONS, _journeys(it), quote["journeys"])],
                 "passengers": built, "contact": body["contact"], "totalAmount": total}
         self.proposal = Proposal(pid, body, total, card)
         self.cards.append(card)
-        return {"status": "pending_approval", "total": total}
+        result = {"status": "pending_approval", "total": total}
+        if not kg and (offer := {d: [f"{o['weightKg']} kg: {_money(o['price'])}" for o in p]
+                                 for d, p in prices.items() if p}):
+            result["baggage_options"] = offer
+        return result
 
     # ---- tra cứu: chỉ GET, mỗi tool một request; giờ và tiền định dạng sẵn để model chép nguyên văn
     def list_my_bookings(self) -> dict:
@@ -500,10 +541,14 @@ class Harness:
     # ---- 3. "XONG" DO CODE QUYẾT ĐỊNH: đọc lại booking, không tin lời model
     def is_done(self, detail: dict, proposal: Proposal) -> bool:
         journeys = detail.get("journeys") or []
-        # Từng chiều theo thứ tự: hướng, chuyến và gói giá phải đúng như thẻ đã duyệt
-        got = [(j.get("direction"), [s["flightId"] for s in j.get("segments") or []], j.get("fareFamilyName"))
+        # Từng chiều theo thứ tự: hướng, chuyến, gói giá và hành lý của từng hành khách phải đúng như thẻ đã duyệt
+        got = [(j.get("direction"), [s["flightId"] for s in j.get("segments") or []], j.get("fareFamilyName"),
+                _bags([(x.get("passengerIndex"), x.get("weightKg")) for x in j.get("baggage") or []],
+                      detail.get("passengers") or []))
                for j in journeys]
-        want = [(b["direction"], b["flightIds"], c["fare"])
+        want = [(b["direction"], b["flightIds"], c["fare"],
+                 _bags([(x["passengerIndex"], c["baggage"]["weightKg"]) for x in proposal.body["baggage"]
+                        if x["direction"] == b["direction"]], proposal.body["passengers"]))
                 for b, c in zip(proposal.body["journeys"], proposal.card["journeys"])]
         if got != want:
             return False

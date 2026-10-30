@@ -151,6 +151,29 @@ def test_read_back_with_other_journeys_hands_off():
         assert [c["type"] for c in result["cards"]] == ["handoff"]
 
 
+LOOSE = {**ROUTE, "max_price": 3_000_000}
+BAG = dict(flight_ids=[122], fare_family_id=1, baggage_kg=20)
+
+
+def test_approval_with_baggage_holds_and_reads_back():
+    fake = FakeBackend()
+    chat, model, out = proposed(fake, route=LOOSE, choice=BAG)
+    result = approve(chat, model, out["cards"][-1]["proposalId"], fake.backend(), TODAY)
+    assert fake.holds[0]["baggage"] == [{"passengerIndex": 0, "direction": "OUTBOUND", "baggageOptionId": 22}]
+    assert [(c["type"], c["totalAmount"]) for c in result["cards"]] == [("held", 2_200_000)]
+
+
+def test_read_back_with_other_baggage_hands_off():
+    bag = lambda js, **kw: [{**js[0], "baggage": [{**js[0]["baggage"][0], **kw}]}]
+    for patch in (lambda js: [{**js[0], "baggage": []}],     # mất hành lý
+                  lambda js: bag(js, weightKg=30),            # sai mức
+                  lambda js: bag(js, passengerIndex=1)):      # gắn cho hành khách không có
+        fake = FakeBackend(journeys_patch=patch)
+        chat, model, out = proposed(fake, route=LOOSE, choice=BAG)
+        result = approve(chat, model, out["cards"][-1]["proposalId"], fake.backend(), TODAY)
+        assert [c["type"] for c in result["cards"]] == ["handoff"]
+
+
 def test_one_way_read_back_with_another_fare_hands_off():
     fake = FakeBackend(journeys_patch=lambda js: [{**js[0], "fareFamilyName": "Eco"}])
     chat, model, out = proposed(fake)

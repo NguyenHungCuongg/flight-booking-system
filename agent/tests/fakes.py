@@ -72,6 +72,12 @@ AIRPORTS = [{"code": code, "name": code, "city": code, "countryCode": country, "
 
 PERCENT = {"ADULT": 100, "CHILD": 90, "INFANT": 10}     # BR-21, mặc định pricing.*_percent
 
+# Bảng giá hành lý như seed V103, đúng dạng BaggageOptionResponse: id VJ 11–14, VN 21–24, QH 31–34
+BAGGAGE = {code: [{"id": base + i, "airlineCode": code, "weightKg": kg, "price": price, "active": True}
+                  for i, (kg, price) in enumerate(((15, 250_000), (20, 350_000), (25, 450_000), (30, 550_000)), 1)]
+           for code, base in (("VJ", 10), ("VN", 20), ("QH", 30))}
+OPTIONS = {o["id"]: o for options in BAGGAGE.values() for o in options}
+
 
 def fare_total(price: int, types) -> int:
     return sum(price * PERCENT[t] // 100 for t in types)
@@ -144,8 +150,7 @@ class FakeBackend:
         return next(f for f in it["fareOptions"] if f["fareFamilyId"] == journey["fareFamilyId"])
 
     def _price(self, body):
-        types = [p["type"] for p in body["passengers"]]
-        return sum(fare_total(self._fare(j)["adultPrice"], types) for j in body["journeys"])
+        return self._quote(body)["totalAmount"]
 
     def _quote(self, body):
         """QuoteResponse: mỗi chiều một mục, passengerFares theo thứ tự ADULT, CHILD, INFANT như QuoteService."""
@@ -154,16 +159,21 @@ class FakeBackend:
             price = self._fare(j)["adultPrice"]
             fares = [{"type": t, "count": types.count(t), "unitPrice": price * PERCENT[t] // 100,
                       "total": types.count(t) * (price * PERCENT[t] // 100)} for t in PERCENT if t in types]
-            journeys.append({"direction": j["direction"], "fareTotal": fare_total(price, types), "baggageTotal": 0,
+            bags = sum(OPTIONS[b["baggageOptionId"]]["price"] for b in body["baggage"]
+                       if b["direction"] == j["direction"])
+            journeys.append({"direction": j["direction"], "fareTotal": fare_total(price, types), "baggageTotal": bags,
                              "discount": 0, "passengerFares": fares})
-        total = sum(j["fareTotal"] for j in journeys)
-        return {"journeys": journeys, "fareTotal": total, "baggageTotal": 0, "discountTotal": 0, "totalAmount": total}
+        fare, bags = sum(j["fareTotal"] for j in journeys), sum(j["baggageTotal"] for j in journeys)
+        return {"journeys": journeys, "fareTotal": fare, "baggageTotal": bags, "discountTotal": 0,
+                "totalAmount": fare + bags}
 
     def handle(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
         route = (request.method, request.url.path)
         if route == ("GET", "/api/airports"):
             return httpx.Response(200, json=AIRPORTS)
+        if request.method == "GET" and request.url.path.endswith("/baggage-options"):
+            return httpx.Response(200, json=BAGGAGE.get(request.url.path.split("/")[3], []))
         if route == ("GET", "/api/me"):
             if self.me_status != 200:
                 return problem(self.me_status, "UNAUTHENTICATED" if self.me_status == 401 else "FORBIDDEN")
@@ -220,10 +230,15 @@ class FakeBackend:
                                    "departureAirport": by_id[f]["departure"]["airport"],
                                    "departureTime": by_id[f]["departure"]["time"],
                                    "arrivalAirport": by_id[f]["arrival"]["airport"],
-                                   "arrivalTime": by_id[f]["arrival"]["time"]} for f in j["flightIds"]]}
+                                   "arrivalTime": by_id[f]["arrival"]["time"]} for f in j["flightIds"]],
+                     "baggage": [{"passengerIndex": b["passengerIndex"],
+                                  "weightKg": OPTIONS[b["baggageOptionId"]]["weightKg"],
+                                  "price": OPTIONS[b["baggageOptionId"]]["price"]}
+                                 for b in body["baggage"] if b["direction"] == j["direction"]]}
                     for j in body["journeys"]]
+        quote = self._quote(body)
         return {"code": CODE, "status": "PENDING_PAYMENT", "holdExpiresAt": EXPIRES,
-                "totalAmount": self._price(body), "contact": body["contact"],
+                "baggageTotal": quote["baggageTotal"], "totalAmount": quote["totalAmount"], "contact": body["contact"],
                 "journeys": (self.journeys_patch or list)(journeys),
                 "passengers": (self.passengers_patch or list)(body["passengers"]), **self.detail_patch}
 
