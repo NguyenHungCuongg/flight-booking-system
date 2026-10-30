@@ -221,6 +221,9 @@ def test_return_before_departure_or_malformed_is_invalid():
         r = h.execute("set_constraints", {**TRIP, "return_date": bad})
         assert r["status"] == "invalid_param" and "không trước ngày đi 2026-10-30" in r["hint"]
     assert h.constraints is None
+    h.execute("set_constraints", TRIP)
+    h.execute("set_constraints", {**TRIP, "return_date": "2026-10-29"})
+    assert h.constraints.return_date == "2026-11-02"                     # ràng buộc cũ giữ nguyên
 
 
 def test_round_trip_search_pairs_both_directions_and_prices_the_total():

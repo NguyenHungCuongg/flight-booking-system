@@ -66,7 +66,7 @@ function ConstraintsCard({
         </li>
         <li className={chip}>
           {card.departBefore
-            ? `Cất cánh trước ${card.departBefore}`
+            ? `${card.returnDate ? "Chiều đi cất cánh" : "Cất cánh"} trước ${card.departBefore}`
             : "Giờ bay: không giới hạn"}
         </li>
         <li className={chip}>
