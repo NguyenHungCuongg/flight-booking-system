@@ -117,7 +117,7 @@ Chia ba plan, làm theo thứ tự nhu cầu thực tế giảm dần:
 
 - **5a. [Nhiều hành khách](2026-10-29-tro-ly-05a-nhieu-hanh-khach.md)** (người lớn, trẻ em, em bé).
 - **5b. [Khứ hồi](2026-10-30-tro-ly-05b-khu-hoi.md)**. 5b xong.
-- **5c. Hành lý và voucher.**
+- **5c. [Hành lý và voucher](2026-10-30-tro-ly-05c-hanh-ly-voucher.md)**.
 
 **Mỗi phần chạm vào:** `Constraints`, tham số tìm chuyến (`adults`, `children`, `infants`), tham số `propose_hold`, body báo giá, thẻ duyệt, `is_done`, câu bàn giao và case eval. Quy tắc hành khách (BR-10–13), voucher (BR-30) và giá hành lý do backend kiểm; lỗi chuyển cho model dạng `backend_error` như MVP.
 

@@ -72,6 +72,7 @@ def test_cases_are_well_formed():
         if "proposal" in ends and any(AN in t for t in c.turns):     # có đủ thông tin hành khách thì phải chấm
             assert AN_PAX in (c.passengers or []), c.name
         assert c.return_flight_ids is None or "proposal" in ends, c.name
+        assert not (c.baggage_kg or c.voucher) or "proposal" in ends, c.name
 
 
 TRIP = {**ROUTE, "max_price": 4_000_000, "return_date": "2026-11-02"}
@@ -174,3 +175,24 @@ def test_passengers_are_graded_in_any_order():
     case = happy(constraints=route, passengers=[("NGUYEN", "VAN AN", "MALE", "2004-03-12"),
                                                 ("TRAN", "THI MAI", "FEMALE", "2005-01-02")])
     assert run_case(case, two)["passed"]
+
+
+def test_cases_cover_baggage_and_voucher():
+    group = [c for c in CASES if c.group == "hành lý và voucher"]
+    assert len(group) == 5 and any(c.baggage_kg for c in group) and any(c.voucher for c in group)
+    # --case hanh-ly và --case voucher chạy đúng nhóm này, không lẫn case cũ
+    assert {c.name for c in CASES if "hanh-ly" in c.name or "voucher" in c.name} == {c.name for c in group}
+
+
+def test_baggage_and_voucher_are_graded():
+    loose = {**ROUTE, "max_price": 3_000_000}
+
+    def hold(**extra):
+        return scripted(call("set_constraints", **loose), call("search_flights"),
+                        call("propose_hold", flight_ids=[122], fare_family_id=1, passengers=[PAX], **extra),
+                        AIMessage("Bạn bấm Giữ chỗ trên thẻ nhé."))
+    assert run_case(happy(constraints=loose, baggage_kg=20, voucher="WELCOME10"),
+                    hold(baggage_kg=20, voucher_code="welcome10"))["passed"]
+    r = run_case(happy(constraints=loose), hold(baggage_kg=20, voucher_code="WELCOME10"))
+    assert not r["passed"]
+    assert any("baggage_kg" in f for f in r["failures"]) and any("voucher" in f for f in r["failures"])

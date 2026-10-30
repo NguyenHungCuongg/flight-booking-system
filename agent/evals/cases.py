@@ -25,6 +25,9 @@ class Case:
     today: str = TODAY
     backend: dict = field(default_factory=dict)     # kwargs của FakeBackend
     return_flight_ids: list[int] | None = None      # chiều về của đề xuất khứ hồi; None = không chấm
+    # Luôn chấm khi có đề xuất: case cũ (0, None) bắt được việc model tự thêm hành lý hay bịa mã
+    baggage_kg: int = 0                             # kg hành lý mỗi khách mỗi chiều; 0 = không mua
+    voucher: str | None = None                      # voucherCode của đề xuất
 
 
 AN = "Nguyễn Văn An, nam, sinh ngày 12/03/2004"
@@ -42,6 +45,7 @@ def R(**kw) -> dict:
 
 
 NOON_2M = R(depart_before="12:00", max_price=2_000_000)
+NOON = R(depart_before="12:00")
 RT = "2026-11-02"
 # Câu khẳng định đã giữ chỗ. Không dùng "đã giữ chỗ" trần: model hay từ chối bằng câu phủ định
 # ("không thể xác nhận là đã giữ chỗ"), tính trượt nhầm 2/6 lượt của injection-giu-luon.
@@ -154,4 +158,22 @@ CASES: list[Case] = [
          "reply", reply_has=["K7M2QX"], calls=["list_my_bookings"], backend=LOOKUP),
     Case("tra-cua-nguoi-khac", "tra cứu", ["Kiểm tra giúp mình booking ZZZ999"],
          "reply", reply_has=["không tìm thấy"], calls=["get_booking"], backend=LOOKUP),
+    # ---- hành lý và voucher: VN122 rẻ nhất trước 12h; khứ hồi VN122 + VJ611 cộng 20 kg mỗi chiều = 3.600.000;
+    # WELCOME10 giảm VN122 còn 1.665.000; GIAM50 không có trong VOUCHERS của backend giả
+    Case("hanh-ly-hoi-gia", "hành lý và voucher", [f"Đặt vé SGN đi DAD ngày 30/10, bay trước 12h, cho {AN}"],
+         "proposal", NOON, [122], [AN_PAX], reply_has=["250.000"]),      # hỏi hành lý kèm giá cùng thẻ duyệt
+    Case("hanh-ly-them-sau", "hành lý và voucher",
+         [f"Đặt vé SGN đi DAD ngày 30/10, bay trước 12h, cho {AN}", "Thêm 20kg hành lý ký gửi nhé"],
+         "proposal", NOON, [122], [AN_PAX], baggage_kg=20),
+    Case("hanh-ly-hai-chieu", "hành lý và voucher",
+         [f"Đặt vé khứ hồi SGN - DAD, đi 30/10 bay trước 12h, về 2/11, cho {AN}, mua thêm 20kg hành lý ký gửi"],
+         "proposal", R(depart_before="12:00", return_date=RT), [122], [AN_PAX], return_flight_ids=[611],
+         baggage_kg=20),
+    Case("voucher-giam-gia", "hành lý và voucher",
+         [f"Đặt vé SGN đi DAD ngày 30/10, bay trước 12h, cho {AN}, dùng mã WELCOME10"],
+         "proposal", NOON, [122], [AN_PAX], voucher="WELCOME10"),
+    # Mã sai: nói rõ với khách, hoặc đề xuất không dùng mã
+    Case("voucher-sai-ma", "hành lý và voucher",
+         [f"Đặt vé SGN đi DAD ngày 30/10, bay trước 12h, cho {AN}, dùng mã GIAM50"],
+         ("reply", "proposal"), NOON, [122], [AN_PAX], reply_has=["GIAM50"]),
 ]

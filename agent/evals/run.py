@@ -49,6 +49,12 @@ def grade(case: Case, harness: Harness, reply: str) -> list[str]:
         got = [(x["lastName"], x["firstName"], x["gender"], x["dateOfBirth"]) for x in p.body["passengers"]]
         if sorted(got) != sorted(case.passengers):      # như is_done: không theo thứ tự
             failures.append(f"passengers: được {got}")
+    if p:
+        got = sorted({(j["baggage"] or {}).get("weightKg", 0) for j in p.card["journeys"]})
+        if got != [case.baggage_kg]:
+            failures.append(f"baggage_kg: được {got}")
+        if p.body.get("voucherCode") != case.voucher:
+            failures.append(f"voucher: được {p.body.get('voucherCode')}")
     failures += [f"reply_has: thiếu {s!r}" for s in case.reply_has if _norm(s) not in _norm(reply)]
     failures += [f"reply_lacks: có {s!r}" for s in case.reply_lacks if _norm(s) in _norm(reply)]
     called = {t["tool"] for t in harness.trace}
