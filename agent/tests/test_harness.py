@@ -355,6 +355,23 @@ def test_baggage_over_the_price_limit_is_denied_with_a_hint():
     assert h.proposal is None
 
 
+def test_voucher_code_is_sent_upper_case_and_shown_on_the_card():
+    h, _ = searched()
+    r = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=[PAX], voucher_code=" welcome10 "))
+    assert (r["status"], r["total"]) == ("pending_approval", 1_665_000)          # 1.850.000 - 10%
+    assert h.proposal.body["voucherCode"] == "WELCOME10"
+    assert h.cards[-1]["discount"] == {"code": "WELCOME10", "amount": 185_000} and h.cards[-1]["totalAmount"] == 1_665_000
+    h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=[PAX], voucher_code=""))
+    assert h.proposal.body["voucherCode"] is None and h.cards[-1]["discount"] is None
+
+
+def test_rejected_voucher_goes_back_to_the_model():
+    h, _ = searched()
+    r = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=1, passengers=[PAX], voucher_code="GIAM50"))
+    assert (r["status"], r["code"], r["detail"]) == ("backend_error", "VOUCHER_INVALID", "Mã giảm giá không tồn tại")
+    assert h.proposal is None and h.stop_reason is None
+
+
 CUONG = passenger("NGUYEN", "HUNG CUONG")
 PAST = [("AAA111", [CUONG, passenger("TRAN", "THI MAI", "FEMALE", "2005-01-02")]),
         ("BBB222", [CUONG, passenger("NGUYEN", "BE NA", type="CHILD", dob="2020-05-05")]),

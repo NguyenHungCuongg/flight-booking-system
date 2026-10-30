@@ -77,6 +77,8 @@ BAGGAGE = {code: [{"id": base + i, "airlineCode": code, "weightKg": kg, "price":
                   for i, (kg, price) in enumerate(((15, 250_000), (20, 350_000), (25, 450_000), (30, 550_000)), 1)]
            for code, base in (("VJ", 10), ("VN", 20), ("QH", 30))}
 OPTIONS = {o["id"]: o for options in BAGGAGE.values() for o in options}
+# Mã voucher -> mức giảm theo tạm tính (vé + hành lý), như seed V104
+VOUCHERS = {"WELCOME10": lambda subtotal: min(subtotal // 10, 200_000)}
 
 
 def fare_total(price: int, types) -> int:
@@ -117,8 +119,8 @@ def booking(code, status="ISSUED", hold_expires=EXPIRES, total=1_850_000, journe
             "payments": [], "refundRequests": [], "reschedules": []}
 
 
-def problem(status, code, errors=()):
-    return httpx.Response(status, json={"code": code, "detail": f"Lỗi {code}", "errors": list(errors)})
+def problem(status, code, errors=(), detail=None):
+    return httpx.Response(status, json={"code": code, "detail": detail or f"Lỗi {code}", "errors": list(errors)})
 
 
 class FakeBackend:
@@ -164,8 +166,9 @@ class FakeBackend:
             journeys.append({"direction": j["direction"], "fareTotal": fare_total(price, types), "baggageTotal": bags,
                              "discount": 0, "passengerFares": fares})
         fare, bags = sum(j["fareTotal"] for j in journeys), sum(j["baggageTotal"] for j in journeys)
-        return {"journeys": journeys, "fareTotal": fare, "baggageTotal": bags, "discountTotal": 0,
-                "totalAmount": fare + bags}
+        discount = VOUCHERS[body["voucherCode"]](fare + bags) if body.get("voucherCode") else 0
+        return {"journeys": journeys, "fareTotal": fare, "baggageTotal": bags, "discountTotal": discount,
+                "totalAmount": fare + bags - discount}
 
     def handle(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
@@ -191,6 +194,10 @@ class FakeBackend:
             priced = [{**i, "fareOptions": [{**f, "totalPrice": fare_total(f["adultPrice"], types)}
                                             for f in i["fareOptions"]]} for i in on_route]
             return httpx.Response(200, json={"itineraries": priced})
+        if route in (("POST", "/api/bookings/quote"), ("POST", "/api/bookings")):
+            code = json.loads(request.content).get("voucherCode")
+            if code and code not in VOUCHERS:
+                return problem(409, "VOUCHER_INVALID", detail="Mã giảm giá không tồn tại")
         if route == ("POST", "/api/bookings/quote"):
             if self.quote_error:
                 return problem(*self.quote_error)
@@ -238,7 +245,8 @@ class FakeBackend:
                     for j in body["journeys"]]
         quote = self._quote(body)
         return {"code": CODE, "status": "PENDING_PAYMENT", "holdExpiresAt": EXPIRES,
-                "baggageTotal": quote["baggageTotal"], "totalAmount": quote["totalAmount"], "contact": body["contact"],
+                "baggageTotal": quote["baggageTotal"], "voucherCode": body.get("voucherCode"),
+                "discountTotal": quote["discountTotal"], "totalAmount": quote["totalAmount"], "contact": body["contact"],
                 "journeys": (self.journeys_patch or list)(journeys),
                 "passengers": (self.passengers_patch or list)(body["passengers"]), **self.detail_patch}
 

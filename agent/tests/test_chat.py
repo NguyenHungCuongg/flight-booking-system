@@ -174,6 +174,21 @@ def test_read_back_with_other_baggage_hands_off():
         assert [c["type"] for c in result["cards"]] == ["handoff"]
 
 
+def test_voucher_applies_to_fare_and_baggage_up_to_its_cap():
+    fake = FakeBackend()
+    chat, model, out = proposed(fake, route=LOOSE, choice={**BAG, "voucher_code": "WELCOME10"})
+    result = approve(chat, model, out["cards"][-1]["proposalId"], fake.backend(), TODAY)
+    # 1.850.000 + 350.000 = 2.200.000; giảm 10% = 220.000, trần 200.000
+    assert [(c["type"], c["totalAmount"]) for c in result["cards"]] == [("held", 2_000_000)]
+
+
+def test_read_back_without_the_voucher_hands_off():
+    fake = FakeBackend(detail_patch={"voucherCode": None})
+    chat, model, out = proposed(fake, choice=dict(flight_ids=[122], fare_family_id=1, voucher_code="WELCOME10"))
+    result = approve(chat, model, out["cards"][-1]["proposalId"], fake.backend(), TODAY)
+    assert [c["type"] for c in result["cards"]] == ["handoff"]
+
+
 def test_one_way_read_back_with_another_fare_hands_off():
     fake = FakeBackend(journeys_patch=lambda js: [{**js[0], "fareFamilyName": "Eco"}])
     chat, model, out = proposed(fake)

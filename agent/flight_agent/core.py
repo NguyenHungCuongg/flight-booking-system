@@ -320,13 +320,14 @@ class Harness:
 
     def propose_hold(self, flight_ids: list[int], fare_family_id: int, passengers: list[PassengerArg],
                      return_flight_ids: list[int] | None = None, return_fare_family_id: int | None = None,
-                     baggage_kg: int | None = None) -> dict:
+                     baggage_kg: int | None = None, voucher_code: str | None = None) -> dict:
         """Báo giá và đưa thẻ duyệt giữ chỗ cho khách. flight_ids, fare_family_id: lấy đúng từ một hành trình trong
         matching. Khứ hồi: return_flight_ids, return_fare_family_id lấy từ return của cùng mục trong matching.
         passengers: mỗi hành khách một mục, đủ số người lớn, trẻ em, em bé trong ràng buộc; full_name: họ tên đầy đủ,
         gender: MALE hoặc FEMALE, date_of_birth: YYYY-MM-DD. Loại khách do hệ thống tính từ ngày sinh.
         baggage_kg: số kg hành lý ký gửi mua thêm cho mỗi người lớn và trẻ em trên mỗi chiều, chọn từ
-        baggage_options; bỏ trống nếu khách không mua.
+        baggage_options; bỏ trống nếu khách không mua. voucher_code: mã giảm giá khách đưa; bỏ trống nếu khách không
+        có mã, không tự bịa mã.
         Chỉ trả pending_approval: khách tự bấm Giữ chỗ trên thẻ."""
         c = self.constraints
         # Model có thể gửi sai dạng (chuỗi JSON, object đơn): trả invalid_param để model tự sửa, không làm hỏng lượt chat.
@@ -380,7 +381,9 @@ class Harness:
                 "baggage": [{"passengerIndex": i, "direction": d, "baggageOptionId": o["id"]}
                             for d, p in prices.items() for o in p if kg and o["weightKg"] == kg
                             for i, x in enumerate(built) if x["type"] != "INFANT"],
-                "contact": {"name": me["fullName"], "email": me["email"], "phone": me["phone"]}}
+                "contact": {"name": me["fullName"], "email": me["email"], "phone": me["phone"]},
+                # như VoucherApi.check: booking đọc lại trả mã đã chuẩn hoá, is_done so khớp chính xác
+                "voucherCode": str(voucher_code or "").strip().upper() or None}
         quote = self.backend.post("/api/bookings/quote", body)
         total = quote["totalAmount"]
         if self.constraints.max_price is not None and total > self.constraints.max_price:
@@ -389,11 +392,13 @@ class Harness:
                     "hint": f"Báo giá {_vnd(total)} đ vượt giá tối đa.{drop} {self.constraints.to_prompt()}"}
         pid = uuid4().hex
         count = sum(x["type"] != "INFANT" for x in built)
+        code = body["voucherCode"]
         card = {"type": "proposal", "proposalId": pid,
                 "journeys": [{"direction": d, "segments": j["segments"], "fare": j["fare"], "fares": q["passengerFares"],
                               "baggage": {"weightKg": kg, "count": count, "total": q["baggageTotal"]} if kg else None}
                              for d, j, q in zip(DIRECTIONS, _journeys(it), quote["journeys"])],
-                "passengers": built, "contact": body["contact"], "totalAmount": total}
+                "passengers": built, "contact": body["contact"],
+                "discount": {"code": code, "amount": quote["discountTotal"]} if code else None, "totalAmount": total}
         self.proposal = Proposal(pid, body, total, card)
         self.cards.append(card)
         result = {"status": "pending_approval", "total": total}
@@ -557,6 +562,7 @@ class Harness:
         return (detail.get("status") == "PENDING_PAYMENT"
                 and _people(detail.get("passengers") or []) == _people(proposal.body["passengers"])
                 and detail.get("totalAmount") == proposal.total
+                and detail.get("voucherCode") == proposal.body["voucherCode"]
                 and self.constraints is not None
                 and self.constraints.is_ok(out[0]["departureAirport"], out[-1]["arrivalAirport"],
                                            out[0]["departureTime"], detail["totalAmount"],
