@@ -140,7 +140,7 @@ def test_family_hold_types_each_passenger_and_shows_fares():
     card = h.cards[-1]
     assert [(p["lastName"], p["firstName"], p["type"]) for p in card["passengers"]] == [
         ("NGUYEN", "HUNG CUONG", "ADULT"), ("NGUYEN", "BAO NGOC", "CHILD"), ("NGUYEN", "MINH KHANG", "INFANT")]
-    assert [(f["type"], f["count"], f["unitPrice"]) for f in card["fares"]] == [
+    assert [(f["type"], f["count"], f["unitPrice"]) for f in card["journeys"][0]["fares"]] == [
         ("ADULT", 1, 1_850_000), ("CHILD", 1, 1_665_000), ("INFANT", 1, 185_000)]
 
 
@@ -265,6 +265,38 @@ def test_no_return_flight_that_day_names_both_dates():
     h.execute("search_flights", {})
     q = h.handoff()["question"]
     assert h.stop_reason == "no_match" and "2026-10-30" in q and "2026-11-03" in q
+
+
+ROUND = dict(flight_ids=[122], fare_family_id=1, return_flight_ids=[611], return_fare_family_id=1)
+
+
+def round_trip():
+    h, fake = ready()
+    h.execute("set_constraints", TRIP)
+    h.execute("search_flights", {})
+    return h, fake
+
+
+def test_round_trip_hold_quotes_both_journeys_and_shows_each():
+    h, _ = round_trip()
+    r = h.execute("propose_hold", {**ROUND, "passengers": [PAX]})
+    assert r == {"status": "pending_approval", "total": 2_900_000}
+    assert h.proposal.body["journeys"] == [{"direction": "OUTBOUND", "flightIds": [122], "fareFamilyId": 1},
+                                           {"direction": "RETURN", "flightIds": [611], "fareFamilyId": 1}]
+    assert [(j["direction"], j["segments"][0]["flightNumber"], j["fare"], j["fares"][0]["total"])
+            for j in h.cards[-1]["journeys"]] == [("OUTBOUND", "VN122", "Phổ thông", 1_850_000),
+                                                  ("RETURN", "VJ611", "Phổ thông", 1_050_000)]
+
+
+def test_hold_needs_exactly_the_listed_journeys():
+    h, fake = round_trip()
+    for bad in ({**ROUND, "return_flight_ids": None, "return_fare_family_id": None},     # thiếu chiều về
+                {**ROUND, "return_fare_family_id": None},                               # nửa tham số chiều về
+                {**ROUND, "flight_ids": [610]}):                                         # VJ610 phạm giờ bay
+        assert h.execute("propose_hold", {**bad, "passengers": [PAX]})["status"] == "denied"
+    assert not [q for q in fake.requests if q.url.path == "/api/bookings/quote"]
+    h, _ = searched()                                                                    # ràng buộc một chiều
+    assert h.execute("propose_hold", {**ROUND, "passengers": [PAX]})["status"] == "denied"
 
 
 CUONG = passenger("NGUYEN", "HUNG CUONG")

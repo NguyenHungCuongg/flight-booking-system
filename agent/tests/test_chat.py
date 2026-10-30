@@ -11,10 +11,11 @@ PAX = dict(full_name="Nguyễn Hùng Cường", gender="MALE", date_of_birth="20
 TODAY = "2026-10-26"
 
 
-def proposed(fake, *extra, route=ROUTE, passengers=(PAX,)):
+def proposed(fake, *extra, route=ROUTE, passengers=(PAX,), choice=None):
     chat = Chats().create("s1")
+    choice = choice or dict(flight_ids=[122], fare_family_id=1)
     model = scripted(call("set_constraints", **route), call("search_flights"),
-                     call("propose_hold", flight_ids=[122], fare_family_id=1, passengers=list(passengers)),
+                     call("propose_hold", **choice, passengers=list(passengers)),
                      AIMessage(content="Bạn bấm Giữ chỗ để mình giữ ghế nhé."), *extra)
     out = turn(chat, model, "Đặt giúp mình 1 vé SGN đi Đà Nẵng thứ 6 này, trước 12h, dưới 2 triệu",
                fake.backend(), TODAY)
@@ -122,8 +123,39 @@ def test_sold_out_on_approval_lets_the_agent_propose_another_flight():
                                 AIMessage(content="VN122 vừa hết ghế, bạn duyệt QH104 nhé."))
     result = approve(chat, model, out["cards"][-1]["proposalId"], fake.backend(), TODAY)
     proposals = [c for c in result["cards"] if c["type"] == "proposal"]
-    assert proposals[0]["segments"][0]["flightNumber"] == "QH104"
+    assert proposals[0]["journeys"][0]["segments"][0]["flightNumber"] == "QH104"
     assert len(fake.holds) == 1                     # chỉ lần giữ thất bại
+
+
+TRIP = {**ROUTE, "max_price": 4_000_000, "return_date": "2026-11-02"}
+ROUND = dict(flight_ids=[122], fare_family_id=1, return_flight_ids=[611], return_fare_family_id=1)
+
+
+def test_round_trip_approval_holds_both_journeys():
+    fake = FakeBackend()
+    chat, model, out = proposed(fake, route=TRIP, choice=ROUND)
+    result = approve(chat, model, out["cards"][-1]["proposalId"], fake.backend(), TODAY)
+    assert [j["direction"] for j in fake.holds[0]["journeys"]] == ["OUTBOUND", "RETURN"]
+    assert [(c["type"], c["totalAmount"]) for c in result["cards"]] == [("held", 2_900_000)]
+
+
+def test_read_back_with_other_journeys_hands_off():
+    moved = lambda j, flight_id: {**j, "segments": [{**j["segments"][0], "flightId": flight_id}]}
+    for patch in (lambda js: js[:1],                                        # mất chiều về
+                  lambda js: [js[0], moved(js[1], 123)],                    # sai chuyến về
+                  lambda js: [js[0], {**js[1], "fareFamilyName": "Eco"}],   # sai gói chiều về
+                  lambda js: js[::-1]):                                     # đảo thứ tự hai chiều
+        fake = FakeBackend(journeys_patch=patch)
+        chat, model, out = proposed(fake, route=TRIP, choice=ROUND)
+        result = approve(chat, model, out["cards"][-1]["proposalId"], fake.backend(), TODAY)
+        assert [c["type"] for c in result["cards"]] == ["handoff"]
+
+
+def test_one_way_read_back_with_another_fare_hands_off():
+    fake = FakeBackend(journeys_patch=lambda js: [{**js[0], "fareFamilyName": "Eco"}])
+    chat, model, out = proposed(fake)
+    result = approve(chat, model, out["cards"][-1]["proposalId"], fake.backend(), TODAY)
+    assert [c["type"] for c in result["cards"]] == ["handoff"]
 
 
 def test_parallel_tool_calls_cannot_leave_results_of_old_constraints():

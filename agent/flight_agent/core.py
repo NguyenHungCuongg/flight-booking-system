@@ -29,6 +29,7 @@ BOOKING_CODE = re.compile(r"[A-HJ-NP-Z2-9]{6}")     # BR-46, như BookingCodes.A
 BAD_CODE = {"status": "invalid_param", "hint": "Mã booking gồm 6 chữ và số, ví dụ K7M2QX."}
 PAX_KEYS = ("type", "lastName", "firstName", "gender", "dateOfBirth")
 MATCHING = 5         # số mục tối đa của matching: khứ hồi ghép mọi cặp nên số mục tăng theo tích
+DIRECTIONS = ("OUTBOUND", "RETURN")
 
 
 # =====================================================================
@@ -305,10 +306,12 @@ class Harness:
                     self.known_names[item["full_name"]] = (p["lastName"], p["firstName"])
         return {"status": "ok", "passengers": passengers}
 
-    def propose_hold(self, flight_ids: list[int], fare_family_id: int, passengers: list[PassengerArg]) -> dict:
+    def propose_hold(self, flight_ids: list[int], fare_family_id: int, passengers: list[PassengerArg],
+                     return_flight_ids: list[int] | None = None, return_fare_family_id: int | None = None) -> dict:
         """Báo giá và đưa thẻ duyệt giữ chỗ cho khách. flight_ids, fare_family_id: lấy đúng từ một hành trình trong
-        matching. passengers: mỗi hành khách một mục, đủ số người lớn, trẻ em, em bé trong ràng buộc; full_name: họ
-        tên đầy đủ, gender: MALE hoặc FEMALE, date_of_birth: YYYY-MM-DD. Loại khách do hệ thống tính từ ngày sinh.
+        matching. Khứ hồi: return_flight_ids, return_fare_family_id lấy từ return của cùng mục trong matching.
+        passengers: mỗi hành khách một mục, đủ số người lớn, trẻ em, em bé trong ràng buộc; full_name: họ tên đầy đủ,
+        gender: MALE hoặc FEMALE, date_of_birth: YYYY-MM-DD. Loại khách do hệ thống tính từ ngày sinh.
         Chỉ trả pending_approval: khách tự bấm Giữ chỗ trên thẻ."""
         c = self.constraints
         # Model có thể gửi sai dạng (chuỗi JSON, object đơn): trả invalid_param để model tự sửa, không làm hỏng lượt chat.
@@ -339,7 +342,9 @@ class Harness:
                             f"ràng buộc ({c.counts}). Gọi set_constraints với đúng số khách rồi search_flights lại, "
                             "hoặc hỏi lại ngày sinh."}
         me = self.backend.get("/api/me")
-        body = {"journeys": [{"direction": "OUTBOUND", "flightIds": flight_ids, "fareFamilyId": fare_family_id}],
+        it = self._found(flight_ids, fare_family_id, return_flight_ids, return_fare_family_id)
+        body = {"journeys": [{"direction": d, "flightIds": j["flight_ids"], "fareFamilyId": j["fare_family_id"]}
+                             for d, j in zip(DIRECTIONS, _journeys(it))],
                 "passengers": built, "baggage": [],
                 "contact": {"name": me["fullName"], "email": me["email"], "phone": me["phone"]}}
         quote = self.backend.post("/api/bookings/quote", body)
@@ -347,11 +352,11 @@ class Harness:
         if self.constraints.max_price is not None and total > self.constraints.max_price:
             return {"status": "denied",
                     "hint": f"Báo giá {_vnd(total)} đ vượt giá tối đa. {self.constraints.to_prompt()}"}
-        it = self._found(flight_ids, fare_family_id)
         pid = uuid4().hex
-        card = {"type": "proposal", "proposalId": pid, "segments": it["segments"], "fare": it["fare"],
-                "passengers": built, "fares": quote["journeys"][0]["passengerFares"],
-                "contact": body["contact"], "totalAmount": total}
+        card = {"type": "proposal", "proposalId": pid,
+                "journeys": [{"direction": d, "segments": j["segments"], "fare": j["fare"], "fares": q["passengerFares"]}
+                             for d, j, q in zip(DIRECTIONS, _journeys(it), quote["journeys"])],
+                "passengers": built, "contact": body["contact"], "totalAmount": total}
         self.proposal = Proposal(pid, body, total, card)
         self.cards.append(card)
         return {"status": "pending_approval", "total": total}
@@ -407,9 +412,13 @@ class Harness:
         return {"status": "ok", "journey_value": _money(q["journeyValue"]), "fee": _money(q["fee"]),
                 "refund_amount": _money(q["refundAmount"]), "page": f"/bookings/{code}/refund/{direction.lower()}"}
 
-    def _found(self, flight_ids, fare_family_id) -> dict | None:
+    def _found(self, flight_ids, fare_family_id, return_flight_ids=None, return_fare_family_id=None) -> dict | None:
+        """Mục của lần tìm gần nhất có đúng các chiều khách chọn: một chiều không được có tham số chiều về."""
+        chosen = [(flight_ids, fare_family_id)]
+        if return_flight_ids is not None or return_fare_family_id is not None:
+            chosen.append((return_flight_ids, return_fare_family_id))
         return next((i for i in self.found
-                     if i["flight_ids"] == flight_ids and i["fare_family_id"] == fare_family_id), None)
+                     if [(j["flight_ids"], j["fare_family_id"]) for j in _journeys(i)] == chosen), None)
 
     def _nearest(self) -> list[dict]:
         return sorted((i for i in self.found if len(i["broken"]) == 1), key=lambda i: i["price"])[:2]
@@ -434,10 +443,13 @@ class Harness:
         if tool in ("search_flights", "propose_hold") and self.constraints is None:
             return "Chưa có ràng buộc. Gọi set_constraints trước."
         if tool == "propose_hold":
-            it = self._found(args.get("flight_ids"), args.get("fare_family_id"))
+            it = self._found(*(args.get(k) for k in ("flight_ids", "fare_family_id", "return_flight_ids",
+                                                     "return_fare_family_id")))
             if it is None or it["broken"]:
+                trip = (" Khứ hồi: return_flight_ids và return_fare_family_id lấy từ return của cùng mục trong matching."
+                        if self.constraints.return_date else "")
                 return (f"Hành trình {args.get('flight_ids')} với gói {args.get('fare_family_id')} không có trong "
-                        f"matching của lần tìm gần nhất. {self.constraints.to_prompt()}")
+                        f"matching của lần tìm gần nhất.{trip} {self.constraints.to_prompt()}")
         return None
 
     # ---- phát hiện lặp: cùng (tool, args) nhiều lần
@@ -482,15 +494,23 @@ class Harness:
     # ---- 3. "XONG" DO CODE QUYẾT ĐỊNH: đọc lại booking, không tin lời model
     def is_done(self, detail: dict, proposal: Proposal) -> bool:
         journeys = detail.get("journeys") or []
-        segs = (journeys[0].get("segments") or []) if len(journeys) == 1 else []
+        # Từng chiều theo thứ tự: hướng, chuyến và gói giá phải đúng như thẻ đã duyệt
+        got = [(j.get("direction"), [s["flightId"] for s in j.get("segments") or []], j.get("fareFamilyName"))
+               for j in journeys]
+        want = [(b["direction"], b["flightIds"], c["fare"])
+                for b, c in zip(proposal.body["journeys"], proposal.card["journeys"])]
+        if got != want:
+            return False
+        out = journeys[0]["segments"]
+        back = journeys[1]["segments"] if len(journeys) == 2 else None
         return (detail.get("status") == "PENDING_PAYMENT"
-                and len(journeys) == 1 and journeys[0].get("direction") == "OUTBOUND"
-                and bool(segs) and [s["flightId"] for s in segs] == proposal.body["journeys"][0]["flightIds"]
                 and _people(detail.get("passengers") or []) == _people(proposal.body["passengers"])
                 and detail.get("totalAmount") == proposal.total
                 and self.constraints is not None
-                and self.constraints.is_ok(segs[0]["departureAirport"], segs[-1]["arrivalAirport"],
-                                           segs[0]["departureTime"], detail["totalAmount"]))
+                and self.constraints.is_ok(out[0]["departureAirport"], out[-1]["arrivalAirport"],
+                                           out[0]["departureTime"], detail["totalAmount"],
+                                           back and (back[0]["departureAirport"], back[-1]["arrivalAirport"],
+                                                     back[0]["departureTime"])))
 
     # ---- 4. BÀN GIAO: đủ để khách nắm tình hình trong 30 giây
     def handoff(self) -> dict:

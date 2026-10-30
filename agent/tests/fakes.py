@@ -117,7 +117,8 @@ def problem(status, code, errors=()):
 
 class FakeBackend:
     def __init__(self, flights=FLIGHTS, returns=RETURNS, me_status=200, quote_error=None, hold_error=None, detail_patch=None,
-                 hold_delay=0.0, search_delay=0.0, past=(), bookings=(), refunds=None, passengers_patch=None):
+                 hold_delay=0.0, search_delay=0.0, past=(), bookings=(), refunds=None, passengers_patch=None,
+                 journeys_patch=None):
         self.flights, self.me_status, self.quote_error, self.hold_error = flights, me_status, quote_error, hold_error
         self.returns = returns
         self.detail_patch, self.hold_delay, self.search_delay = detail_patch or {}, hold_delay, search_delay
@@ -125,6 +126,7 @@ class FakeBackend:
         self.bookings = {b["code"]: b for b in bookings}    # BookingDetail đầy đủ, mới nhất trước
         self.refunds = refunds or {}    # (mã, chiều) -> RefundQuote, hoặc (status, code) lỗi
         self.passengers_patch = passengers_patch    # hành khách đã gửi -> hành khách của booking đọc lại
+        self.journeys_patch = journeys_patch        # các chiều của booking đọc lại -> các chiều mới
         self.requests: list[httpx.Request] = []
         self.holds: list[dict] = []
         self.transport = httpx.MockTransport(self.handle)
@@ -136,22 +138,26 @@ class FakeBackend:
     def pool(self) -> list[dict]:
         return self.flights + self.returns
 
-    def _adult_price(self, journey):
-        it = next(i for i in self.flights if [s["flightId"] for s in i["segments"]] == journey["flightIds"])
-        return next(f["adultPrice"] for f in it["fareOptions"] if f["fareFamilyId"] == journey["fareFamilyId"])
+    def _fare(self, journey):
+        """Gói giá đã chọn của một chiều trong body."""
+        it = next(i for i in self.pool if [s["flightId"] for s in i["segments"]] == journey["flightIds"])
+        return next(f for f in it["fareOptions"] if f["fareFamilyId"] == journey["fareFamilyId"])
 
     def _price(self, body):
-        return fare_total(self._adult_price(body["journeys"][0]), [p["type"] for p in body["passengers"]])
+        types = [p["type"] for p in body["passengers"]]
+        return sum(fare_total(self._fare(j)["adultPrice"], types) for j in body["journeys"])
 
     def _quote(self, body):
-        """QuoteResponse một chiều: passengerFares theo thứ tự ADULT, CHILD, INFANT như QuoteService."""
-        price, types = self._adult_price(body["journeys"][0]), [p["type"] for p in body["passengers"]]
-        fares = [{"type": t, "count": types.count(t), "unitPrice": price * PERCENT[t] // 100,
-                  "total": types.count(t) * (price * PERCENT[t] // 100)} for t in PERCENT if t in types]
-        total = fare_total(price, types)
-        return {"journeys": [{"direction": "OUTBOUND", "fareTotal": total, "baggageTotal": 0, "discount": 0,
-                              "passengerFares": fares}],
-                "fareTotal": total, "baggageTotal": 0, "discountTotal": 0, "totalAmount": total}
+        """QuoteResponse: mỗi chiều một mục, passengerFares theo thứ tự ADULT, CHILD, INFANT như QuoteService."""
+        types, journeys = [p["type"] for p in body["passengers"]], []
+        for j in body["journeys"]:
+            price = self._fare(j)["adultPrice"]
+            fares = [{"type": t, "count": types.count(t), "unitPrice": price * PERCENT[t] // 100,
+                      "total": types.count(t) * (price * PERCENT[t] // 100)} for t in PERCENT if t in types]
+            journeys.append({"direction": j["direction"], "fareTotal": fare_total(price, types), "baggageTotal": 0,
+                             "discount": 0, "passengerFares": fares})
+        total = sum(j["fareTotal"] for j in journeys)
+        return {"journeys": journeys, "fareTotal": total, "baggageTotal": 0, "discountTotal": 0, "totalAmount": total}
 
     def handle(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
@@ -208,16 +214,17 @@ class FakeBackend:
 
     def _detail(self):
         body = self.holds[-1]
-        journey = body["journeys"][0]
-        by_id = {s["flightId"]: s for i in self.flights for s in i["segments"]}
-        segments = [{"flightId": f, "flightNumber": by_id[f]["flightNumber"],
-                     "departureAirport": by_id[f]["departure"]["airport"],
-                     "departureTime": by_id[f]["departure"]["time"],
-                     "arrivalAirport": by_id[f]["arrival"]["airport"], "arrivalTime": by_id[f]["arrival"]["time"]}
-                    for f in journey["flightIds"]]
+        by_id = {s["flightId"]: s for i in self.pool for s in i["segments"]}
+        journeys = [{"direction": j["direction"], "fareFamilyName": self._fare(j)["name"],
+                     "segments": [{"flightId": f, "flightNumber": by_id[f]["flightNumber"],
+                                   "departureAirport": by_id[f]["departure"]["airport"],
+                                   "departureTime": by_id[f]["departure"]["time"],
+                                   "arrivalAirport": by_id[f]["arrival"]["airport"],
+                                   "arrivalTime": by_id[f]["arrival"]["time"]} for f in j["flightIds"]]}
+                    for j in body["journeys"]]
         return {"code": CODE, "status": "PENDING_PAYMENT", "holdExpiresAt": EXPIRES,
                 "totalAmount": self._price(body), "contact": body["contact"],
-                "journeys": [{"direction": journey["direction"], "segments": segments}],
+                "journeys": (self.journeys_patch or list)(journeys),
                 "passengers": (self.passengers_patch or list)(body["passengers"]), **self.detail_patch}
 
 
