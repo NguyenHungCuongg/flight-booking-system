@@ -3,6 +3,8 @@ from datetime import date as Date
 from flight_agent.core import Constraints, normalise, passenger_type, split_name
 
 C = Constraints("SGN", "DAD", "2026-10-30", depart_before="12:00", max_price=2_000_000)
+RT = Constraints("SGN", "DAD", "2026-10-30", return_date="2026-11-02")
+BACK = ("DAD", "SGN", "2026-11-02T17:00:00+07:00")
 
 
 def test_valid_morning_flight_under_price_breaks_nothing():
@@ -30,6 +32,20 @@ def test_prompt_states_every_constraint():
 def test_prompt_states_passenger_counts():
     text = Constraints("SGN", "DAD", "2026-10-30", adults=2, children=1, infants=1).to_prompt()
     assert "2 người lớn, 1 trẻ em, 1 em bé" in text and "tổng" in text
+
+
+def test_prompt_states_one_way_or_the_return_date():
+    assert "về ngày 2026-11-02" in RT.to_prompt()
+    assert "một chiều" in C.to_prompt()
+
+
+def test_round_trip_breaks_without_the_right_return_leg():
+    out = ("SGN", "DAD", "2026-10-30T08:10:00+07:00", 3_600_000)
+    assert RT.broken(*out, back=BACK) == []
+    assert RT.broken(*out) == ["return_date"]
+    assert RT.broken(*out, back=("DAD", "SGN", "2026-11-03T17:00:00+07:00")) == ["return_date"]
+    assert RT.broken(*out, back=("DAD", "HAN", "2026-11-02T17:00:00+07:00")) == ["return_date"]
+    assert C.broken("SGN", "DAD", "2026-10-30T08:10:00+07:00", 1_850_000, back=BACK) == ["return_date"]
 
 
 def test_normalise_pads_time_and_reads_grouped_prices():

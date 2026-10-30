@@ -11,7 +11,7 @@ import threading
 import unicodedata
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import date as Date
+from datetime import date as Date, datetime
 from typing import TypedDict
 from uuid import uuid4
 
@@ -28,6 +28,7 @@ STATES = {"PENDING_PAYMENT": "chờ thanh toán", "ISSUED": "đã xuất vé", "
 BOOKING_CODE = re.compile(r"[A-HJ-NP-Z2-9]{6}")     # BR-46, như BookingCodes.ALPHABET của backend
 BAD_CODE = {"status": "invalid_param", "hint": "Mã booking gồm 6 chữ và số, ví dụ K7M2QX."}
 PAX_KEYS = ("type", "lastName", "firstName", "gender", "dateOfBirth")
+MATCHING = 5         # số mục tối đa của matching: khứ hồi ghép mọi cặp nên số mục tăng theo tích
 
 
 # =====================================================================
@@ -56,6 +57,7 @@ class Constraints:
     adults: int = 1
     children: int = 0
     infants: int = 0
+    return_date: str | None = None      # ngày cất cánh chiều về YYYY-MM-DD; None = một chiều
 
     @property
     def counts(self) -> str:
@@ -64,21 +66,27 @@ class Constraints:
     def to_prompt(self) -> str:
         before = self.depart_before or "không giới hạn"
         price = f"{_vnd(self.max_price)} đ" if self.max_price is not None else "không giới hạn"
-        return (f"Ràng buộc hiện tại: {self.origin} → {self.destination} ngày {self.date} cho {self.counts}, "
-                f"cất cánh trước {before}, giá tối đa (tổng cả booking) {price}.")
+        back = f", về ngày {self.return_date}" if self.return_date else ", một chiều"
+        return (f"Ràng buộc hiện tại: {self.origin} → {self.destination} ngày {self.date}{back} cho {self.counts}, "
+                f"chiều đi cất cánh trước {before}, giá tối đa (tổng cả booking, mọi chiều) {price}.")
 
-    def broken(self, origin: str, destination: str, departure: str, price: int) -> list[str]:
-        """Tên các ràng buộc bị vi phạm. `departure` là giờ địa phương ISO có offset, vd 2026-10-30T08:10:00+07:00."""
+    def broken(self, origin: str, destination: str, departure: str, price: int,
+               back: tuple[str, str, str] | None = None) -> list[str]:
+        """Tên các ràng buộc bị vi phạm. `departure` là giờ địa phương ISO có offset, vd 2026-10-30T08:10:00+07:00.
+        `back`: (sân bay đi, sân bay đến, giờ cất cánh) của chiều về; None nếu một chiều."""
         checks = [("origin", origin == self.origin),
                   ("destination", destination == self.destination),
                   ("date", departure[:10] == self.date),
                   ("depart_before", self.depart_before is None or departure[11:16] < self.depart_before),
-                  ("max_price", self.max_price is None or price <= self.max_price)]
+                  ("max_price", self.max_price is None or price <= self.max_price),
+                  ("return_date", back is None if self.return_date is None else back is not None
+                   and (back[0], back[1], back[2][:10]) == (self.destination, self.origin, self.return_date))]
         return [name for name, ok in checks if not ok]
 
-    def is_ok(self, origin: str, destination: str, departure: str, price: int) -> bool:
+    def is_ok(self, origin: str, destination: str, departure: str, price: int,
+              back: tuple[str, str, str] | None = None) -> bool:
         """Quy tắc duy nhất, dùng chung cho kiểm quyền và tiêu chí hoàn thành."""
-        return not self.broken(origin, destination, departure, price)
+        return not self.broken(origin, destination, departure, price, back)
 
 
 def normalise(key: str, value):
@@ -123,6 +131,19 @@ def _booking_code(code: str) -> str | None:
     """Mã đã chuẩn hoá, hoặc None nếu không đúng dạng: chặn mọi chuỗi lạ trước khi ghép vào đường dẫn API."""
     code = str(code).strip().upper()
     return code if BOOKING_CODE.fullmatch(code) else None
+
+
+def _day(text) -> Date | None:
+    """Ngày dạng YYYY-MM-DD, hoặc None nếu sai dạng hay không có thật."""
+    try:
+        return Date.fromisoformat(text) if re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(text)) else None
+    except ValueError:
+        return None
+
+
+def _journeys(item: dict) -> list[dict]:
+    """Các chiều của một mục tìm chuyến, theo thứ tự đi rồi về."""
+    return [item["outbound"], item["return"]] if "outbound" in item else [item]
 
 
 # =====================================================================
@@ -181,11 +202,14 @@ class Harness:
 
     # ---- các tool của model
     def set_constraints(self, origin: str, destination: str, date: str, depart_before: str | None = None,
-                        max_price: int | None = None, adults: int = 1, children: int = 0, infants: int = 0) -> dict:
+                        max_price: int | None = None, adults: int = 1, children: int = 0, infants: int = 0,
+                        return_date: str | None = None) -> dict:
         """Đặt hoặc thay ràng buộc của chuyến cần tìm. origin, destination: mã IATA sân bay. date: ngày cất cánh
         YYYY-MM-DD. depart_before: giờ cất cánh chậm nhất HH:MM, bỏ trống nếu khách không nói. max_price: giá tối đa
         của cả booking (VND, số nguyên), bỏ trống nếu khách không nói. adults, children (2 đến dưới 12 tuổi), infants
-        (dưới 2 tuổi): số khách theo tuổi tại ngày bay."""
+        (dưới 2 tuổi): số khách theo tuổi tại ngày bay. return_date: ngày cất cánh chiều về YYYY-MM-DD nếu khách cần
+        khứ hồi, không trước date; bỏ trống nếu một chiều. depart_before chỉ áp cho chiều đi; max_price là tổng cả
+        hai chiều."""
         try:
             counts = {"adults": int(adults), "children": int(children), "infants": int(infants)}
         except (TypeError, ValueError):
@@ -207,46 +231,63 @@ class Harness:
         if self.airports[origin]["countryCode"] != self.airports[destination]["countryCode"]:
             self.stop("international")
             return {"status": "denied", "hint": "Trợ lý chưa hỗ trợ hành trình quốc tế."}
-        try:
-            past = not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date) or Date.fromisoformat(date).isoformat() < self.today
-        except ValueError:
-            past = True
-        if past:
+        if (day := _day(date)) is None or day.isoformat() < self.today:
             return {"status": "invalid_param", "hint": f"date phải là ngày YYYY-MM-DD từ hôm nay ({self.today})."}
-        self.constraints = c = Constraints(origin, destination, date, **limits, **counts)
+        if return_date is not None and ((back := _day(return_date)) is None or back < day):
+            return {"status": "invalid_param",
+                    "hint": f"return_date phải là ngày YYYY-MM-DD, không trước ngày đi {date}."}
+        self.constraints = c = Constraints(origin, destination, date, **limits, **counts, return_date=return_date)
         self.found, self.proposal = [], None
         self.cards.append({"type": "constraints", "origin": c.origin, "destination": c.destination, "date": c.date,
-                           "departBefore": c.depart_before, "maxPrice": c.max_price, **counts})
+                           "returnDate": c.return_date, "departBefore": c.depart_before, "maxPrice": c.max_price,
+                           **counts})
         return {"status": "ok", "constraints": c.to_prompt()}
 
     def search_flights(self) -> dict:
-        """Tìm chuyến một chiều hạng phổ thông cho số khách trong ràng buộc hiện tại; price là tổng cả booking.
-        matching: các hành trình thoả mọi ràng buộc, rẻ nhất trước. nearest: tối đa 2 hành trình rẻ nhất chỉ vi phạm
-        một ràng buộc."""
+        """Tìm chuyến hạng phổ thông cho số khách trong ràng buộc hiện tại; price là tổng cả booking.
+        matching: tối đa 5 hành trình thoả mọi ràng buộc, rẻ nhất trước. nearest: tối đa 2 hành trình rẻ nhất chỉ vi
+        phạm một ràng buộc. Khứ hồi: mỗi mục có outbound và return (mỗi chiều dạng như một hành trình một chiều), price
+        là tổng hai chiều; chỉ ghép cặp chiều về cất cánh sau khi chiều đi hạ cánh."""
         c = self.constraints
-        data = self.backend.get("/api/flights/search", {"from": c.origin, "to": c.destination, "date": c.date,
+        legs = self._legs(c.origin, c.destination, c.date)
+        if c.return_date is None:
+            self.found = [{**o, "broken": c.broken(o["segments"][0]["from"], o["segments"][-1]["to"], o["depart"],
+                                                   o["price"])} for o in legs]
+        else:
+            backs = self._legs(c.destination, c.origin, c.return_date)
+            # BR-04: chiều về cất cánh sau khi chiều đi hạ cánh; chuỗi giờ có offset nên so bằng datetime
+            self.found = [{"outbound": o, "return": r, "price": o["price"] + r["price"],
+                           "broken": c.broken(o["segments"][0]["from"], o["segments"][-1]["to"], o["depart"],
+                                              o["price"] + r["price"],
+                                              back=(r["segments"][0]["from"], r["segments"][-1]["to"], r["depart"]))}
+                          for o in legs for r in backs
+                          if datetime.fromisoformat(r["depart"]) > datetime.fromisoformat(o["segments"][-1]["arrive"])]
+        matching = sorted((i for i in self.found if not i["broken"]), key=lambda i: i["price"])[:MATCHING]
+        if not matching:
+            self.stop("no_match")
+        return {"status": "ok", "matching": matching, "nearest": self._nearest()}
+
+    def _legs(self, origin: str, destination: str, day: str) -> list[dict]:
+        """Một lần tìm chuyến cho một chiều: mỗi hành trình có gói giá thành một dict rút gọn, lấy gói rẻ nhất."""
+        c = self.constraints
+        data = self.backend.get("/api/flights/search", {"from": origin, "to": destination, "date": day,
                                                         "adults": c.adults, "children": c.children,
                                                         "infants": c.infants, "cabin": "ECONOMY"})
-        self.found = []
+        legs = []
         for it in data["itineraries"]:
             if not it["fareOptions"]:
                 continue
             segs, fare = it["segments"], it["fareOptions"][0]      # gói rẻ nhất
-            first, last = segs[0]["departure"], segs[-1]["arrival"]
-            self.found.append({
+            legs.append({
                 "flight_ids": [s["flightId"] for s in segs],
                 "flights": "+".join(s["flightNumber"] for s in segs),
                 "segments": [{"flightNumber": s["flightNumber"], "from": s["departure"]["airport"],
                               "to": s["arrival"]["airport"], "depart": s["departure"]["time"],
                               "arrive": s["arrival"]["time"]} for s in segs],
-                "depart": first["time"], "stops": it["stops"], "fare_family_id": fare["fareFamilyId"],
+                "depart": segs[0]["departure"]["time"], "stops": it["stops"], "fare_family_id": fare["fareFamilyId"],
                 "fare": fare["name"], "price": fare["totalPrice"], "seats_left": fare["seatsLeft"],
-                "broken": c.broken(first["airport"], last["airport"], first["time"], fare["totalPrice"]),
             })
-        matching = sorted((i for i in self.found if not i["broken"]), key=lambda i: i["price"])
-        if not matching:
-            self.stop("no_match")
-        return {"status": "ok", "matching": matching, "nearest": self._nearest()}
+        return legs
 
     def list_recent_passengers(self) -> dict:
         """Hành khách trong vài booking gần nhất của khách, không trùng nhau, mới nhất trước. Dùng khi
@@ -458,13 +499,17 @@ class Harness:
                     else "Chưa giữ chỗ, chưa trừ tiền.")
         last = self.trace[-1]["tool"] if self.trace else "-"
         retry = "Bạn muốn thử lại hay tự đặt trên /flights?"
+        c = self.constraints
         if near := self._nearest():
             n = near[0]
-            no_match = (f"Không có chuyến nào thoả mọi ràng buộc. Gần nhất là {n['flights']} lúc {n['depart'][11:16]}, "
-                        f"{_vnd(n['price'])} đ. Bạn muốn nới giờ bay hay giá tối đa?")
+            legs = ", về ".join(f"{j['flights']} lúc {_when(j['depart'])}" for j in _journeys(n))
+            no_match = (f"Không có chuyến nào thoả mọi ràng buộc. Gần nhất là {legs}, {_vnd(n['price'])} đ. "
+                        "Bạn muốn nới giờ bay hay giá tối đa?")
+        elif c and c.return_date:
+            no_match = (f"Không có cặp chuyến khứ hồi nào đi ngày {c.date}, về ngày {c.return_date}. "
+                        "Bạn muốn đổi ngày không?")
         else:
-            no_match = (f"Không có chuyến nào ngày {self.constraints.date if self.constraints else '-'}. "
-                        "Bạn muốn đổi sang ngày khác không?")
+            no_match = f"Không có chuyến nào ngày {c.date if c else '-'}. Bạn muốn đổi sang ngày khác không?"
         questions = {
             "no_match": no_match,
             "budget": f"Trợ lý đã dùng hết {BUDGET} lần gọi mô hình cho lượt này. {retry}",

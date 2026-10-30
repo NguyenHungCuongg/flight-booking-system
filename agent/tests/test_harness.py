@@ -203,6 +203,70 @@ def test_handoff_has_one_question_and_the_trace():
     assert card["tried"][-1].startswith("search_flights")
 
 
+TRIP = {**ROUTE, "max_price": 4_000_000, "return_date": "2026-11-02"}
+ANY_TIME = {"depart_before": None, "max_price": None}
+
+
+def test_set_constraints_takes_a_return_date():
+    h, _ = ready()
+    assert h.execute("set_constraints", TRIP)["status"] == "ok"
+    assert h.constraints.return_date == "2026-11-02" and h.cards[-1]["returnDate"] == "2026-11-02"
+    h.execute("set_constraints", ROUTE)
+    assert h.constraints.return_date is None and h.cards[-1]["returnDate"] is None
+
+
+def test_return_before_departure_or_malformed_is_invalid():
+    h, _ = ready()
+    for bad in ("2026-10-29", "02/11/2026"):
+        r = h.execute("set_constraints", {**TRIP, "return_date": bad})
+        assert r["status"] == "invalid_param" and "không trước ngày đi 2026-10-30" in r["hint"]
+    assert h.constraints is None
+
+
+def test_round_trip_search_pairs_both_directions_and_prices_the_total():
+    h, fake = ready()
+    h.execute("set_constraints", TRIP)
+    r = h.execute("search_flights", {})
+    searches = [(q.url.params["from"], q.url.params["to"], q.url.params["date"])
+                for q in fake.requests if q.url.path == "/api/flights/search"]
+    assert searches == [("SGN", "DAD", "2026-10-30"), ("DAD", "SGN", "2026-11-02")]
+    assert [(i["outbound"]["flights"], i["return"]["flights"], i["price"]) for i in r["matching"]] == [
+        ("VN122", "VJ611", 2_900_000), ("QH104", "VJ611", 2_970_000), ("VJ604", "VJ611", 3_530_000),
+        ("VN122", "VN123", 3_600_000), ("QH104", "VN123", 3_670_000)]
+    assert r["matching"][0]["return"]["fare_family_id"] == 1 and "broken" not in r["matching"][0]["return"]
+
+
+def test_matching_shows_at_most_five():
+    h, _ = ready()
+    h.execute("set_constraints", {**TRIP, **ANY_TIME})
+    assert len(h.execute("search_flights", {})["matching"]) == 5         # 4 chiều đi x 2 chiều về = 8 cặp
+    assert len(h.found) == 8
+
+
+def test_same_day_return_pairs_only_flights_that_leave_after_landing():
+    h, _ = ready()
+    h.execute("set_constraints", {**TRIP, **ANY_TIME, "return_date": "2026-10-30"})
+    h.execute("search_flights", {})
+    pairs = {(i["outbound"]["flights"], i["return"]["flights"]) for i in h.found}
+    assert ("VN122", "VN127") in pairs and ("VJ610", "VN127") not in pairs   # VJ610 hạ cánh 15:40, VN127 đi 12:00
+
+
+def test_round_trip_without_a_match_names_both_flights_of_the_nearest():
+    h, _ = ready()
+    h.execute("set_constraints", {**TRIP, **ANY_TIME, "max_price": 2_000_000})
+    h.execute("search_flights", {})
+    q = h.handoff()["question"]
+    assert h.stop_reason == "no_match" and "VJ610" in q and "VJ611" in q and "2.200.000" in q
+
+
+def test_no_return_flight_that_day_names_both_dates():
+    h, _ = ready()
+    h.execute("set_constraints", {**TRIP, "return_date": "2026-11-03"})
+    h.execute("search_flights", {})
+    q = h.handoff()["question"]
+    assert h.stop_reason == "no_match" and "2026-10-30" in q and "2026-11-03" in q
+
+
 CUONG = passenger("NGUYEN", "HUNG CUONG")
 PAST = [("AAA111", [CUONG, passenger("TRAN", "THI MAI", "FEMALE", "2005-01-02")]),
         ("BBB222", [CUONG, passenger("NGUYEN", "BE NA", type="CHILD", dob="2020-05-05")]),

@@ -1,6 +1,7 @@
 """Bộ case eval: các lượt chat của khách và kết quả mong đợi, chấm bằng code trong evals/run.py.
 
-Backend giả (tests/fakes.py) trả cùng 4 chuyến SGN→DAD ngày 2026-10-30 cho mọi lần tìm.
+Backend giả (tests/fakes.py) trả đúng tuyến và ngày: 4 chuyến SGN→DAD ngày 2026-10-30, 2 chuyến về
+DAD→SGN ngày 2026-11-02 và 1 chuyến về trong ngày 30/10.
 """
 from dataclasses import dataclass, field
 

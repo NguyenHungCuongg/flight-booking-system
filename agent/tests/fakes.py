@@ -38,17 +38,21 @@ def call(name, **args):
     return AIMessage(content="", tool_calls=[{"name": name, "args": args, "id": f"call-{next(_ids)}"}])
 
 
-def itinerary(flight_id: int, number: str, time: str, price: int, fare_id: int = 1) -> dict:
-    """Một hành trình bay thẳng SGN→DAD ngày 2026-10-30, đúng dạng Itinerary của GET /api/flights/search."""
-    depart = datetime.fromisoformat(f"2026-10-30T{time}:00+07:00")
+CITY = {"SGN": "TP. Hồ Chí Minh", "DAD": "Đà Nẵng"}
+
+
+def itinerary(flight_id: int, number: str, time: str, price: int, fare_id: int = 1, origin: str = "SGN",
+              destination: str = "DAD", day: str = "2026-10-30") -> dict:
+    """Một hành trình bay thẳng, đúng dạng Itinerary của GET /api/flights/search."""
+    depart = datetime.fromisoformat(f"{day}T{time}:00+07:00")
     point = lambda airport, city, at: {"airport": airport, "city": city, "time": at.isoformat(),
                                        "timezone": "Asia/Ho_Chi_Minh"}
     return {
         "stops": 0, "totalDurationMinutes": 80,
         "segments": [{"flightId": flight_id, "flightNumber": number,
                       "airline": {"code": number[:2], "name": number[:2]},
-                      "departure": point("SGN", "TP. Hồ Chí Minh", depart),
-                      "arrival": point("DAD", "Đà Nẵng", depart + timedelta(minutes=80)),
+                      "departure": point(origin, CITY[origin], depart),
+                      "arrival": point(destination, CITY[destination], depart + timedelta(minutes=80)),
                       "durationMinutes": 80, "aircraftModel": "A321", "layoverMinutesAfter": None}],
         "fareOptions": [{"fareFamilyId": fare_id, "name": "Phổ thông", "cabinClass": "ECONOMY", "carryOnKg": 7,
                          "checkedBaggageKg": 0, "refundable": False, "refundFee": 0, "changeable": True,
@@ -58,6 +62,9 @@ def itinerary(flight_id: int, number: str, time: str, price: int, fare_id: int =
 
 FLIGHTS = [itinerary(610, "VJ610", "14:20", 1_150_000), itinerary(122, "VN122", "08:10", 1_850_000),
            itinerary(104, "QH104", "06:00", 1_920_000), itinerary(604, "VJ604", "08:30", 2_480_000)]
+BACK = dict(origin="DAD", destination="SGN", day="2026-11-02")
+RETURNS = [itinerary(611, "VJ611", "20:00", 1_050_000, **BACK), itinerary(123, "VN123", "17:00", 1_750_000, **BACK),
+           itinerary(127, "VN127", "12:00", 1_500_000, origin="DAD", destination="SGN")]     # về trong ngày 30/10
 
 AIRPORTS = [{"code": code, "name": code, "city": code, "countryCode": country, "timezone": tz, "active": True}
             for code, country, tz in (("SGN", "VN", "Asia/Ho_Chi_Minh"), ("DAD", "VN", "Asia/Ho_Chi_Minh"),
@@ -109,9 +116,10 @@ def problem(status, code, errors=()):
 
 
 class FakeBackend:
-    def __init__(self, flights=FLIGHTS, me_status=200, quote_error=None, hold_error=None, detail_patch=None,
+    def __init__(self, flights=FLIGHTS, returns=RETURNS, me_status=200, quote_error=None, hold_error=None, detail_patch=None,
                  hold_delay=0.0, search_delay=0.0, past=(), bookings=(), refunds=None, passengers_patch=None):
         self.flights, self.me_status, self.quote_error, self.hold_error = flights, me_status, quote_error, hold_error
+        self.returns = returns
         self.detail_patch, self.hold_delay, self.search_delay = detail_patch or {}, hold_delay, search_delay
         self.past = dict(past)      # mã booking cũ -> hành khách, mới nhất trước
         self.bookings = {b["code"]: b for b in bookings}    # BookingDetail đầy đủ, mới nhất trước
@@ -123,6 +131,10 @@ class FakeBackend:
 
     def backend(self, csrf="t") -> Backend:
         return Backend("http://be", "JSESSIONID=s1", csrf, self.transport)
+
+    @property
+    def pool(self) -> list[dict]:
+        return self.flights + self.returns
 
     def _adult_price(self, journey):
         it = next(i for i in self.flights if [s["flightId"] for s in i["segments"]] == journey["flightIds"])
@@ -156,8 +168,12 @@ class FakeBackend:
             time.sleep(self.search_delay)
             n = {k: int(request.url.params.get(k, d)) for k, d in (("adults", 1), ("children", 0), ("infants", 0))}
             types = ["ADULT"] * n["adults"] + ["CHILD"] * n["children"] + ["INFANT"] * n["infants"]
+            q = request.url.params
+            key = lambda i: (i["segments"][0]["departure"]["airport"], i["segments"][-1]["arrival"]["airport"],
+                             i["segments"][0]["departure"]["time"][:10])
+            on_route = [i for i in self.pool if key(i) == (q["from"], q["to"], q["date"])]
             priced = [{**i, "fareOptions": [{**f, "totalPrice": fare_total(f["adultPrice"], types)}
-                                            for f in i["fareOptions"]]} for i in self.flights]
+                                            for f in i["fareOptions"]]} for i in on_route]
             return httpx.Response(200, json={"itineraries": priced})
         if route == ("POST", "/api/bookings/quote"):
             if self.quote_error:
