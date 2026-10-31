@@ -45,3 +45,7 @@ def test_docs_match_the_frontend_list():
     ts = (POLICY_DIR.parents[1] / "src" / "lib" / "policies.ts").read_text(encoding="utf-8")
     for slug, title in DOCS.items():
         assert f'slug: "{slug}", title: "{title}"' in ts
+
+
+def test_assistant_section_is_readable_by_the_agent():
+    assert "quyen-rieng-tu#tro-ly-dat-ve" in load_sections()

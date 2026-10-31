@@ -140,3 +140,9 @@ test("trang đăng ký dẫn tới điều khoản và quyền riêng tư", asyn
     page.getByRole("link", { name: "Chính sách quyền riêng tư" }),
   ).toHaveAttribute("href", "/chinh-sach/quyen-rieng-tu");
 });
+
+test("quyền riêng tư nói về trợ lý đặt vé", () => {
+  const s = md("quyen-rieng-tu");
+  expect(s).toContain("## Trợ lý đặt vé");
+  expect(s).toContain("assistant-chat"); // dòng mới trong bảng lưu trữ trên trình duyệt
+});

@@ -52,6 +52,7 @@ Trong phiên bản mô phỏng này, SkyLine không kết nối với hệ thố
 | `XSRF-TOKEN`     | Cookie          | Chống giả mạo yêu cầu (CSRF)                                     | Theo phiên trình duyệt              |
 | `skyline-theme`  | Local storage   | Nhớ giao diện sáng hoặc tối bạn chọn                             | Tới khi bạn xoá dữ liệu trình duyệt |
 | Chuyến đang chọn | Session storage | Mang chuyến bay bạn chọn ở trang tìm chuyến sang trang đặt vé    | Tới khi đóng tab                    |
+| `assistant-chat` | Session storage | Mã cuộc trò chuyện với trợ lý, để tải lại trang vẫn thấy chat    | Tới khi đóng tab                    |
 
 SkyLine không dùng cookie quảng cáo, cookie theo dõi hay công cụ phân tích của bên thứ ba.
 
@@ -79,6 +80,14 @@ Thông tin hành khách không sửa được sau khi giữ chỗ (xem [Điều 
 ## Dữ liệu của trẻ em
 
 Thông tin trẻ em và em bé do người lớn đặt vé khai thay, và chỉ dùng cho các mục đích ở trên. Người đặt vé xác nhận mình có quyền cung cấp thông tin của các hành khách trong đặt chỗ.
+
+## Trợ lý đặt vé
+
+Trang Trợ lý cho bạn gõ yêu cầu bằng lời để tìm chuyến, đặt vé, tra cứu đặt chỗ và hỏi về chính sách.
+
+- **Dữ liệu gửi tới nhà cung cấp mô hình AI:** nội dung bạn chat, cùng kết quả trợ lý tra được để trả lời bạn (chuyến bay, họ tên và ngày sinh hành khách, mã và chi tiết đặt chỗ), được gửi tới nhà cung cấp mô hình AI mà SkyLine cấu hình cho trợ lý. Hiện là Google Gemini.
+- **Lưu cuộc trò chuyện:** cuộc trò chuyện chỉ được giữ trong bộ nhớ của dịch vụ trợ lý và mất khi dịch vụ khởi động lại. SkyLine không ghi nội dung chat xuống đĩa; khi một lượt chat bị lỗi, dịch vụ chỉ ghi lại thông tin lỗi kỹ thuật.
+- **Quyền của trợ lý:** trợ lý dùng phiên đăng nhập của chính bạn, nên chỉ xem được tài khoản và đặt chỗ của bạn. Trợ lý chỉ giữ chỗ sau khi bạn bấm duyệt trên thẻ đề xuất, và không thanh toán, huỷ, hoàn hay đổi vé thay bạn.
 
 ## Thay đổi chính sách
 
