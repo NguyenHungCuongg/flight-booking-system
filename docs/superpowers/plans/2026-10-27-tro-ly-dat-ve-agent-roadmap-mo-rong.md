@@ -28,7 +28,7 @@ MVP chạy được: khách gõ yêu cầu trên `/assistant`, agent tìm chuy�
 | 3   | [Eval với model thật](2026-10-28-tro-ly-03-eval-model-that.md)            | verification, logging | —            | Một lệnh in bảng đạt/trượt của 15–20 case, số liệu gốc ghi ở §3                         | ☑    |
 | 4   | [Tra cứu booking (chỉ đọc)](2026-10-28-tro-ly-04-tra-cuu-booking.md)      | tools                 | 3            | Trả lời đúng giờ hết hạn giữ chỗ và số tiền hoàn, lấy từ API                            | ☑    |
 | 5   | Mở rộng phạm vi đặt vé                                                    | tools, verification   | 3            | 5a nhiều hành khách, 5b khứ hồi, 5c hành lý và voucher, mỗi phần qua `is_done` mở rộng  | ☑    |
-| 6   | Stream bước tool (SSE)                                                    | UX                    | 1            | Các bước tool hiện dần trong lúc agent chạy                                             | ☐    |
+| 6   | [Stream bước tool (SSE)](2026-10-31-tro-ly-06-stream-buoc-tool.md)        | UX                    | 1            | Các bước tool hiện dần trong lúc agent chạy                                             | ☑    |
 | 7   | Hỏi đáp chính sách hãng                                                   | retrieval             | 3            | Trả lời hành lý, phí hoàn, phí đổi từ dữ liệu thật; không có dữ liệu thì nói không biết | ☐    |
 
 Bước 1–3 là nhóm nên làm ngay: rẻ, an toàn, và Bước 3 cho số liệu để mọi bước sau dám sửa prompt và tool.
@@ -138,6 +138,8 @@ Chia ba plan, làm theo thứ tự nhu cầu thực tế giảm dần:
 **Kiểm chứng.** pytest kiểm thứ tự sự kiện. Lỗi giữa chừng vẫn kết thúc bằng thẻ bàn giao. Bằng tay: các bước hiện dần.
 
 **Cần quyết khi viết plan.** Giữ endpoint không stream song song hay thay hẳn; có stream từng token của câu trả lời cuối không.
+
+**Đã quyết (chủ dự án, 2026-10-31).** Thay hẳn endpoint gửi tin bằng bản stream. Không stream token. Mỗi bước tool một sự kiện khi bước xong, không có sự kiện bắt đầu (tool chỉ chạy vài chục ms, thời gian chờ nằm ở model). Không chạy eval: bước này không đổi hành vi model, còn eval tốn quota và thời gian chờ. Kết quả thử: rewrite không gom, nhưng lớp gzip của Next.js gom cả ở `npm run dev` lẫn `next start`; header `Cache-Control: no-transform` sửa được (plan, mục "Kết quả thử stream").
 
 ### Bước 7 — Hỏi đáp chính sách hãng
 
