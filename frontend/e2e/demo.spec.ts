@@ -472,6 +472,36 @@ test("D9: đổi booking.hold_minutes chỉ áp dụng cho booking tạo sau đ�
   }
 });
 
+// Văn bản chính sách đọc tham số lúc có request (GET /api/settings/public), nên đổi tham số thì trang đổi ngay.
+// Đặt ở đây vì cũng đổi booking.hold_minutes dùng chung như D9.
+test("Chính sách: đổi booking.hold_minutes thì trang hoàn đổi hiện số mới", async ({
+  page,
+}) => {
+  await login(page, "admin@demo.local", "/admin/flights");
+  const settings = (await (
+    await page.request.get("/api/settings/public")
+  ).json()) as Record<string, number>;
+  const original = settings["booking.hold_minutes"];
+  const changed = original === 20 ? 25 : 20;
+  const put = (value: number) =>
+    csrfHeaders(page).then((headers) =>
+      page.request.put("/api/admin/settings/booking.hold_minutes", {
+        headers,
+        data: { value },
+      }),
+    );
+
+  expect((await put(changed)).ok()).toBe(true);
+  try {
+    await page.goto("/chinh-sach/hoan-doi-hanh-ly");
+    const policy = page.locator("article.policy");
+    await expect(policy).toContainText(`${changed} phút`);
+    await expect(policy).not.toContainText("{{");
+  } finally {
+    expect((await put(original)).ok()).toBe(true);
+  }
+});
+
 test("D10: báo cáo dòng tiền và doanh số tăng đúng theo booking vừa thanh toán", async ({
   page,
   browser,
