@@ -28,6 +28,7 @@ class Case:
     # Luôn chấm khi có đề xuất: case cũ (0, None) bắt được việc model tự thêm hành lý hay bịa mã
     baggage_kg: int = 0                             # kg hành lý mỗi khách mỗi chiều; 0 = không mua
     voucher: str | None = None                      # voucherCode của đề xuất
+    abstain: bool = False                           # không có dữ liệu: câu trả lời phải có câu NO_INFO
 
 
 AN = "Nguyễn Văn An, nam, sinh ngày 12/03/2004"
@@ -176,4 +177,29 @@ CASES: list[Case] = [
     Case("voucher-sai-ma", "hành lý và voucher",
          [f"Đặt vé SGN đi DAD ngày 30/10, bay trước 12h, cho {AN}, dùng mã GIAM50"],
          ("reply", "proposal"), NOON, [122], [AN_PAX], reply_has=["GIAM50"]),
+    # ---- chính sách: số lấy từ tool (backend giả giữ chỗ 20 phút, khác mặc định 15), link trích dẫn phải là mục
+    # đã đọc (run.grade); không có dữ liệu thì phải nói câu NO_INFO
+    Case("cs-han-hoan-doi", "chính sách", ["Mình muốn đổi hoặc hoàn vé thì phải làm trước giờ bay bao lâu?"],
+         "reply", reply_has=["24", "/chinh-sach/"], calls=["read_policy"]),
+    Case("cs-giu-cho", "chính sách", ["Giữ chỗ xong thì mình có bao lâu để thanh toán?"],
+         "reply", reply_has=["20"], calls=["read_policy"]),
+    Case("cs-gia-tre-em", "chính sách", ["Bé nhà mình 5 tuổi thì giá vé tính thế nào?"],
+         "reply", reply_has=["90"], calls=["read_policy"]),
+    Case("cs-so-the", "chính sách", ["SkyLine có lưu số thẻ ngân hàng của mình không?"],
+         "reply", reply_has=["VNPay"], calls=["read_policy"]),
+    Case("cs-phi-hoan-goi", "chính sách", ["Gói Economy Classic của Vietnam Airlines hoàn vé mất phí bao nhiêu?"],
+         "reply", reply_has=["600.000"], calls=["airline_rules"]),
+    Case("cs-gia-ky-gui", "chính sách", ["Mua thêm 20kg hành lý ký gửi của Vietjet giá bao nhiêu?"],
+         "reply", reply_has=["350.000"], calls=["airline_rules"]),
+    # Trợ lý chỉ đặt gói rẻ nhất: nói rõ giới hạn và mời tự đặt trên /flights; có đề xuất thì phải là gói rẻ nhất
+    Case("cs-goi-khac", "chính sách", [f"Đặt vé SGN đi DAD ngày 30/10, bay trước 12h, gói hoàn được, cho {AN}"],
+         ("reply", "proposal"), flight_ids=[122], passengers=[AN_PAX], reply_has=["/flights"]),
+    Case("cs-khong-biet-thu-cung", "chính sách", ["Mình mang chó cưng lên máy bay được không?"],
+         "reply", abstain=True),
+    Case("cs-khong-biet-kich-thuoc", "chính sách", ["Hành lý xách tay được phép kích thước tối đa bao nhiêu cm?"],
+         "reply", abstain=True),
+    Case("cs-khong-biet-visa", "chính sách", ["Bay sang Thái Lan có cần xin visa không?"],
+         "reply", abstain=True),
+    Case("cs-khong-biet-check-in", "chính sách", ["Check-in online ở đâu, trước mấy tiếng?"],
+         "reply", abstain=True),
 ]

@@ -7,6 +7,7 @@ Một case đạt khi đạt cả k lần. Lượt trượt ghi trace ra evals/r
 import argparse
 import json
 import os
+import re
 import sys
 import time
 import unicodedata
@@ -18,7 +19,10 @@ from langchain_core.callbacks import get_usage_metadata_callback
 from evals.cases import CASES, Case
 from flight_agent.chat import Chat, turn
 from flight_agent.core import Constraints, Harness
+from flight_agent.react import NO_INFO
 from tests.fakes import FakeBackend
+
+CITATION = re.compile(r"/chinh-sach/([a-z0-9-]+#[a-z0-9-]+)")
 
 # Gemini free tier cho 15 request/phút, retry của client chờ không đủ lâu: lượt dừng vì "infra" thì chờ
 # hết phút rồi chạy lại. Vẫn "infra" sau INFRA_RETRIES lần thì không tính vào tỉ lệ đạt.
@@ -59,6 +63,12 @@ def grade(case: Case, harness: Harness, reply: str) -> list[str]:
     failures += [f"reply_lacks: có {s!r}" for s in case.reply_lacks if _norm(s) in _norm(reply)]
     called = {t["tool"] for t in harness.trace}
     failures += [f"calls: thiếu {t}" for t in case.calls if t not in called]
+    if case.abstain and _norm(NO_INFO) not in _norm(reply):
+        failures.append(f"abstain: thiếu {NO_INFO!r}")
+    # Citation existence: link tới một mục chính sách phải là mục đã đọc thành công trong lượt cuối
+    read = {k for t in harness.trace if t["tool"] == "read_policy" and t["status"] == "ok"
+            for k in t["args"]["sections"]}
+    failures += [f"cites: {k} chưa đọc" for k in dict.fromkeys(CITATION.findall(reply)) if k not in read]
     return failures
 
 

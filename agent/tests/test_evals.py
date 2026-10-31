@@ -196,3 +196,35 @@ def test_baggage_and_voucher_are_graded():
     r = run_case(happy(constraints=loose), hold(baggage_kg=20, voucher_code="WELCOME10"))
     assert not r["passed"]
     assert any("baggage_kg" in f for f in r["failures"]) and any("voucher" in f for f in r["failures"])
+
+
+POLICY_Q = "Đổi vé phải làm trước giờ bay bao lâu?"
+
+
+def policy_case(**kw):
+    return Case(**{"name": "cs-x", "group": "chính sách", "turns": [POLICY_Q], "end": "reply", **kw})
+
+
+def test_citing_a_read_section_passes():
+    m = scripted(call("read_policy", sections=["hoan-doi-hanh-ly#dieu-kien-chung"]),
+                 AIMessage("Trước 24 giờ (/chinh-sach/hoan-doi-hanh-ly#dieu-kien-chung)."))
+    assert run_case(policy_case(reply_has=["24"], calls=["read_policy"]), m)["passed"]
+
+
+def test_citing_an_unread_section_fails():
+    m = scripted(call("read_policy", sections=["dieu-khoan#gia-ve"]),
+                 AIMessage("Trước 24 giờ (/chinh-sach/hoan-doi-hanh-ly#dieu-kien-chung)."))
+    r = run_case(policy_case(), m)
+    assert not r["passed"] and any("cites" in f for f in r["failures"])
+
+
+def test_abstain_case_needs_the_fixed_sentence():
+    ok = scripted(AIMessage("SkyLine không có thông tin về thú cưng. Bạn hỏi hãng bay nhé."))
+    guess = scripted(AIMessage("Được mang chó dưới 7 kg."))
+    assert run_case(policy_case(abstain=True), ok)["passed"]
+    assert not run_case(policy_case(abstain=True), guess)["passed"]
+
+
+def test_cases_cover_policy_questions_and_abstention():
+    cs = [c for c in CASES if c.name.startswith("cs-")]
+    assert sum(c.abstain for c in cs) >= 4 and sum(not c.abstain for c in cs) >= 6

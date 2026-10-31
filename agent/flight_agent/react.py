@@ -11,6 +11,10 @@ from langchain.agents.middleware import wrap_model_call, wrap_tool_call
 from langchain_core.messages import HumanMessage, ToolMessage
 
 from flight_agent.core import Harness
+from flight_agent.policies import index, load_sections
+
+# Câu cố định khi không có dữ liệu, dùng chung cho prompt và eval (abstention, Buổi 6).
+NO_INFO = "SkyLine không có thông tin về"
 
 SYSTEM_PROMPT = """Bạn là trợ lý đặt vé máy bay của SkyLine. Hôm nay là {today} (giờ Việt Nam). Đổi mọi ngày tương đối \
 ("thứ 6 này", "mai") sang dạng YYYY-MM-DD.
@@ -38,6 +42,14 @@ nói mã, list_my_bookings nếu không. Hỏi được hoàn bao nhiêu thì g�
 và số tiền chép đúng từ kết quả tool, không được đoán. Backend báo không tìm thấy thì nói không tìm thấy booking đó \
 trong tài khoản và nhờ khách kiểm tra lại mã. Trợ lý không huỷ, hoàn hay đổi vé: mời khách tự làm ở trang trong \
 page, refund_page hoặc reschedule_page.
+- Khách hỏi về chính sách, quy định hay điều kiện (hoàn, đổi, hành lý, giá trẻ em, giữ chỗ, thanh toán, dữ liệu cá \
+nhân…): chỉ trả lời từ kết quả tool, không dùng hiểu biết riêng. Chính sách SkyLine: gọi read_policy với mã mục trong \
+mục lục bên dưới. Gói giá, hành lý kèm gói, phí hoàn đổi và giá mua thêm hành lý của một hãng: gọi airline_rules. Bảng \
+ví dụ gói giá trong văn bản hoàn đổi chỉ minh hoạ, không dùng làm số của hãng. Mỗi ý trả lời nêu nguồn: source của \
+mục đã đọc (ví dụ /chinh-sach/hoan-doi-hanh-ly#dieu-kien-chung), hoặc "gói X của hãng Y". Không có thông tin trong \
+kết quả tool thì trả lời đúng câu "{no_info} <điều khách hỏi>." rồi mời khách xem /chinh-sach/dieu-khoan hoặc hỏi \
+hãng bay; không được đoán. Trợ lý chỉ đặt gói rẻ nhất của mỗi chuyến: khách muốn gói khác thì nói rõ giới hạn này và \
+mời tự đặt trên /flights.
 - Gặp denied, invalid_param hay backend_error thì đọc hint hoặc detail rồi sửa lời gọi, hoặc hỏi lại khách.
 - Trả lời ngắn gọn bằng tiếng Việt, viết văn bản thuần, không dùng Markdown (trang web không hiển thị Markdown)."""
 
@@ -48,7 +60,8 @@ WEEKDAYS = ("thứ Hai", "thứ Ba", "thứ Tư", "thứ Năm", "thứ Sáu", "t
 def system_prompt(harness: Harness) -> str:
     # Có thứ trong tuần để model không phải tự tính "thứ 6 này" là ngày nào.
     weekday = WEEKDAYS[date.fromisoformat(harness.today).weekday()]
-    text = SYSTEM_PROMPT.format(today=f"{weekday}, {harness.today}")
+    text = SYSTEM_PROMPT.format(today=f"{weekday}, {harness.today}", no_info=NO_INFO)
+    text += "\n\nMục lục chính sách (mã mục: tên mục (văn bản)):\n" + index(load_sections())
     return f"{text}\n\n{harness.constraints.to_prompt()}" if harness.constraints else text
 
 

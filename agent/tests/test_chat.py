@@ -247,6 +247,15 @@ def test_prompt_names_todays_weekday():
     assert "thứ Hai, 2026-10-26" in system_prompt(h)
 
 
+def test_prompt_lists_policy_sections_and_the_no_info_sentence():
+    from flight_agent.core import Harness
+    from flight_agent.react import NO_INFO, system_prompt
+    h = Harness()
+    h.begin_turn(FakeBackend().backend(), TODAY)
+    prompt = system_prompt(h)
+    assert "hoan-doi-hanh-ly#dieu-kien-chung: Điều kiện chung" in prompt and NO_INFO in prompt
+
+
 def test_chat_belongs_to_its_session():
     chats = Chats()
     chat = chats.create("s1")
