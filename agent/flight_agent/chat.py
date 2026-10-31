@@ -58,10 +58,10 @@ def _handoff(chat: Chat, *before) -> dict:
     return _result(chat, card["question"])
 
 
-def turn(chat: Chat, model, text: str, backend: Backend, today: str) -> dict:
+def turn(chat: Chat, model, text: str, backend: Backend, today: str, on_step=None) -> dict:
     with chat.lock:
         h = chat.harness
-        h.begin_turn(backend, today)
+        h.begin_turn(backend, today, on_step)
         before = h.proposal
         try:
             reply, chat.history = run_turn(h, model, chat.history, text)

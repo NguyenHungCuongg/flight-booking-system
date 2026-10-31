@@ -10,6 +10,7 @@ import re
 import threading
 import unicodedata
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date as Date, datetime
 from typing import TypedDict
@@ -199,13 +200,14 @@ class Harness:
     model_calls: int = 0
     recent: deque = field(default_factory=lambda: deque(maxlen=LOOP_WINDOW))
     held_code: str | None = None                         # booking đọc lại không khớp (hold_mismatch)
+    on_step: Callable[[dict], None] | None = None        # báo từng dòng trace cho trang (stream SSE)
     # LangGraph chạy các tool call của cùng một AIMessage song song: mỗi lúc chỉ một tool được chạy.
     tool_lock: threading.Lock = field(default_factory=threading.Lock)
 
-    def begin_turn(self, backend: Backend, today: str) -> None:
+    def begin_turn(self, backend: Backend, today: str, on_step: Callable[[dict], None] | None = None) -> None:
         self.backend, self.today = backend, today
         self.trace, self.cards, self.stop_reason, self.model_calls = [], [], None, 0
-        self.recent, self.held_code = deque(maxlen=LOOP_WINDOW), None
+        self.recent, self.held_code, self.on_step = deque(maxlen=LOOP_WINDOW), None, on_step
 
     @property
     def tools(self) -> list:
@@ -532,6 +534,8 @@ class Harness:
             except BackendError as e:
                 result = self.backend_error(e)
         self.trace.append({"tool": tool, "args": args, "status": result["status"]})
+        if self.on_step:
+            self.on_step(self.trace[-1])
         return result
 
     def backend_error(self, e: BackendError) -> dict:

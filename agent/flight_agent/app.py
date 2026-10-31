@@ -1,19 +1,25 @@
 """Service FastAPI: Next.js chuyển /agent/* tới đây. Chạy bằng
 uv run uvicorn flight_agent.app:create_app --factory --port 8000
 """
+import json
+import logging
 import os
+import queue
+import threading
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from flight_agent.backend import Backend
 from flight_agent.chat import Chat, Chats, approve, turn
 from flight_agent.model import make_model
 
+log = logging.getLogger(__name__)
 VN = timezone(timedelta(hours=7))   # Việt Nam không có giờ mùa hè; không dùng zoneinfo vì Windows thiếu tzdata
 
 
@@ -62,14 +68,36 @@ def create_app(model=None, backend_url: str | None = None, transport: httpx.Base
 
     # Tin của khách chỉ ghi ở đây: tin "[Hệ thống]" mà approve() tự gửi cho model không hiện ra.
     # Ghi trước khi chạy lượt: lượt hỏng thì trang vẫn đang hiện tin này.
+    # Trả text/event-stream: mỗi bước tool xong là một sự kiện "step", cuối cùng là "turn".
     @app.post("/agent/chats/{chat_id}/messages")
     def send(chat_id: str, message: Message, request: Request):
-        chat = chat_of(request, chat_id)
-        with chat.lock:
-            chat.shown.append({"from": "user", "text": message.text})
-            out = turn(chat, model, message.text, backend(request), today())
-            chat.shown.append({"from": "agent", "turn": out})
-            return out
+        chat = chat_of(request, chat_id)            # 404 trả JSON trước khi stream
+        back, day, events = backend(request), today(), queue.Queue()
+
+        # Lượt chạy trong luồng riêng: RLock phải nhả trên đúng luồng đã lấy nó, còn generator bên dưới
+        # bị Starlette gọi trên nhiều luồng khác nhau. Khách đóng trang thì lượt vẫn chạy hết và ghi vào shown.
+        def run():
+            try:
+                with chat.lock:
+                    chat.shown.append({"from": "user", "text": message.text})
+                    out = turn(chat, model, message.text, back, day,
+                               on_step=lambda t: events.put({"type": "step", **t}))
+                    chat.shown.append({"from": "agent", "turn": out})
+                events.put({"type": "turn", "turn": out})
+            except Exception:
+                log.exception("Lượt chat hỏng")     # stream đóng không có "turn", trang báo lỗi
+            finally:
+                events.put(None)
+
+        threading.Thread(target=run, daemon=True).start()
+
+        def stream():
+            while (event := events.get()) is not None:
+                yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+
+        # no-transform: lớp gzip của Next.js không nén nên không gom các sự kiện lại (plan Bước 6, Task 1).
+        return StreamingResponse(stream(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache, no-transform"})
 
     # Khách bấm "Sửa": đề xuất hết hiệu lực, F5 thì thẻ không mở lại.
     @app.post("/agent/chats/{chat_id}/proposals/{proposal_id}/dismiss")
