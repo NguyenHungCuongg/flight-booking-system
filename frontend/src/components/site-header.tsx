@@ -17,6 +17,7 @@ const NAV: Record<
     links: [
       ["/flights", "Tìm chuyến bay"],
       ["/bookings", "Đặt chỗ của tôi"],
+      ["/assistant", "Trợ lý đặt vé"],
     ],
   },
   staff: {

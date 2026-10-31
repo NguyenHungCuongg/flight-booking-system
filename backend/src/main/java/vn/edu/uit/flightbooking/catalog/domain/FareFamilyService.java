@@ -31,6 +31,13 @@ public class FareFamilyService {
 		return fareFamilies.findByAirlineCodeOrderById(airlineCode);
 	}
 
+	/** Gói đang bán của hãng, cho khách và trợ lý đặt vé xem điều kiện hành lý, hoàn, đổi. */
+	@Transactional(readOnly = true)
+	public List<FareFamily> listActive(String airlineCode) {
+		airlines.get(airlineCode);
+		return fareFamilies.findByAirlineCodeAndActiveTrueOrderById(airlineCode);
+	}
+
 	@Transactional
 	public FareFamily create(String airlineCode, FareFamilyFields fields) {
 		airlines.get(airlineCode);

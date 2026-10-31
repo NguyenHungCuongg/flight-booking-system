@@ -20,5 +20,6 @@ export const config = {
     "/bookings/:path*",
     "/staff/:path*",
     "/admin/:path*",
+    "/assistant/:path*",
   ],
 };

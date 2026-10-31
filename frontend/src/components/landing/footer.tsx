@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { POLICIES } from "@/lib/policies";
 import { Logo } from "./icons";
 
 export default function Footer() {
@@ -12,7 +13,7 @@ export default function Footer() {
           SkyLine<span className="text-lime-voltage">.</span>
         </p>
 
-        <div className="grid gap-36 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
+        <div className="grid gap-36 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]">
           <div className="grid content-start gap-16 sm:col-span-2 lg:col-span-1">
             <a
               href="#top"
@@ -88,12 +89,27 @@ export default function Footer() {
             >
               Câu hỏi thường gặp
             </a>
-            <a
-              href="#doi-hoan"
+            <Link
+              href="/chinh-sach/hoan-doi-hanh-ly"
               className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage"
             >
               Đổi và hoàn vé
-            </a>
+            </Link>
+          </nav>
+
+          <nav aria-label="Chính sách" className="grid content-start gap-8">
+            <h3 className="mb-4 text-caption font-bold text-lime-voltage">
+              Chính sách
+            </h3>
+            {POLICIES.map((p) => (
+              <Link
+                key={p.slug}
+                href={`/chinh-sach/${p.slug}`}
+                className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage"
+              >
+                {p.title}
+              </Link>
+            ))}
           </nav>
         </div>
 

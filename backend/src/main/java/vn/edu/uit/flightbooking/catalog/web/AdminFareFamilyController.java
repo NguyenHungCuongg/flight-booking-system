@@ -15,8 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import vn.edu.uit.flightbooking.catalog.CabinClass;
-import vn.edu.uit.flightbooking.catalog.domain.FareFamily;
 import vn.edu.uit.flightbooking.catalog.domain.FareFamilyFields;
 import vn.edu.uit.flightbooking.catalog.domain.FareFamilyService;
 
@@ -24,18 +22,6 @@ import vn.edu.uit.flightbooking.catalog.domain.FareFamilyService;
 @RestController
 @RequestMapping("/api/admin")
 class AdminFareFamilyController {
-
-	record FareFamilyResponse(long id, String airlineCode, CabinClass cabinClass, String name, int carryOnKg,
-			int checkedBaggageKg, boolean refundable, long refundFee, boolean changeable, long changeFee,
-			boolean active) {
-
-		static FareFamilyResponse of(FareFamily f) {
-			return new FareFamilyResponse(f.getId(), f.getAirlineCode(), f.getCabinClass(), f.getName(),
-					f.getCarryOnKg(), f.getCheckedBaggageKg(), f.isRefundable(), f.getRefundFee(), f.isChangeable(),
-					f.getChangeFee(), f.isActive());
-		}
-
-	}
 
 	private final FareFamilyService fareFamilies;
 

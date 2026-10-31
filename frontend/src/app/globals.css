@@ -310,3 +310,79 @@ html[data-theme="dark"] body {
     scroll-behavior: smooth;
   }
 }
+
+/* HTML sinh từ Markdown của trang chính sách (/chinh-sach/*): không có class Tailwind nên định kiểu theo thẻ. */
+@layer components {
+  .policy {
+    display: grid;
+    gap: 14px;
+    color: var(--color-ink-2);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+
+    & h2 {
+      margin-top: 22px;
+      scroll-margin-top: 88px;
+      color: var(--color-ink);
+      font-size: var(--text-heading-sm);
+      line-height: var(--text-heading-sm--line-height);
+      letter-spacing: var(--text-heading-sm--letter-spacing);
+      font-weight: 700;
+    }
+    & h3 {
+      margin-top: 8px;
+      color: var(--color-ink);
+      font-size: var(--text-subheading);
+      line-height: var(--text-subheading--line-height);
+      font-weight: 700;
+    }
+    & strong {
+      color: var(--color-ink);
+      font-weight: 600;
+    }
+    & a {
+      color: var(--color-accent);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    & ul,
+    & ol {
+      display: grid;
+      gap: 6px;
+      padding-left: 22px;
+    }
+    & ul {
+      list-style: disc;
+    }
+    & ol {
+      list-style: decimal;
+    }
+    & li::marker {
+      color: var(--color-muted);
+    }
+    & code {
+      font-size: var(--text-table);
+    }
+    /* Bảng cuộn ngang trên màn hẹp thay vì làm tràn trang. */
+    & table {
+      display: block;
+      overflow-x: auto;
+      border-collapse: collapse;
+      font-size: var(--text-table);
+      line-height: var(--text-table--line-height);
+    }
+    & th,
+    & td {
+      border: 1px solid var(--color-line);
+      padding: 8px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    & th {
+      background-color: var(--color-surface);
+      color: var(--color-ink);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+  }
+}
