@@ -24,6 +24,7 @@ def client(fake, *replies):
 
 def events(r) -> list[dict]:
     assert r.status_code == 200 and r.headers["content-type"].startswith("text/event-stream")
+    assert "no-transform" in r.headers["cache-control"]     # thiếu thì lớp gzip của Next.js gom cả stream
     return [json.loads(block.removeprefix("data: ")) for block in r.text.split("\n\n") if block]
 
 
