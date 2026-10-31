@@ -228,3 +228,11 @@ def test_abstain_case_needs_the_fixed_sentence():
 def test_cases_cover_policy_questions_and_abstention():
     cs = [c for c in CASES if c.name.startswith("cs-")]
     assert sum(c.abstain for c in cs) >= 4 and sum(not c.abstain for c in cs) >= 6
+
+
+def test_citing_a_document_that_does_not_exist_fails():
+    bad = scripted(AIMessage("SkyLine không có thông tin về thú cưng. Xem /chinh-sach/hanh-ly nhé."))
+    ok = scripted(AIMessage("SkyLine không có thông tin về thú cưng. Xem /chinh-sach/dieu-khoan nhé."))
+    r = run_case(policy_case(abstain=True), bad)
+    assert not r["passed"] and any("cites" in f for f in r["failures"])
+    assert run_case(policy_case(abstain=True), ok)["passed"]
