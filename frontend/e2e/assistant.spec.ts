@@ -195,3 +195,27 @@ test("Stream đóng mà không có câu trả lời thì báo lỗi", async ({ p
   await expect(page.getByRole("textbox")).toBeEnabled();
   await expect(page.getByText("Đặt vé SGN đi Đà Nẵng")).toBeVisible();
 });
+
+test("Đường dẫn trong câu trả lời bấm được", async ({ page }) => {
+  const link = "/chinh-sach/hoan-doi-hanh-ly#dieu-kien-chung";
+  await page.addInitScript(remember, "abc");
+  await page.route("**/agent/chats/abc", (r) =>
+    r.fulfill({
+      json: {
+        entries: [
+          { from: "user", text: "Đổi vé trước bao lâu?" },
+          {
+            from: "agent",
+            turn: { reply: `Xem ${link} nhé.`, trace: [], cards: [] },
+          },
+        ],
+        proposalId: null,
+      },
+    }),
+  );
+  await page.goto("/assistant");
+  await expect(page.getByRole("link", { name: link })).toHaveAttribute(
+    "href",
+    link,
+  );
+});

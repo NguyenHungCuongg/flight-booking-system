@@ -133,6 +133,18 @@ export async function* sseEvents(
   }
 }
 
+// Đường dẫn nội bộ trong câu trả lời (nguồn trích dẫn, trang tự thao tác); dấu câu cuối câu không thuộc link.
+const INTERNAL_LINK =
+  /(\/(?:chinh-sach|flights|bookings)\b(?:[/#][A-Za-z0-9-]+)*)/;
+
+/** Câu trả lời là văn bản thuần: tách các đường dẫn nội bộ ra để hiện thành link. */
+export function replyParts(text: string): (string | { href: string })[] {
+  return text
+    .split(INTERNAL_LINK)
+    .map((part, i) => (i % 2 ? { href: part } : part))
+    .filter((part) => part !== "");
+}
+
 async function postHeaders(body: unknown) {
   const headers = new Headers();
   if (body !== undefined) headers.set("Content-Type", "application/json");

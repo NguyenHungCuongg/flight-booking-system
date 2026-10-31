@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import SiteHeader from "@/components/site-header";
-import { Notice, pillLine, pillPrimary } from "@/components/form";
+import { Notice, pillLine, pillPrimary, textLink } from "@/components/form";
 import { clock, DIRECTION_LABEL, dmy, PASSENGER_LABEL } from "@/lib/booking";
 import { vnd } from "../flights/itineraries";
 import {
@@ -11,6 +11,7 @@ import {
   agentGet,
   agentPost,
   agentStream,
+  replyParts,
   type Card,
   type ChatView,
   type Entry,
@@ -385,7 +386,17 @@ export default function AssistantChat() {
                   !entry.turn.cards.some(
                     (c) => c.type === "held" || c.type === "handoff",
                   ) && (
-                    <p className="whitespace-pre-line">{entry.turn.reply}</p>
+                    <p className="whitespace-pre-line">
+                      {replyParts(entry.turn.reply).map((part, k) =>
+                        typeof part === "string" ? (
+                          part
+                        ) : (
+                          <Link key={k} href={part.href} className={textLink}>
+                            {part.href}
+                          </Link>
+                        ),
+                      )}
+                    </p>
                   )}
                 {entry.turn.trace.length > 0 && (
                   <Steps steps={entry.turn.trace} label="Các bước đã chạy" />
