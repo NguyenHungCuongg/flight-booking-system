@@ -10,9 +10,11 @@ import {
   AgentError,
   agentGet,
   agentPost,
+  agentStream,
   type Card,
   type ChatView,
   type Entry,
+  type Step,
   type Turn,
 } from "./agent-api";
 
@@ -35,6 +37,19 @@ const chip =
 function short(args: Record<string, unknown>) {
   const text = JSON.stringify(args);
   return text.length > 80 ? text.slice(0, 79) + "…" : text;
+}
+
+function Steps({ steps, label }: { steps: Step[]; label: string }) {
+  return (
+    <ul
+      aria-label={label}
+      className="grid gap-2 font-mono text-badge text-muted"
+    >
+      {steps.map((t, j) => (
+        <li key={j}>{`${t.tool}(${short(t.args)}) → ${t.status}`}</li>
+      ))}
+    </ul>
+  );
 }
 
 function ConstraintsCard({
@@ -234,6 +249,8 @@ export default function AssistantChat() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Các bước tool của lượt đang chạy, nhận dần qua stream.
+  const [steps, setSteps] = useState<Step[]>([]);
   // Thẻ duyệt đã bấm "Giữ chỗ" hoặc "Sửa" thì không còn nút.
   const [closed, setClosed] = useState<ReadonlySet<string>>(new Set());
 
@@ -281,6 +298,8 @@ export default function AssistantChat() {
         e instanceof AgentError ? e.message : "Đã có lỗi xảy ra. Hãy thử lại.",
       );
     } finally {
+      // Cùng nhịp với setEntries: các bước tạm không hiện cùng trace của lượt.
+      setSteps([]);
       setBusy(false);
     }
   }
@@ -291,17 +310,24 @@ export default function AssistantChat() {
     if (!message || busy) return;
     setText("");
     setEntries((list) => [...list, { from: "user", text: message }]);
+    const onStep = (s: Step) => setSteps((list) => [...list, s]);
     void run(async () => {
       const id = chatId.current ?? (await newChat());
       try {
-        return await agentPost<Turn>(`/chats/${id}/messages`, {
-          text: message,
-        });
+        return await agentStream(
+          `/chats/${id}/messages`,
+          { text: message },
+          onStep,
+        );
       } catch (e) {
         // Service khởi động lại thì chat cũ mất: tạo chat mới và gửi lại một lần.
         if (!(e instanceof AgentError && e.status === 404)) throw e;
         const fresh = await newChat();
-        return agentPost<Turn>(`/chats/${fresh}/messages`, { text: message });
+        return agentStream(
+          `/chats/${fresh}/messages`,
+          { text: message },
+          onStep,
+        );
       }
     });
   }
@@ -362,16 +388,7 @@ export default function AssistantChat() {
                     <p className="whitespace-pre-line">{entry.turn.reply}</p>
                   )}
                 {entry.turn.trace.length > 0 && (
-                  <ul
-                    aria-label="Các bước đã chạy"
-                    className="grid gap-2 font-mono text-badge text-muted"
-                  >
-                    {entry.turn.trace.map((t, j) => (
-                      <li
-                        key={j}
-                      >{`${t.tool}(${short(t.args)}) → ${t.status}`}</li>
-                    ))}
-                  </ul>
+                  <Steps steps={entry.turn.trace} label="Các bước đã chạy" />
                 )}
                 {entry.turn.cards.map((card, j) => (
                   <CardView
@@ -395,6 +412,7 @@ export default function AssistantChat() {
             ),
           )}
         </ol>
+        {steps.length > 0 && <Steps steps={steps} label="Các bước đang chạy" />}
         {busy && (
           <p role="status" className="text-caption text-muted">
             Trợ lý đang xử lý…

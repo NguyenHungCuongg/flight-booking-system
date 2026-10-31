@@ -1,33 +1,52 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 // /assistant giữ cuộc trò chuyện khi F5 (lộ trình trợ lý, Bước 1). Service agent được giả lập bằng page.route,
 // nên không cần backend hay model thật; cookie JSESSIONID giả chỉ để proxy.ts cho vào trang.
 const proposal = (proposalId: string, flightNumber: string) => ({
   type: "proposal",
   proposalId,
-  segments: [
+  journeys: [
     {
-      flightNumber,
-      from: "SGN",
-      to: "DAD",
-      depart: "2026-10-30T08:10:00+07:00",
-      arrive: "2026-10-30T09:30:00+07:00",
+      direction: "OUTBOUND",
+      segments: [
+        {
+          flightNumber,
+          from: "SGN",
+          to: "DAD",
+          depart: "2026-10-30T08:10:00+07:00",
+          arrive: "2026-10-30T09:30:00+07:00",
+        },
+      ],
+      fare: "Phổ thông",
+      fares: [
+        { type: "ADULT", count: 1, unitPrice: 1_850_000, total: 1_850_000 },
+      ],
+      baggage: null,
     },
   ],
-  fare: "Phổ thông",
-  passenger: {
-    lastName: "NGUYEN",
-    firstName: "HUNG CUONG",
-    gender: "MALE",
-    dateOfBirth: "2004-03-12",
-  },
+  passengers: [
+    {
+      lastName: "NGUYEN",
+      firstName: "HUNG CUONG",
+      gender: "MALE",
+      dateOfBirth: "2004-03-12",
+      type: "ADULT",
+    },
+  ],
   contact: {
     name: "Nguyễn Hùng Cường",
     email: "a@demo.local",
     phone: "0900000000",
   },
+  discount: null,
   totalAmount: 1_850_000,
 });
+
+// Body của endpoint gửi tin (text/event-stream, lộ trình trợ lý Bước 6).
+const sse = (...events: unknown[]) =>
+  events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("");
+
+const STEP = { type: "step", tool: "search_flights", args: {}, status: "ok" };
 
 const VIEW = {
   entries: [
@@ -136,4 +155,43 @@ test("404 khi đọc lại thì mở chat trống, không báo lỗi", async ({ 
   await expect(page.getByText("Gõ yêu cầu bằng lời")).toBeVisible();
   await expect(page.getByRole("textbox")).toBeEnabled();
   await expect(page.getByText("Không tìm thấy")).toHaveCount(0);
+});
+
+async function sendWith(page: Page, body: string) {
+  await page.route("**/agent/chats", (r) =>
+    r.fulfill({ status: 201, json: { chatId: "new" } }),
+  );
+  await page.route("**/agent/chats/new/messages", (r) =>
+    r.fulfill({ contentType: "text/event-stream", body }),
+  );
+  await page.goto("/assistant");
+  await page.getByRole("textbox").fill("Đặt vé SGN đi Đà Nẵng");
+  await page.getByRole("button", { name: "Gửi" }).click();
+}
+
+test("Gửi tin: hiện các bước rồi câu trả lời", async ({ page }) => {
+  await sendWith(
+    page,
+    sse(STEP, {
+      type: "turn",
+      turn: {
+        reply: "Bấm Giữ chỗ nhé.",
+        trace: [{ tool: "search_flights", args: {}, status: "ok" }],
+        cards: [proposal("p1", "VN122")],
+      },
+    }),
+  );
+  await expect(page.getByText("Bấm Giữ chỗ nhé.")).toBeVisible();
+  await expect(page.getByText("search_flights({}) → ok")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Giữ chỗ" })).toHaveCount(1);
+});
+
+test("Stream đóng mà không có câu trả lời thì báo lỗi", async ({ page }) => {
+  await sendWith(page, sse(STEP));
+  await expect(
+    page.getByText("Trợ lý đang không hoạt động. Hãy thử lại sau."),
+  ).toBeVisible();
+  await expect(page.getByText("search_flights({}) → ok")).toHaveCount(0);
+  await expect(page.getByRole("textbox")).toBeEnabled();
+  await expect(page.getByText("Đặt vé SGN đi Đà Nẵng")).toBeVisible();
 });
