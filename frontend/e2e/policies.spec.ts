@@ -101,3 +101,26 @@ test("hoàn đổi nhắc thời hạn giữ chỗ và hạn chót hoàn đổi"
     "{{aftersales.min_hours_before_departure}}",
   );
 });
+
+test("chân trang trang chủ dẫn tới ba văn bản", async ({ page }) => {
+  await page.goto("/");
+  const footer = page.getByRole("contentinfo");
+  for (const { slug, title } of POLICIES)
+    await expect(footer.getByRole("link", { name: title })).toHaveAttribute(
+      "href",
+      `/chinh-sach/${slug}`,
+    );
+  await expect(
+    footer.getByRole("link", { name: "Đổi và hoàn vé" }),
+  ).toHaveAttribute("href", "/chinh-sach/hoan-doi-hanh-ly");
+});
+
+test("trang đăng ký dẫn tới điều khoản và quyền riêng tư", async ({ page }) => {
+  await page.goto("/register");
+  await expect(
+    page.getByRole("link", { name: "Điều khoản & điều kiện" }),
+  ).toHaveAttribute("href", "/chinh-sach/dieu-khoan");
+  await expect(
+    page.getByRole("link", { name: "Chính sách quyền riêng tư" }),
+  ).toHaveAttribute("href", "/chinh-sach/quyen-rieng-tu");
+});

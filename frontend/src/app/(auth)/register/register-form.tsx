@@ -95,6 +95,20 @@ export default function RegisterForm() {
           </Link>
         </p>
       </div>
+      <p className="text-caption text-muted">
+        Bằng việc đăng ký, bạn đồng ý với{" "}
+        <Link href="/chinh-sach/dieu-khoan" className={`text-ink ${textLink}`}>
+          Điều khoản & điều kiện
+        </Link>{" "}
+        và{" "}
+        <Link
+          href="/chinh-sach/quyen-rieng-tu"
+          className={`text-ink ${textLink}`}
+        >
+          Chính sách quyền riêng tư
+        </Link>{" "}
+        của SkyLine.
+      </p>
     </form>
   );
 }
