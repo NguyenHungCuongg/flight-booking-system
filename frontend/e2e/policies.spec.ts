@@ -1,12 +1,21 @@
+import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import {
+  PLACEHOLDER,
+  POLICIES,
+  SETTING_KEYS,
   fillSettings,
   headingId,
   renderPolicy,
   sections,
+  type PolicySlug,
 } from "../src/lib/policies";
 
 // Unit test cho văn bản chính sách: không mở trình duyệt, không cần backend.
+
+/** Playwright chạy từ thư mục frontend (như ../.env trong helpers.ts). */
+const md = (slug: PolicySlug) =>
+  readFileSync(`content/chinh-sach/${slug}.md`, "utf8");
 
 test("fillSettings thay mọi chỗ giữ chỗ", () => {
   expect(
@@ -52,4 +61,43 @@ test("renderPolicy gắn id cho heading và dựng bảng", () => {
   );
   expect(html).toContain('<h2 id="doi-chuyen">Đổi chuyến</h2>');
   expect(html).toContain("<table>");
+});
+
+for (const { slug } of POLICIES) {
+  test(`${slug}: mọi chỗ giữ chỗ là khoá công khai`, () => {
+    for (const [, key] of md(slug).matchAll(PLACEHOLDER))
+      expect(SETTING_KEYS).toContain(key);
+  });
+
+  test(`${slug}: không có {{ lạc`, () => {
+    expect(md(slug).replace(PLACEHOLDER, "")).not.toContain("{{");
+  });
+
+  test(`${slug}: có mục, không có heading cấp 1`, () => {
+    expect(sections(md(slug)).length).toBeGreaterThanOrEqual(4);
+    expect(md(slug)).not.toMatch(/^# /m);
+  });
+
+  test(`${slug}: heading không chứa chỗ giữ chỗ`, () => {
+    for (const s of sections(md(slug))) expect(s.title).not.toContain("{{");
+  });
+
+  test(`${slug}: id heading không trùng trong mỗi văn bản`, () => {
+    const ids = sections(md(slug)).map((s) => s.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+}
+
+test("cả ba văn bản có cùng mục Liên hệ", () => {
+  const contact = (s: string) => s.slice(s.indexOf("## Liên hệ"));
+  expect(md("dieu-khoan")).toContain("## Liên hệ");
+  expect(contact(md("quyen-rieng-tu"))).toBe(contact(md("dieu-khoan")));
+  expect(contact(md("hoan-doi-hanh-ly"))).toBe(contact(md("dieu-khoan")));
+});
+
+test("hoàn đổi nhắc thời hạn giữ chỗ và hạn chót hoàn đổi", () => {
+  expect(md("hoan-doi-hanh-ly")).toContain("{{booking.hold_minutes}}");
+  expect(md("hoan-doi-hanh-ly")).toContain(
+    "{{aftersales.min_hours_before_departure}}",
+  );
 });
