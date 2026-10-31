@@ -9,6 +9,10 @@ const PUBLIC = [
   "/register",
   "/forgot-password",
   "/reset-password",
+  "/chinh-sach",
+  "/chinh-sach/dieu-khoan",
+  "/chinh-sach/quyen-rieng-tu",
+  "/chinh-sach/hoan-doi-hanh-ly",
 ];
 // Mã không tồn tại: C-09 vẫn phải có tiêu đề "Không tìm thấy đặt chỗ." (BR-104).
 const PROTECTED = [

@@ -10,6 +10,16 @@ const nextConfig: NextConfig = {
     const backend = process.env.BACKEND_URL ?? "http://localhost:8080";
     return [{ source: "/api/:path*", destination: `${backend}/api/:path*` }];
   },
+  // /chinh-sach mở văn bản đầu tiên. Đặt ở đây thay vì page.tsx gọi redirect(): không có gì để prerender.
+  async redirects() {
+    return [
+      {
+        source: "/chinh-sach",
+        destination: "/chinh-sach/dieu-khoan",
+        permanent: false,
+      },
+    ];
+  },
   turbopack: {
     rules: {
       "*.css": {
