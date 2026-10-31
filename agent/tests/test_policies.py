@@ -49,3 +49,8 @@ def test_docs_match_the_frontend_list():
 
 def test_assistant_section_is_readable_by_the_agent():
     assert "quyen-rieng-tu#tro-ly-dat-ve" in load_sections()
+
+
+def test_reschedule_section_alone_states_the_deadline():
+    # trợ lý thường chỉ đọc mục này khi khách hỏi "đổi vé trước bao lâu"
+    assert "{{aftersales.min_hours_before_departure}}" in load_sections()["hoan-doi-hanh-ly#dieu-kien-doi-chuyen"].body

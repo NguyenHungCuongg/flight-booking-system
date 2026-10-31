@@ -58,7 +58,7 @@ Hai trường hợp này không phụ thuộc vào điều kiện gói giá hay 
 
 ## Điều kiện đổi chuyến
 
-Gói giá của chiều phải cho phép đổi. Hành trình mới phải:
+Bạn chỉ đổi được một chiều khi thoả các điều kiện chung ở trên, gồm gửi yêu cầu trước giờ cất cánh của chuyến đầu tiên trong chiều đó ít nhất {{aftersales.min_hours_before_departure}} giờ. Gói giá của chiều phải cho phép đổi. Hành trình mới phải:
 
 - Cùng sân bay đi và sân bay đến với chiều hiện tại.
 - Do cùng hãng khai thác, cùng gói giá trên mọi chặng.
