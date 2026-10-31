@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import vn.edu.uit.flightbooking.catalog.domain.AirlineService;
 import vn.edu.uit.flightbooking.catalog.domain.AirportService;
 import vn.edu.uit.flightbooking.catalog.domain.BaggageOptionService;
+import vn.edu.uit.flightbooking.catalog.domain.FareFamilyService;
 
 /** API danh mục công khai (TDD §8.2), không cần đăng nhập. */
 @RestController
@@ -23,10 +24,14 @@ class CatalogController {
 
 	private final BaggageOptionService baggageOptions;
 
-	CatalogController(AirportService airports, AirlineService airlines, BaggageOptionService baggageOptions) {
+	private final FareFamilyService fareFamilies;
+
+	CatalogController(AirportService airports, AirlineService airlines, BaggageOptionService baggageOptions,
+			FareFamilyService fareFamilies) {
 		this.airports = airports;
 		this.airlines = airlines;
 		this.baggageOptions = baggageOptions;
+		this.fareFamilies = fareFamilies;
 	}
 
 	/** FR-10. Không có {@code q} thì trả mọi sân bay đang hoạt động. */
@@ -44,6 +49,12 @@ class CatalogController {
 	@GetMapping("/airlines/{code}/baggage-options")
 	List<BaggageOptionResponse> baggageOptions(@PathVariable String code) {
 		return baggageOptions.listActive(code).stream().map(BaggageOptionResponse::of).toList();
+	}
+
+	/** FR-82: điều kiện gói giá đang bán của hãng. */
+	@GetMapping("/airlines/{code}/fare-families")
+	List<FareFamilyResponse> fareFamilies(@PathVariable String code) {
+		return fareFamilies.listActive(code).stream().map(FareFamilyResponse::of).toList();
 	}
 
 }

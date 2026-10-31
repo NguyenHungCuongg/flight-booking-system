@@ -16,6 +16,16 @@ const nextConfig: NextConfig = {
       { source: "/agent/:path*", destination: `${agent}/agent/:path*` },
     ];
   },
+  // /chinh-sach mở văn bản đầu tiên. Đặt ở đây thay vì page.tsx gọi redirect(): không có gì để prerender.
+  async redirects() {
+    return [
+      {
+        source: "/chinh-sach",
+        destination: "/chinh-sach/dieu-khoan",
+        permanent: false,
+      },
+    ];
+  },
   turbopack: {
     rules: {
       "*.css": {

@@ -29,3 +29,7 @@ playwright-report/
 
 # Mockup của visual companion (superpowers brainstorming)
 .superpowers/
+
+# Sản phẩm phụ của agent (nhánh feature/flight-agent bỏ qua bằng agent/.gitignore, develop không có file đó)
+agent/**/__pycache__/
+agent/evals/results/

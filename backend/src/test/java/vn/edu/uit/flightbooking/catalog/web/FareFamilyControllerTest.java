@@ -92,6 +92,29 @@ class FareFamilyControllerTest {
 	}
 
 	@Test
+	void publicSeesOnlyActiveFareFamiliesOfTheAirline() throws Exception {
+		create("Q1", fare("ECONOMY", "Economy Classic", 10)).andExpect(status().isCreated());
+		long business = idOf(create("Q1", fare("BUSINESS", "Business Classic", 18)));
+		create("Q2", fare("ECONOMY", "Của Hãng Khác", 7)).andExpect(status().isCreated());
+		update(business, fare("BUSINESS", "Business Classic", 18).replace("\"active\": true", "\"active\": false"))
+			.andExpect(status().isOk());
+
+		mvc.perform(get("/api/airlines/Q1/fare-families"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.length()").value(1))
+			.andExpect(jsonPath("$[0].name").value("Economy Classic"))
+			.andExpect(jsonPath("$[0].refundFee").value(600000))
+			.andExpect(jsonPath("$[0].changeFee").value(300000));
+	}
+
+	@Test
+	void unknownAirlineIsNotFoundOnPublicFareFamilies() throws Exception {
+		mvc.perform(get("/api/airlines/ZZ/fare-families"))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"));
+	}
+
+	@Test
 	void nameIsUniqueWithinAirlineOnly() throws Exception {
 		create("Q1", fare("ECONOMY", "Eco", 7)).andExpect(status().isCreated());
 		long other = idOf(create("Q1", fare("ECONOMY", "Deluxe", 7)));

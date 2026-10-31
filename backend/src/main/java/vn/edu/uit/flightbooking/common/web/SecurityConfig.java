@@ -22,7 +22,8 @@ public class SecurityConfig {
 			@Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver) throws Exception {
 		http
 			.authorizeHttpRequests(auth -> auth
-				.requestMatchers(HttpMethod.GET, "/api/flights/search", "/api/airports", "/api/airlines/**").permitAll()
+				.requestMatchers(HttpMethod.GET, "/api/flights/search", "/api/airports", "/api/airlines/**",
+						"/api/settings/public").permitAll()
 				.requestMatchers("/api/auth/logout").authenticated()
 				.requestMatchers("/api/auth/**", "/api/payments/vnpay/**").permitAll()
 				.requestMatchers("/api/me/**").authenticated()

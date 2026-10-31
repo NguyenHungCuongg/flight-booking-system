@@ -11,6 +11,8 @@ public interface FareFamilyRepository extends JpaRepository<FareFamily, Long> {
 
 	List<FareFamily> findByAirlineCodeOrderById(String airlineCode);
 
+	List<FareFamily> findByAirlineCodeAndActiveTrueOrderById(String airlineCode);
+
 	Optional<FareFamily> findByAirlineCodeAndName(String airlineCode, String name);
 
 }
