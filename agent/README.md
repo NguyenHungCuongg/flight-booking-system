@@ -42,6 +42,8 @@ Khách muốn "đặt như lần trước" thì tool `list_recent_passengers` đ
 
 Khách hỏi về booking đã đặt thì ba tool chỉ đọc trả lời: `list_my_bookings` (10 booking gần nhất), `get_booking(code)` (trạng thái, hạn giữ chỗ, chặng, điều kiện hoàn đổi) và `refund_quote(code, direction)` (số tiền hoàn thật của một chiều). Mỗi tool gọi đúng một `GET`; mã booking được kiểm theo bảng chữ của backend trước khi ghép vào đường dẫn. Giờ và tiền trả về đã định dạng sẵn để model chép nguyên văn. Booking của người khác backend trả 404. Agent không huỷ, hoàn hay đổi vé, chỉ đưa link C-09, C-10, C-11 để khách tự làm.
 
+Khách hỏi về chính sách thì `read_policy(sections)` đọc tối đa 4 mục của ba văn bản `frontend/content/chinh-sach/*.md` (cùng nguồn với trang `/chinh-sach`). Mục lục (mã mục `<slug>#<id>`, tên mục, tên văn bản) nằm sẵn trong system prompt, model chỉ đọc mục cần thay vì nạp cả ba văn bản; các số Admin sửa được (`{{khoá}}`) điền từ `GET /api/settings/public`, và mỗi mục trả về kèm nguồn là link `/chinh-sach/<slug>#<id>` để trích dẫn. `airline_rules(airline)` trả các gói giá đang bán (hành lý kèm gói, phí hoàn, phí đổi) và giá mua thêm hành lý ký gửi của một hãng. Không có thông tin trong kết quả tool thì trợ lý nói đúng câu "SkyLine không có thông tin về …" rồi mời khách xem `/chinh-sach` hoặc hỏi hãng bay; eval chấm câu này và chấm mọi link trích dẫn phải là mục đã đọc trong lượt đó.
+
 Biến trong `.env`:
 
 | Biến              | Ý nghĩa                                                       |
