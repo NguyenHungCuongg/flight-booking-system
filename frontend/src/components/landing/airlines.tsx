@@ -1,9 +1,15 @@
 import { Icon, Jet } from "./icons";
+import { Setting } from "./setting";
 
 const FEATURES = [
   [
     "Bay thẳng hoặc nối chuyến",
-    "Kết quả hiển thị cả chuyến thẳng lẫn chuyến nối một điểm dừng cùng hãng, thời gian chờ nối từ 1 đến 12 tiếng.",
+    <>
+      Kết quả hiển thị cả chuyến thẳng lẫn chuyến nối một điểm dừng cùng hãng,
+      thời gian chờ nối từ{" "}
+      <Setting name="search.min_connection_minutes" per={60} /> đến{" "}
+      <Setting name="search.max_connection_minutes" per={60} /> tiếng.
+    </>,
   ],
   [
     "Giá trọn gói, đúng số khách",
@@ -89,6 +95,9 @@ export default function Airlines() {
                 </div>
               </div>
             </div>
+            <p className="mt-14 text-badge text-muted">
+              Chuyến bay minh hoạ, giờ bay và giá thật xem khi tìm chuyến.
+            </p>
           </div>
 
           {/* Right: Feature Breakdown */}

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { HOLD_MINUTES } from "./data";
 import { Icon } from "./icons";
 import { ddmm, pad, parseIso, useSearch, weekday } from "./search-context";
+import { Setting } from "./setting";
 
 const STEPS = [
   [
@@ -15,7 +15,9 @@ const STEPS = [
     "Họ tên viết in hoa không dấu như trên giấy tờ. Mua thêm hành lý ký gửi, nhập mã giảm giá nếu có.",
   ],
   [
-    `Giữ chỗ trong ${HOLD_MINUTES} phút`,
+    <>
+      Giữ chỗ trong <Setting name="booking.hold_minutes" /> phút
+    </>,
     "Ghế được giữ ngay khi bạn bấm Giữ chỗ, kèm mã đặt chỗ 6 ký tự để tra cứu về sau.",
   ],
   [
@@ -26,7 +28,7 @@ const STEPS = [
     "Nhận vé điện tử",
     "Vé được xuất ngay khi thanh toán thành công và gửi tới email liên hệ của đặt chỗ.",
   ],
-] as const;
+];
 
 const STATUS = [
   "Đang chọn chuyến",
@@ -37,7 +39,8 @@ const STATUS = [
 ] as const;
 
 export default function Story() {
-  const { form } = useSearch();
+  const { form, settings } = useSearch();
+  const hold = settings?.["booking.hold_minutes"];
   const [step, setStep] = useState(2);
   const items = useRef<(HTMLLIElement | null)[]>([]);
   const timerEl = useRef<HTMLSpanElement>(null);
@@ -58,9 +61,10 @@ export default function Story() {
   }, []);
 
   useEffect(() => {
+    if (!hold) return;
     if (!t0.current) t0.current = Date.now();
     const paint = () => {
-      const total = HOLD_MINUTES * 60;
+      const total = hold * 60;
       const left =
         total - (Math.floor((Date.now() - t0.current) / 1000) % total);
       if (timerEl.current)
@@ -71,7 +75,7 @@ export default function Story() {
     paint();
     const id = setInterval(paint, 1000);
     return () => clearInterval(id);
-  }, [step]);
+  }, [step, hold]);
 
   const depD = parseIso(form.dep);
   const paxText = `${form.adults} người lớn${form.children ? `, ${form.children} trẻ em` : ""}${form.infants ? `, ${form.infants} em bé` : ""}`;
@@ -108,7 +112,7 @@ export default function Story() {
                 const isDone = i < step;
                 return (
                   <li
-                    key={title}
+                    key={i}
                     ref={(el) => {
                       items.current[i] = el;
                     }}
@@ -175,7 +179,6 @@ export default function Story() {
             <div className=" border border-line bg-tint p-20 sm:p-28">
               <div
                 id="bk-card"
-                aria-live="polite"
                 className="card-square grid min-h-360 content-start gap-16 p-22"
               >
                 <div className="flex items-start justify-between gap-16">
@@ -186,6 +189,7 @@ export default function Story() {
                     </p>
                   </div>
                   <span
+                    aria-live="polite"
                     className={`inline-flex min-h-32 items-center rounded-badge px-12 py-4 text-badge font-bold ${
                       step === 4
                         ? "bg-cta text-cta-fg"
@@ -256,8 +260,15 @@ export default function Story() {
                     <p className="text-badge font-semibold text-muted">
                       Hạn giữ chỗ còn
                     </p>
-                    <p className="text-display font-black tracking-tight text-accent tabular-nums">
-                      <span ref={timerEl}>{pad(HOLD_MINUTES)}:00</span>
+                    {/* Số đếm đổi mỗi giây nên ẩn với trình đọc màn hình, chỉ đọc thời hạn. */}
+                    <p
+                      aria-hidden="true"
+                      className="text-display font-black tracking-tight text-accent tabular-nums"
+                    >
+                      <span ref={timerEl}>{hold ? pad(hold) : "--"}:00</span>
+                    </p>
+                    <p className="sr-only">
+                      <Setting name="booking.hold_minutes" /> phút
                     </p>
                     <div className="h-4 overflow-hidden rounded-inner bg-tint">
                       <span

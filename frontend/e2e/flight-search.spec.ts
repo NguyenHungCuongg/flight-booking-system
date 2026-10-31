@@ -31,8 +31,8 @@ test("ô tìm chuyến gợi ý sân bay từ GET /airports rồi mở C-02", as
   await page.goto("/");
   await page.getByRole("button", { name: /^Đến SGN/ }).click();
   // Côn Đảo (VCS) chỉ có trong seed V100, không có trong dữ liệu mẫu cũ của landing.
-  await page.getByRole("textbox", { name: "Bay đến" }).fill("con dao");
-  await page.getByRole("button", { name: /^VCS/ }).click();
+  await page.getByRole("combobox", { name: "Bay đến" }).fill("con dao");
+  await page.getByRole("option", { name: /^VCS/ }).click();
   await expect(
     page.getByRole("button", { name: /^Đến VCS Côn Đảo/ }),
   ).toBeVisible();

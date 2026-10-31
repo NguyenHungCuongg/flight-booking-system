@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { Icon } from "./icons";
+import { Setting } from "./setting";
 
 const PANES = {
   doi: {
@@ -10,7 +11,11 @@ const PANES = {
     badge: "Đổi ngày bay trực tuyến",
     formula: "Phí đổi + chênh lệch giá vé",
     facts: [
-      "Đổi trước giờ bay ít nhất 24 giờ, cùng hãng, cùng gói giá.",
+      <>
+        Đổi trước giờ bay ít nhất{" "}
+        <Setting name="aftersales.min_hours_before_departure" /> giờ, cùng
+        hãng, cùng gói giá.
+      </>,
       "Chuyến mới rẻ hơn thì phần chênh lệch không được hoàn.",
     ],
   },
@@ -71,7 +76,7 @@ export default function AfterSales() {
                     type="button"
                     aria-pressed={active}
                     onClick={() => setTab(k)}
-                    className={`min-h-42 rounded-inner border px-20 py-9 text-caption font-bold transition ${
+                    className={`min-h-44 rounded-inner border px-20 py-9 text-caption font-bold transition ${
                       active
                         ? "border-lime-voltage bg-lime-voltage text-forest-ink"
                         : "border-linen-mist/35 bg-transparent text-pure-white hover:border-lime-voltage"
@@ -100,9 +105,9 @@ export default function AfterSales() {
               </div>
 
               <ul className="grid gap-12">
-                {pane.facts.map((f) => (
+                {pane.facts.map((f, i) => (
                   <li
-                    key={f}
+                    key={i}
                     className="flex items-start gap-12 text-body text-pure-white/95"
                   >
                     <span className="mt-2 grid size-22 shrink-0 place-items-center rounded-inner bg-lime-voltage text-forest-ink">

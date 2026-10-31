@@ -49,25 +49,32 @@ test("A-01: Admin thêm, sửa, xoá sân bay; sân bay đã có chuyến thì k
   await page.getByRole("dialog").getByRole("button", { name: "Huỷ" }).click();
 
   const code = letters(3);
-  await page.getByRole("button", { name: "+ Thêm sân bay" }).click();
-  const dialog = page.getByRole("dialog");
-  await field(dialog, "Mã IATA (3 chữ cái)").fill(code);
-  await field(dialog, "Tên sân bay").fill("Sân bay Thử nghiệm");
-  await field(dialog, "Thành phố").fill("Đà Lạt");
-  await dialog.getByRole("button", { name: "Lưu sân bay" }).click();
-  const row = rowOf(table, code);
-  await expect(row).toContainText("Hoạt động");
+  try {
+    await page.getByRole("button", { name: "+ Thêm sân bay" }).click();
+    const dialog = page.getByRole("dialog");
+    await field(dialog, "Mã IATA (3 chữ cái)").fill(code);
+    await field(dialog, "Tên sân bay").fill("Sân bay Thử nghiệm");
+    await field(dialog, "Thành phố").fill("Đà Lạt");
+    await dialog.getByRole("button", { name: "Lưu sân bay" }).click();
+    const row = rowOf(table, code);
+    await expect(row).toContainText("Hoạt động");
 
-  await row.getByRole("button", { name: "Sửa" }).click();
-  await field(dialog, "Thành phố").fill("Lâm Đồng");
-  await dialog.getByText("Đang hoạt động").click();
-  await dialog.getByRole("button", { name: "Lưu sân bay" }).click();
-  await expect(row).toContainText("Lâm Đồng");
-  await expect(row).toContainText("Ngừng kích hoạt");
+    await row.getByRole("button", { name: "Sửa" }).click();
+    await field(dialog, "Thành phố").fill("Lâm Đồng");
+    await dialog.getByText("Đang hoạt động").click();
+    await dialog.getByRole("button", { name: "Lưu sân bay" }).click();
+    await expect(row).toContainText("Lâm Đồng");
+    await expect(row).toContainText("Ngừng kích hoạt");
 
-  await row.getByRole("button", { name: "Xoá" }).click();
-  await dialog.getByRole("button", { name: "Xoá sân bay" }).click();
-  await expect(row).toHaveCount(0);
+    await row.getByRole("button", { name: "Xoá" }).click();
+    await dialog.getByRole("button", { name: "Xoá sân bay" }).click();
+    await expect(row).toHaveCount(0);
+  } finally {
+    // Test gãy giữa chừng vẫn xoá sân bay thử, để nó không lọt vào ô tìm chuyến của landing (đã xoá rồi thì 404).
+    await page.request.delete(`/api/admin/airports/${code}`, {
+      headers: await csrfHeaders(page),
+    });
+  }
 });
 
 test("A-02: Admin thêm, sửa, xoá hãng bay; hãng đã có chuyến thì không xoá được", async ({

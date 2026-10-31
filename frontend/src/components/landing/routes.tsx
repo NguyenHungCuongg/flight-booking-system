@@ -62,7 +62,7 @@ export default function Routes() {
 
         <div
           ref={track}
-          className="mt-32 flex snap-x snap-mandatory gap-16 overflow-x-auto pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="mt-24 flex snap-x snap-mandatory gap-16 overflow-x-auto pt-8 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {ROUTES.map((r, i) => {
             const from = airportByCode(r.from)!;

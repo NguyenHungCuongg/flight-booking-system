@@ -14,7 +14,7 @@ import Support from "./support";
 export default function Landing() {
   return (
     <SearchProvider>
-      <div id="top" className="min-h-dvh">
+      <div id="top" className="min-h-dvh text-pretty">
         <a
           href="#tim-chuyen"
           className={`sr-only focus:not-sr-only focus:fixed focus:top-14 focus:left-16 focus:z-50 ${pillPrimary}`}
