@@ -1,6 +1,6 @@
 import json
 
-from flight_agent.core import Harness
+from flight_agent.core import Harness, _conditions
 from tests.fakes import BAGGAGE, FakeBackend, booking, journey, passenger
 
 ROUTE = dict(origin="SGN", destination="DAD", date="2026-10-30", depart_before="12:00", max_price=2_000_000)
@@ -504,3 +504,62 @@ def test_malformed_passengers_are_invalid_not_a_crash():
 def test_missing_refund_direction_is_invalid_not_a_crash():
     h, _ = ready(FakeBackend(**LOOKUP))
     assert h.execute("refund_quote", {"code": "ABC234", "direction": None})["status"] == "invalid_param"
+
+
+def test_policy_and_airline_tools_need_no_constraints_and_only_get():
+    h, fake = ready()
+    assert h.execute("read_policy", {"sections": ["hoan-doi-hanh-ly#dieu-kien-chung"]})["status"] == "ok"
+    assert h.execute("airline_rules", {"airline": "VN"})["status"] == "ok"
+    assert {r.method for r in fake.requests} == {"GET"}
+
+
+def test_read_policy_fills_numbers_and_cites_each_section():
+    h, _ = ready()
+    r = h.execute("read_policy", {"sections": ["hoan-doi-hanh-ly#dieu-kien-chung", "dieu-khoan#gia-ve"]})
+    first = r["sections"][0]
+    assert first["source"] == "/chinh-sach/hoan-doi-hanh-ly#dieu-kien-chung"
+    assert "24 giờ" in first["text"] and "{{" not in first["text"]
+    assert [s["source"] for s in r["sections"]][1] == "/chinh-sach/dieu-khoan#gia-ve"
+
+
+def test_read_policy_rejects_bad_sections_without_calling_the_backend():
+    h, fake = ready()
+    for sections in ([], "dieu-khoan#gia-ve", ["khong-co#muc"], ["dieu-khoan#gia-ve"] * 5):
+        assert h.execute("read_policy", {"sections": sections})["status"] == "invalid_param"
+    assert fake.requests == []
+
+
+def test_read_policy_reports_a_settings_error():
+    h, _ = ready(FakeBackend(settings_status=500))
+    assert h.execute("read_policy", {"sections": ["dieu-khoan#gia-ve"]})["status"] == "backend_error"
+
+
+def test_airline_rules_lists_fares_and_baggage_of_one_airline():
+    h, _ = ready()
+    r = h.execute("airline_rules", {"airline": "VN"})
+    assert r["airline"] == "VN (Vietnam Airlines)"
+    classic = next(f for f in r["fares"] if f["name"] == "Economy Classic")
+    assert classic == {"name": "Economy Classic", "cabin": "phổ thông",
+                       "conditions": "xách tay 10 kg, ký gửi 23 kg, hoàn vé phí 600.000 đ mỗi khách, "
+                                     "đổi vé phí 300.000 đ mỗi khách"}
+    assert r["baggage"][1] == "20 kg: 350.000 đ"
+
+
+def test_airline_rules_accepts_a_code_in_any_case_and_lists_airlines_otherwise():
+    h, _ = ready()
+    assert h.execute("airline_rules", {"airline": " vj "})["airline"] == "VJ (Vietjet Air)"
+    r = h.execute("airline_rules", {"airline": "Vietnam Airlines"})
+    assert r["status"] == "invalid_param" and "VN (Vietnam Airlines)" in r["hint"]
+
+
+def test_conditions_say_no_refund_no_checked_bag_and_free_change():
+    lite = {"carryOnKg": 7, "checkedBaggageKg": 0, "refundable": False, "refundFee": 0, "changeable": True,
+            "changeFee": 0}
+    assert _conditions(lite) == "xách tay 7 kg, không có ký gửi, không hoàn vé, đổi vé miễn phí"
+
+
+def test_search_shows_the_fare_conditions_of_each_journey():
+    h, _ = ready()
+    h.execute("set_constraints", ROUTE)
+    r = h.execute("search_flights", {})
+    assert r["matching"][0]["conditions"] == "xách tay 7 kg, không có ký gửi, không hoàn vé, đổi vé phí 300.000 đ mỗi khách"

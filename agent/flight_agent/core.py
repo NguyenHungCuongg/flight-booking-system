@@ -17,6 +17,7 @@ from typing import TypedDict
 from uuid import uuid4
 
 from flight_agent.backend import Backend, BackendError
+from flight_agent.policies import fill, load_sections
 
 KEYS = ("depart_before", "max_price")
 BUDGET = 10          # tối đa số lần gọi model mỗi lượt chat
@@ -31,6 +32,9 @@ BAD_CODE = {"status": "invalid_param", "hint": "Mã booking gồm 6 chữ và s�
 PAX_KEYS = ("type", "lastName", "firstName", "gender", "dateOfBirth")
 MATCHING = 5         # số mục tối đa của matching: khứ hồi ghép mọi cặp nên số mục tăng theo tích
 DIRECTIONS = ("OUTBOUND", "RETURN")
+MAX_SECTIONS = 4     # số mục chính sách tối đa mỗi lần read_policy
+CABINS = {"ECONOMY": "phổ thông", "PREMIUM_ECONOMY": "phổ thông đặc biệt", "BUSINESS": "thương gia",
+          "FIRST": "hạng nhất"}
 
 
 # =====================================================================
@@ -42,6 +46,16 @@ def _vnd(n: int) -> str:
 
 def _money(n: int) -> str:
     return f"{_vnd(n)} đ"
+
+
+def _conditions(f: dict) -> str:
+    """Điều kiện của một gói giá (FareOption hoặc FareFamilyResponse) trên một dòng."""
+    refund = ("không hoàn vé" if not f["refundable"] else "hoàn vé miễn phí" if not f["refundFee"]
+              else f"hoàn vé phí {_money(f['refundFee'])} mỗi khách")
+    change = ("không đổi vé" if not f["changeable"] else "đổi vé miễn phí" if not f["changeFee"]
+              else f"đổi vé phí {_money(f['changeFee'])} mỗi khách")
+    checked = f"ký gửi {f['checkedBaggageKg']} kg" if f["checkedBaggageKg"] else "không có ký gửi"
+    return f"xách tay {f['carryOnKg']} kg, {checked}, {refund}, {change}"
 
 
 def _when(iso: str) -> str:
@@ -189,6 +203,7 @@ class Harness:
     found: list[dict] = field(default_factory=list)     # hành trình rút gọn của lần tìm gần nhất
     proposal: Proposal | None = None                     # đề xuất duy nhất còn hiệu lực
     airports: dict[str, dict] | None = None              # cache GET /api/airports theo code
+    airlines: dict[str, dict] | None = None              # cache GET /api/airlines theo code
     # cache GET /api/airlines/{code}/baggage-options theo hãng: các mức {id, weightKg, price}, kg tăng dần
     baggage_prices: dict[str, list[dict]] = field(default_factory=dict)
     # full_name -> (họ, tên) của hành khách cũ: họ nhiều chữ ("TON NU") thì split_name tách sai.
@@ -212,7 +227,7 @@ class Harness:
     @property
     def tools(self) -> list:
         return [self.set_constraints, self.search_flights, self.list_recent_passengers, self.propose_hold,
-                self.list_my_bookings, self.get_booking, self.refund_quote]
+                self.list_my_bookings, self.get_booking, self.refund_quote, self.read_policy, self.airline_rules]
 
     # ---- các tool của model
     def set_constraints(self, origin: str, destination: str, date: str, depart_before: str | None = None,
@@ -300,7 +315,8 @@ class Harness:
                               "to": s["arrival"]["airport"], "depart": s["departure"]["time"],
                               "arrive": s["arrival"]["time"]} for s in segs],
                 "depart": segs[0]["departure"]["time"], "stops": it["stops"], "fare_family_id": fare["fareFamilyId"],
-                "fare": fare["name"], "price": fare["totalPrice"], "seats_left": fare["seatsLeft"],
+                "fare": fare["name"], "conditions": _conditions(fare), "price": fare["totalPrice"],
+                "seats_left": fare["seatsLeft"],
             })
         return legs
 
@@ -362,12 +378,7 @@ class Harness:
         me = self.backend.get("/api/me")
         it = self._found(flight_ids, fare_family_id, return_flight_ids, return_fare_family_id)
         # Bảng giá hành lý của hãng chặng đầu mỗi chiều: backend so mức hành lý với hãng của itinerary.
-        for j in _journeys(it):
-            if j["airline"] not in self.baggage_prices:
-                options = self.backend.get(f"/api/airlines/{j['airline']}/baggage-options")
-                self.baggage_prices[j["airline"]] = sorted(
-                    ({k: o[k] for k in ("id", "weightKg", "price")} for o in options), key=lambda o: o["weightKg"])
-        prices = {d: self.baggage_prices[j["airline"]] for d, j in zip(DIRECTIONS, _journeys(it))}
+        prices = {d: self._baggage(j["airline"]) for d, j in zip(DIRECTIONS, _journeys(it))}
         on_sale = sorted(set.intersection(*({o["weightKg"] for o in p} for p in prices.values())))
         try:
             kg = int(baggage_kg or 0)       # None và 0 là không mua
@@ -461,6 +472,48 @@ class Harness:
         q = self.backend.get(f"/api/bookings/{code}/journeys/{direction}/refund-quote")
         return {"status": "ok", "journey_value": _money(q["journeyValue"]), "fee": _money(q["fee"]),
                 "refund_amount": _money(q["refundAmount"]), "page": f"/bookings/{code}/refund/{direction.lower()}"}
+
+    # ---- chính sách: chỉ GET, không cần ràng buộc chuyến bay
+    def read_policy(self, sections: list[str]) -> dict:
+        """Đọc tối đa 4 mục chính sách SkyLine theo mã mục trong mục lục chính sách của system prompt, ví dụ
+        ["hoan-doi-hanh-ly#dieu-kien-chung"]. Mỗi mục trả về text và source: đường dẫn để trích dẫn trong câu trả
+        lời."""
+        all_sections = load_sections()
+        unknown = [k for k in sections if k not in all_sections] if isinstance(sections, list) else []
+        if not isinstance(sections, list) or not 1 <= len(sections) <= MAX_SECTIONS or unknown:
+            hint = (f"sections là danh sách 1–{MAX_SECTIONS} mã mục trong mục lục chính sách, ví dụ "
+                    '["hoan-doi-hanh-ly#dieu-kien-chung"].')
+            return {"status": "invalid_param", "hint": hint + (f" Không có mục: {', '.join(map(str, unknown))}."
+                                                               if unknown else "")}
+        settings = self.backend.get("/api/settings/public")
+        try:
+            return {"status": "ok", "sections": [
+                {"source": s.source, "document": s.document, "title": s.title, "text": fill(s.body, settings)}
+                for s in (all_sections[k] for k in sections)]}
+        except ValueError as e:     # backend thiếu tham số: không để model thấy {{...}}
+            return {"status": "backend_error", "code": "INTERNAL_ERROR", "detail": str(e), "errors": []}
+
+    def airline_rules(self, airline: str) -> dict:
+        """Gói giá đang bán của một hãng (hạng ghế, hành lý kèm gói, phí hoàn và đổi) và giá mua thêm hành lý ký
+        gửi mỗi khách mỗi chiều. airline: mã IATA 2 ký tự của hãng, ví dụ VN, VJ, QH."""
+        if self.airlines is None:
+            self.airlines = {a["code"]: a for a in self.backend.get("/api/airlines")}
+        code = str(airline).strip().upper()
+        if code not in self.airlines:
+            names = ", ".join(f"{c} ({a['name']})" for c, a in self.airlines.items())
+            return {"status": "invalid_param", "hint": f"airline là mã IATA 2 ký tự của hãng. Các hãng có: {names}."}
+        fares = self.backend.get(f"/api/airlines/{code}/fare-families")
+        return {"status": "ok", "airline": f"{code} ({self.airlines[code]['name']})",
+                "fares": [{"name": f["name"], "cabin": CABINS.get(f["cabinClass"], f["cabinClass"]),
+                           "conditions": _conditions(f)} for f in fares],
+                "baggage": [f"{o['weightKg']} kg: {_money(o['price'])}" for o in self._baggage(code)]}
+
+    def _baggage(self, airline: str) -> list[dict]:
+        if airline not in self.baggage_prices:
+            options = self.backend.get(f"/api/airlines/{airline}/baggage-options")
+            self.baggage_prices[airline] = sorted(
+                ({k: o[k] for k in ("id", "weightKg", "price")} for o in options), key=lambda o: o["weightKg"])
+        return self.baggage_prices[airline]
 
     def _found(self, flight_ids, fare_family_id, return_flight_ids=None, return_fare_family_id=None) -> dict | None:
         """Mục của lần tìm gần nhất có đúng các chiều khách chọn: một chiều không được có tham số chiều về."""

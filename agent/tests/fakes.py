@@ -80,6 +80,30 @@ OPTIONS = {o["id"]: o for options in BAGGAGE.values() for o in options}
 # Mã voucher -> mức giảm theo tạm tính (vé + hành lý), như seed V104
 VOUCHERS = {"WELCOME10": lambda subtotal: min(subtotal // 10, 200_000)}
 
+# Như PRD §7 nhưng giữ chỗ 20 phút (mặc định 15): eval phân biệt số lấy từ tool với số model tự nhớ.
+SETTINGS = {"booking.hold_minutes": 20, "booking.min_hours_before_departure": 3, "booking.max_seated_passengers": 9,
+            "pricing.child_percent": 90, "pricing.infant_percent": 10, "aftersales.min_hours_before_departure": 24,
+            "search.min_connection_minutes": 60, "search.max_connection_minutes": 720}
+# Đúng dạng AirlineResponse, như seed V101
+AIRLINES = [{"code": code, "name": name, "ticketPrefix": prefix, "active": True}
+            for code, name, prefix in (("VN", "Vietnam Airlines", "738"), ("VJ", "Vietjet Air", "978"),
+                                       ("QH", "Bamboo Airways", "926"))]
+# Gói giá như seed V102, đúng dạng FareFamilyResponse
+_FARE_KEYS = ("airlineCode", "cabinClass", "name", "carryOnKg", "checkedBaggageKg", "refundable", "refundFee",
+              "changeable", "changeFee")
+_FARES = [("VN", "ECONOMY", "Economy Lite", 10, 0, False, 0, True, 600_000),
+          ("VN", "ECONOMY", "Economy Classic", 10, 23, True, 600_000, True, 300_000),
+          ("VN", "ECONOMY", "Economy Flex", 10, 23, True, 300_000, True, 0),
+          ("VN", "BUSINESS", "Business Classic", 18, 32, True, 600_000, True, 0),
+          ("VJ", "ECONOMY", "Eco", 7, 0, False, 0, True, 400_000),
+          ("VJ", "ECONOMY", "Deluxe", 7, 20, False, 0, True, 0),
+          ("VJ", "BUSINESS", "SkyBoss", 10, 30, True, 500_000, True, 0),
+          ("QH", "ECONOMY", "Economy Saver", 7, 0, False, 0, True, 500_000),
+          ("QH", "ECONOMY", "Economy Smart", 7, 20, True, 500_000, True, 300_000),
+          ("QH", "BUSINESS", "Business Flex", 14, 40, True, 300_000, True, 0)]
+FARE_FAMILIES = {code: [{"id": i, **dict(zip(_FARE_KEYS, row)), "active": True}
+                        for i, row in enumerate(_FARES, 1) if row[0] == code] for code in ("VN", "VJ", "QH")}
+
 
 def fare_total(price: int, types) -> int:
     return sum(price * PERCENT[t] // 100 for t in types)
@@ -126,7 +150,7 @@ def problem(status, code, errors=(), detail=None):
 class FakeBackend:
     def __init__(self, flights=FLIGHTS, returns=RETURNS, me_status=200, quote_error=None, hold_error=None, detail_patch=None,
                  hold_delay=0.0, search_delay=0.0, past=(), bookings=(), refunds=None, passengers_patch=None,
-                 journeys_patch=None):
+                 journeys_patch=None, settings_status=200):
         self.flights, self.me_status, self.quote_error, self.hold_error = flights, me_status, quote_error, hold_error
         self.returns = returns
         self.detail_patch, self.hold_delay, self.search_delay = detail_patch or {}, hold_delay, search_delay
@@ -135,6 +159,7 @@ class FakeBackend:
         self.refunds = refunds or {}    # (mã, chiều) -> RefundQuote, hoặc (status, code) lỗi
         self.passengers_patch = passengers_patch    # hành khách đã gửi -> hành khách của booking đọc lại
         self.journeys_patch = journeys_patch        # các chiều của booking đọc lại -> các chiều mới
+        self.settings_status = settings_status
         self.requests: list[httpx.Request] = []
         self.holds: list[dict] = []
         self.transport = httpx.MockTransport(self.handle)
@@ -175,6 +200,15 @@ class FakeBackend:
         route = (request.method, request.url.path)
         if route == ("GET", "/api/airports"):
             return httpx.Response(200, json=AIRPORTS)
+        if route == ("GET", "/api/settings/public"):
+            if self.settings_status != 200:
+                return problem(self.settings_status, "INTERNAL_ERROR")
+            return httpx.Response(200, json=SETTINGS)
+        if route == ("GET", "/api/airlines"):
+            return httpx.Response(200, json=AIRLINES)
+        if request.method == "GET" and request.url.path.endswith("/fare-families"):
+            fares = FARE_FAMILIES.get(request.url.path.split("/")[3])
+            return httpx.Response(200, json=fares) if fares else problem(404, "RESOURCE_NOT_FOUND")
         if request.method == "GET" and request.url.path.endswith("/baggage-options"):
             return httpx.Response(200, json=BAGGAGE.get(request.url.path.split("/")[3], []))
         if route == ("GET", "/api/me"):
