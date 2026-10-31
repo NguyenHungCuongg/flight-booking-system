@@ -168,7 +168,7 @@ Mỗi nhóm viết API và test cho module mình phụ trách. Màn hình fronte
 
 | Đường dẫn | Quyền |
 |---|---|
-| `GET /api/flights/search`, `GET /api/airports`, `GET /api/airlines/**` | Công khai |
+| `GET /api/flights/search`, `GET /api/airports`, `GET /api/airlines/**`, `GET /api/settings/public` | Công khai |
 | `/api/auth/**` | Công khai, riêng `logout` cần đăng nhập |
 | `/api/payments/vnpay/**` | Công khai, được bảo vệ bằng chữ ký |
 | `/api/me/**` | Đã đăng nhập |
@@ -608,6 +608,7 @@ Tất cả endpoint có tiền tố `/api`. Cột "Quyền" dùng: **Công khai*
 | GET | `/airlines` | Công khai | Danh sách hãng đang hoạt động | |
 | GET | `/airlines/{code}/baggage-options` | Công khai | Bảng giá hành lý đang bán của hãng | FR-22 |
 | GET | `/flights/search?from=&to=&date=&adults=&children=&infants=&cabin=` | Công khai | Tìm hành trình một chiều | FR-11, FR-12 |
+| GET | `/settings/public` | Công khai | 8 tham số khách cần biết (PRD §7), dạng `{ khoá: số }`, cho trang chính sách | |
 
 ### 8.3 Booking (`booking`)
 
