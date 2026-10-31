@@ -1,0 +1,46 @@
+{
+  "case": "tien-2tr5",
+  "failures": [
+    "reply_has: thiếu '?'"
+  ],
+  "turns": [
+    {
+      "user": "SGN đi DAD ngày 30/10, giá không quá 2tr5, bay trước 9 giờ",
+      "reply": "Em tìm thấy chuyến rẻ nhất từ SGN đi DAD ngày 30/10/2026 cất cánh lúc 08:10 (VN122) với giá 1.850.000 đ. Anh/chị vui lòng cho em xin họ tên đầy đủ, giới tính và ngày sinh để đặt vé nhé.",
+      "trace": [
+        {
+          "tool": "set_constraints",
+          "args": {
+            "max_price": 2500000,
+            "destination": "DAD",
+            "origin": "SGN",
+            "date": "2026-10-30",
+            "depart_before": "09:00"
+          },
+          "status": "ok"
+        },
+        {
+          "tool": "search_flights",
+          "args": {},
+          "status": "ok"
+        },
+        {
+          "tool": "list_recent_passengers",
+          "args": {},
+          "status": "ok"
+        }
+      ],
+      "cards": [
+        {
+          "type": "constraints",
+          "origin": "SGN",
+          "destination": "DAD",
+          "date": "2026-10-30",
+          "departBefore": "09:00",
+          "maxPrice": 2500000
+        }
+      ],
+      "stop_reason": null
+    }
+  ]
+}

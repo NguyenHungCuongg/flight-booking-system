@@ -1,0 +1,25 @@
+{
+  "case": "ha-noi",
+  "failures": [
+    "end: mong no_match, được infra",
+    "constraints: được None"
+  ],
+  "turns": [
+    {
+      "user": "Mình cần bay từ Hà Nội vào Sài Gòn ngày 30/10",
+      "reply": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?",
+      "trace": [],
+      "cards": [
+        {
+          "type": "handoff",
+          "doneSoFar": [
+            "Chưa giữ chỗ, chưa trừ tiền."
+          ],
+          "tried": [],
+          "question": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?"
+        }
+      ],
+      "stop_reason": "infra"
+    }
+  ]
+}

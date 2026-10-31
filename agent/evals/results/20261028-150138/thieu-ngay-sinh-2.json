@@ -1,0 +1,54 @@
+{
+  "case": "thieu-ngay-sinh",
+  "failures": [
+    "end: mong reply, được infra",
+    "reply_has: thiếu 'sinh'"
+  ],
+  "turns": [
+    {
+      "user": "Đặt vé SGN đi DAD ngày 30/10, trước 12h, dưới 2 triệu cho Nguyễn Văn An, nam",
+      "reply": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?",
+      "trace": [
+        {
+          "tool": "set_constraints",
+          "args": {
+            "origin": "SGN",
+            "max_price": 2000000,
+            "depart_before": "12:00",
+            "destination": "DAD",
+            "date": "2026-10-30"
+          },
+          "status": "ok"
+        },
+        {
+          "tool": "search_flights",
+          "args": {},
+          "status": "ok"
+        }
+      ],
+      "cards": [
+        {
+          "type": "constraints",
+          "origin": "SGN",
+          "destination": "DAD",
+          "date": "2026-10-30",
+          "departBefore": "12:00",
+          "maxPrice": 2000000
+        },
+        {
+          "type": "handoff",
+          "doneSoFar": [
+            "Ràng buộc hiện tại: SGN → DAD ngày 2026-10-30, cất cánh trước 12:00, giá tối đa 2.000.000 đ.",
+            "Chưa giữ chỗ, chưa trừ tiền."
+          ],
+          "tried": [
+            "set_constraints({\"origin\": \"SGN\", \"max_price\": 2000000, \"depart_before\": \"12:00\", \"destination\": \"DAD\", \"date\": \"2026-10-30\"}) → ok",
+            "search_flights({}) → ok"
+          ],
+          "question": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?"
+        }
+      ],
+      "stop_reason": "infra"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "case": "qua-re",
+  "failures": [
+    "end: mong no_match, được infra",
+    "constraints: được None"
+  ],
+  "turns": [
+    {
+      "user": "SGN đi DAD ngày 30/10, trước 12h, dưới 1 triệu",
+      "reply": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?",
+      "trace": [],
+      "cards": [
+        {
+          "type": "handoff",
+          "doneSoFar": [
+            "Chưa giữ chỗ, chưa trừ tiền."
+          ],
+          "tried": [],
+          "question": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?"
+        }
+      ],
+      "stop_reason": "infra"
+    }
+  ]
+}

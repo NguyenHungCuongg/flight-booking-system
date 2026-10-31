@@ -1,0 +1,26 @@
+{
+  "case": "tien-2tr5",
+  "failures": [
+    "end: mong reply, được infra",
+    "constraints: được None",
+    "reply_has: thiếu 'sinh'"
+  ],
+  "turns": [
+    {
+      "user": "SGN đi DAD ngày 30/10, giá không quá 2tr5, bay trước 9 giờ",
+      "reply": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?",
+      "trace": [],
+      "cards": [
+        {
+          "type": "handoff",
+          "doneSoFar": [
+            "Chưa giữ chỗ, chưa trừ tiền."
+          ],
+          "tried": [],
+          "question": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?"
+        }
+      ],
+      "stop_reason": "infra"
+    }
+  ]
+}

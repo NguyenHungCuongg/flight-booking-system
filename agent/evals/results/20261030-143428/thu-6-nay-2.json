@@ -1,0 +1,48 @@
+{
+  "case": "thu-6-nay",
+  "failures": [
+    "reply_has: thiếu 'sinh'"
+  ],
+  "turns": [
+    {
+      "user": "Thứ Sáu tuần này mình muốn bay SGN đi DAD, cất cánh trước 9h",
+      "reply": " موج호칭",
+      "trace": [
+        {
+          "tool": "set_constraints",
+          "args": {
+            "depart_before": "09:00",
+            "destination": "DAD",
+            "date": "2026-10-30",
+            "origin": "SGN"
+          },
+          "status": "ok"
+        },
+        {
+          "tool": "search_flights",
+          "args": {},
+          "status": "ok"
+        },
+        {
+          "tool": "list_recent_passengers",
+          "args": {},
+          "status": "ok"
+        }
+      ],
+      "cards": [
+        {
+          "type": "constraints",
+          "origin": "SGN",
+          "destination": "DAD",
+          "date": "2026-10-30",
+          "departBefore": "09:00",
+          "maxPrice": null,
+          "adults": 1,
+          "children": 0,
+          "infants": 0
+        }
+      ],
+      "stop_reason": null
+    }
+  ]
+}

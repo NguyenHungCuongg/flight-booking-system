@@ -1,0 +1,26 @@
+{
+  "case": "voucher-sai-ma",
+  "failures": [
+    "end: mong ('reply', 'proposal'), được infra",
+    "constraints: được None",
+    "reply_has: thiếu 'GIAM50'"
+  ],
+  "turns": [
+    {
+      "user": "Đặt vé SGN đi DAD ngày 30/10, bay trước 12h, cho Nguyễn Văn An, nam, sinh ngày 12/03/2004, dùng mã GIAM50",
+      "reply": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?",
+      "trace": [],
+      "cards": [
+        {
+          "type": "handoff",
+          "doneSoFar": [
+            "Chưa giữ chỗ, chưa trừ tiền."
+          ],
+          "tried": [],
+          "question": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?"
+        }
+      ],
+      "stop_reason": "infra"
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "case": "doi-rang-buoc",
+  "failures": [
+    "end: mong proposal, được infra",
+    "constraints: được Constraints(origin='SGN', destination='DAD', date='2026-10-30', depart_before='09:00', max_price=1900000)"
+  ],
+  "turns": [
+    {
+      "user": "SGN đi DAD ngày 30/10, bay trước 9h, dưới 1tr9, cho Nguyễn Văn An, nam, sinh ngày 12/03/2004",
+      "reply": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?",
+      "trace": [
+        {
+          "tool": "set_constraints",
+          "args": {
+            "depart_before": "09:00",
+            "max_price": 1900000,
+            "date": "2026-10-30",
+            "destination": "DAD",
+            "origin": "SGN"
+          },
+          "status": "ok"
+        }
+      ],
+      "cards": [
+        {
+          "type": "constraints",
+          "origin": "SGN",
+          "destination": "DAD",
+          "date": "2026-10-30",
+          "departBefore": "09:00",
+          "maxPrice": 1900000
+        },
+        {
+          "type": "handoff",
+          "doneSoFar": [
+            "Ràng buộc hiện tại: SGN → DAD ngày 2026-10-30, cất cánh trước 09:00, giá tối đa 1.900.000 đ.",
+            "Chưa giữ chỗ, chưa trừ tiền."
+          ],
+          "tried": [
+            "set_constraints({\"depart_before\": \"09:00\", \"max_price\": 1900000, \"date\": \"2026-10-30\", \"destination\": \"DAD\", \"origin\": \"SGN\"}) → ok"
+          ],
+          "question": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?"
+        }
+      ],
+      "stop_reason": "infra"
+    },
+    {
+      "user": "Thôi đổi sang chuyến bay trước 7h, giá tối đa 2 triệu nhé",
+      "reply": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?",
+      "trace": [],
+      "cards": [
+        {
+          "type": "handoff",
+          "doneSoFar": [
+            "Ràng buộc hiện tại: SGN → DAD ngày 2026-10-30, cất cánh trước 09:00, giá tối đa 1.900.000 đ.",
+            "Chưa giữ chỗ, chưa trừ tiền."
+          ],
+          "tried": [],
+          "question": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?"
+        }
+      ],
+      "stop_reason": "infra"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "case": "khu-hoi",
+  "failures": [
+    "end: mong reply, được infra",
+    "reply_has: thiếu '/flights'"
+  ],
+  "turns": [
+    {
+      "user": "Đặt vé khứ hồi SGN - DAD, đi 30/10, về 2/11",
+      "reply": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?",
+      "trace": [],
+      "cards": [
+        {
+          "type": "handoff",
+          "doneSoFar": [
+            "Chưa giữ chỗ, chưa trừ tiền."
+          ],
+          "tried": [],
+          "question": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?"
+        }
+      ],
+      "stop_reason": "infra"
+    }
+  ]
+}

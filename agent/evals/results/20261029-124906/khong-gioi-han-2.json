@@ -1,0 +1,45 @@
+{
+  "case": "khong-gioi-han",
+  "failures": [
+    "end: mong proposal, được infra"
+  ],
+  "turns": [
+    {
+      "user": "Cho mình một vé SGN - DAD ngày 30/10/2026, hành khách Nguyễn Văn An, nam, sinh ngày 12/03/2004",
+      "reply": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?",
+      "trace": [
+        {
+          "tool": "set_constraints",
+          "args": {
+            "destination": "DAD",
+            "origin": "SGN",
+            "date": "2026-10-30"
+          },
+          "status": "ok"
+        }
+      ],
+      "cards": [
+        {
+          "type": "constraints",
+          "origin": "SGN",
+          "destination": "DAD",
+          "date": "2026-10-30",
+          "departBefore": null,
+          "maxPrice": null
+        },
+        {
+          "type": "handoff",
+          "doneSoFar": [
+            "Ràng buộc hiện tại: SGN → DAD ngày 2026-10-30, cất cánh trước không giới hạn, giá tối đa không giới hạn.",
+            "Chưa giữ chỗ, chưa trừ tiền."
+          ],
+          "tried": [
+            "set_constraints({\"destination\": \"DAD\", \"origin\": \"SGN\", \"date\": \"2026-10-30\"}) → ok"
+          ],
+          "question": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?"
+        }
+      ],
+      "stop_reason": "infra"
+    }
+  ]
+}

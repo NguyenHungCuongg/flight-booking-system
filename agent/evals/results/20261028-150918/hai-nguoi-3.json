@@ -1,0 +1,15 @@
+{
+  "case": "hai-nguoi",
+  "failures": [
+    "reply_has: thiếu '/flights'"
+  ],
+  "turns": [
+    {
+      "user": "Đặt 2 vé SGN đi DAD ngày 30/10 cho hai vợ chồng mình",
+      "reply": "Trợ lý hiện chỉ hỗ trợ đặt vé một chiều cho đúng một người lớn. Bạn vui lòng đặt vé cho từng người hoặc truy cập trang web để đặt vé cho cả hai vợ chồng nhé.",
+      "trace": [],
+      "cards": [],
+      "stop_reason": null
+    }
+  ]
+}
