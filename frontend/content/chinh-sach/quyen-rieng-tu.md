@@ -32,7 +32,7 @@ SkyLine không dùng dữ liệu của bạn cho quảng cáo và không bán d�
 
 ## Chia sẻ dữ liệu với bên thứ ba
 
-- **VNPay** (cổng thanh toán) nhận mã giao dịch, số tiền, nội dung thanh toán có mã đặt chỗ của bạn, và địa chỉ IP. VNPay không nhận họ tên, email hay thông tin hành khách từ SkyLine.
+- **VNPay** (cổng thanh toán) nhận mã giao dịch, số tiền, nội dung thanh toán có mã đặt chỗ của bạn, và địa chỉ IP. VNPay không nhận họ tên, email của bạn hay thông tin hành khách từ SkyLine.
 - **Nhà cung cấp dịch vụ email** chuyển email giao dịch tới địa chỉ email liên hệ của bạn.
 - **Cơ quan nhà nước có thẩm quyền**, khi pháp luật yêu cầu.
 
@@ -61,7 +61,7 @@ SkyLine không dùng cookie quảng cáo, cookie theo dõi hay công cụ phân 
 - Cookie phiên có `HttpOnly` và `SameSite=Lax`, thêm `Secure` khi chạy HTTPS.
 - Mọi yêu cầu thay đổi dữ liệu đều được kiểm tra chống giả mạo (CSRF).
 - Hệ thống kiểm tra vai trò và quyền sở hữu đặt chỗ ở mọi yêu cầu.
-- Mọi phản hồi từ VNPay đều được kiểm tra chữ ký trước khi xử lý.
+- Kết quả thanh toán VNPay gửi về (thông báo IPN và trang trả về sau khi thanh toán) đều được kiểm tra chữ ký trước khi xử lý.
 - Mật khẩu cơ sở dữ liệu, khoá VNPay và tài khoản email nằm trong biến môi trường, không nằm trong mã nguồn, và không bao giờ được ghi vào log.
 
 ## Thời gian lưu trữ

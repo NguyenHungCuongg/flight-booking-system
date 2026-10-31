@@ -29,6 +29,13 @@ export type PublicSettings = Record<string, number>;
 
 export const PLACEHOLDER = /\{\{([a-z_.]+)\}\}/g;
 
+/** Gọi lúc prerender để `next build` (chạy trong CI) hỏng ngay khi Markdown gõ sai tên khoá. */
+export function checkPlaceholders(md: string): void {
+  for (const [, key] of md.matchAll(PLACEHOLDER))
+    if (!(SETTING_KEYS as readonly string[]).includes(key))
+      throw new Error(`Tham số không công khai: ${key}`);
+}
+
 /** Khoá lạ hoặc backend không trả giá trị thì báo lỗi, không để khách thấy {{...}}. */
 export function fillSettings(md: string, settings: PublicSettings): string {
   return md.replace(PLACEHOLDER, (_, key: string) => {

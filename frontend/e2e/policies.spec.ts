@@ -4,6 +4,7 @@ import {
   PLACEHOLDER,
   POLICIES,
   SETTING_KEYS,
+  checkPlaceholders,
   fillSettings,
   headingId,
   renderPolicy,
@@ -87,6 +88,21 @@ for (const { slug } of POLICIES) {
     expect(new Set(ids).size).toBe(ids.length);
   });
 }
+
+test("checkPlaceholders báo lỗi với khoá không công khai", () => {
+  expect(() => checkPlaceholders("{{booking.hold_minute}}")).toThrow(
+    "Tham số không công khai: booking.hold_minute",
+  );
+  expect(() =>
+    checkPlaceholders("Giữ {{booking.hold_minutes}} phút."),
+  ).not.toThrow();
+});
+
+test("quyền riêng tư chỉ nói điều hệ thống làm thật với VNPay", () => {
+  // Response của Refund API không được kiểm chữ ký; refund gửi email nhân viên trong vnp_CreateBy.
+  expect(md("quyen-rieng-tu")).not.toContain("Mọi phản hồi từ VNPay");
+  expect(md("quyen-rieng-tu")).not.toContain("VNPay không nhận họ tên, email hay");
+});
 
 test("cả ba văn bản có cùng mục Liên hệ", () => {
   const contact = (s: string) => s.slice(s.indexOf("## Liên hệ"));

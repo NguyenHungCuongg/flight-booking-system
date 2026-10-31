@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import SiteHeader from "@/components/site-header";
 import {
   POLICIES,
+  checkPlaceholders,
   fillSettings,
   renderPolicy,
   sections,
@@ -25,7 +26,7 @@ async function PolicyBody({ md }: { md: string }) {
   const settings = (await res.json()) as PublicSettings;
   return (
     <article
-      className="policy"
+      className="policy max-w-720"
       // HTML sinh từ file Markdown trong repo, không phải dữ liệu người dùng nhập, nên chèn thẳng là an toàn.
       dangerouslySetInnerHTML={{
         __html: renderPolicy(fillSettings(md, settings)),
@@ -40,6 +41,7 @@ export default function PolicyPage({ slug }: { slug: PolicySlug }) {
     path.join(process.cwd(), "content/chinh-sach", `${slug}.md`),
     "utf8",
   );
+  checkPlaceholders(md);
   const title = POLICIES.find((p) => p.slug === slug)!.title;
 
   return (
