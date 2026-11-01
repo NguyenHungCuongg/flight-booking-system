@@ -1,0 +1,385 @@
+@import "tailwindcss";
+
+/*
+ * Token của DESIGN.md (SkyLine — Wise Style System: Forest Ink #163300 & Lime Voltage #9fe870).
+ * Hỗ trợ chuyển đổi Sáng / Tối qua thuộc tính html[data-theme="light" | "dark"] và tự động theo
+ * prefers-color-scheme khi người dùng chưa khóa chế độ.
+ */
+@theme {
+  /* Bảng màu gốc từ DESIGN.md */
+  --color-forest-ink: #163300;
+  --color-lime-voltage: #9fe870;
+  --color-spruce: #054d28;
+  --color-linen-mist: #e2f6d5;
+  --color-signal-blue: #0b4c72;
+  --color-alarm-red: #cb272f;
+  --color-charcoal: #454745;
+  --color-obsidian: #0e0f0c;
+  --color-pebble: #868685;
+  --color-slate: #6a6c6a;
+  --color-fog: #e8ebe6;
+  --color-pure-white: #ffffff;
+
+  /* Alias tương thích ngược */
+  --color-deep-ink: #163300;
+  --color-clay-ember: #9fe870;
+
+  /*
+   * Màu theo vai trò (Light Mode mặc định):
+   * - paper: nền trang sáng pha chút sương lá (#f6f8f3) để thẻ trắng (#ffffff) tách lớp rõ ràng.
+   * - surface: nền thẻ và ô nhập (#ffffff).
+   * - tint: nền phụ / khối phân đoạn (#e8ebe6 Fog).
+   * - ink / ink-2 / muted: hệ chữ Obsidian -> Charcoal -> Slate.
+   */
+  --color-ink: #0e0f0c;
+  --color-ink-2: #454745;
+  --color-paper: #f6f8f3;
+  --color-surface: #ffffff;
+  --color-muted: #5e615e;
+  --color-line: #dce2d8;
+  --color-line-strong: #868685;
+  --color-tint: #e8ebe6;
+
+  /*
+   * Màu nhấn văn bản & đường viền trên nền sáng: dùng Forest Ink (#163300) để đạt tương phản 13.8:1
+   * (NEW_DESIGN.md cấm dùng Lime Voltage làm màu chữ trên nền sáng).
+   */
+  --color-accent: #163300;
+  --color-accent-hover: #054d28;
+  --color-accent-fg: #9fe870;
+  --color-accent-soft: #e2f6d5;
+
+  /*
+   * Nút hành động chính (Primary CTA): nền Lime Voltage (#9fe870) + chữ Forest Ink (#163300) đậm.
+   */
+  --color-cta: #9fe870;
+  --color-cta-hover: #8cd95c;
+  --color-cta-fg: #163300;
+
+  /* Màu trạng thái (badge, thông báo): chữ đậm trên nền nhạt cùng tông theo NEW_DESIGN.md */
+  --color-ok: #054d28;
+  --color-ok-soft: #e2f6d5;
+  --color-warn: #7c4a00;
+  --color-warn-soft: #fef1d6;
+  --color-danger: #cb272f;
+  --color-danger-soft: #fde8e9;
+  --color-info: #0b4c72;
+  --color-info-soft: #e3f1f8;
+
+  /* Bầu trời trang trí / dải màu rừng nhiệt đới */
+  --color-sky-1: #054d28;
+  --color-sky-2: #163300;
+  --color-sky-3: #e2f6d5;
+  --color-sky-4: #f6f8f3;
+
+  /* Độ đậm chữ (Be Vietnam Pro gắn vào --font-sans từ layout.tsx, có đủ 400..900) */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-black: 900;
+
+  /* Thang chữ */
+  --text-badge: 12px;
+  --text-badge--line-height: 16px;
+  --text-table: 14px;
+  --text-table--line-height: 20px;
+  --text-caption: 14px;
+  --text-caption--line-height: 20px;
+  --text-body: 15px;
+  --text-body--line-height: 24px;
+  --text-nav: 16px;
+  --text-nav--line-height: 22px;
+  --text-subheading: 18px;
+  --text-subheading--line-height: 24px;
+  --text-subheading--letter-spacing: -0.2px;
+  --text-heading-sm: 22px;
+  --text-heading-sm--line-height: 28px;
+  --text-heading-sm--letter-spacing: -0.35px;
+  --text-heading: 28px;
+  --text-heading--line-height: 34px;
+  --text-heading--letter-spacing: -0.6px;
+  --text-heading-lg: 34px;
+  --text-heading-lg--line-height: 40px;
+  --text-heading-lg--letter-spacing: -1px;
+  --text-display: 48px;
+  --text-display--line-height: 52px;
+  --text-display--letter-spacing: -1.6px;
+  --text-display-xl: 131px;
+  --text-display-xl--line-height: 124px;
+  --text-display-xl--letter-spacing: -3.2px;
+  --text-hero: 187px;
+  --text-hero--line-height: 150px;
+  --text-hero--letter-spacing: -4.2px;
+
+  /* Khoảng cách: p-N = N px */
+  --spacing: 1px;
+
+  /* Bo góc: nút, ô nhập, thẻ cùng 10px; badge 6px; khối lớn 28px. Không dùng pill. */
+  --radius-card: 10px;
+  --radius-inner: 10px;
+  --radius-badge: 6px;
+  --radius-largecards: 28px;
+  --radius-decorative: 28px;
+
+  /* Thẻ và bề mặt chuẩn Wise: phẳng, viền hairline 1px rõ ràng, không dùng bóng nhòe ảo */
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+  --shadow-card-hover: 0 4px 14px -2px rgb(22 51 0 / 0.08);
+
+  /* Bố cục */
+  --container-page: 1200px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Chuyển động vào trang của hero (DESIGN.md §Motion). Dùng qua motion-safe:animate-*, độ trễ đặt bằng [animation-delay:Nms].
+     Fill "backwards": hết animation thì không còn giữ transform, để GSAP điều khiển tiếp (máy bay bay lên khi cuộn). */
+  --animate-rise: rise 600ms var(--ease-out) backwards;
+  --animate-jet-in: jet-in 800ms var(--ease-out) backwards;
+  --animate-draw: draw 600ms var(--ease-out) backwards;
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+  }
+  @keyframes jet-in {
+    from {
+      opacity: 0;
+      transform: translate(-56px, 32px);
+    }
+  }
+  /* Vẽ dần đường bay; path cần pathLength={1} strokeDasharray={1}. */
+  @keyframes draw {
+    from {
+      stroke-dashoffset: 1;
+    }
+  }
+}
+
+/*
+ * Chế độ tối (Dark Mode): nền rừng đêm sâu (#0b1507), bề mặt thẻ (#12220c),
+ * chữ trắng sương (#f2f7ef) và điểm nhấn Lime Voltage (#9fe870) rực sáng trên nền tối.
+ */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    --color-ink: #f2f7ef;
+    --color-ink-2: #cfe0c9;
+    --color-paper: #0b1507;
+    --color-surface: #12220c;
+    --color-muted: #98b092;
+    --color-line: #233b1b;
+    --color-line-strong: #3c5e31;
+    --color-tint: #182d11;
+    --color-accent: #9fe870;
+    --color-accent-hover: #b4f08d;
+    --color-accent-fg: #163300;
+    --color-accent-soft: rgb(159 232 112 / 0.15);
+    --color-cta: #9fe870;
+    --color-cta-hover: #b4f08d;
+    --color-cta-fg: #163300;
+    --color-ok: #9fe870;
+    --color-ok-soft: rgb(159 232 112 / 0.15);
+    --color-warn: #f5c469;
+    --color-warn-soft: rgb(245 196 105 / 0.15);
+    --color-danger: #ff8b92;
+    --color-danger-soft: rgb(255 139 146 / 0.15);
+    --color-info: #7cc8f5;
+    --color-info-soft: rgb(124 200 245 / 0.15);
+    --color-sky-1: #071004;
+    --color-sky-2: #0e1d09;
+    --color-sky-3: #163300;
+    --color-sky-4: #054d28;
+    --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+    --shadow-card-hover: 0 4px 14px -2px rgb(0 0 0 / 0.4);
+  }
+}
+
+html[data-theme="dark"] {
+  --color-ink: #f2f7ef;
+  --color-ink-2: #cfe0c9;
+  --color-paper: #0b1507;
+  --color-surface: #12220c;
+  --color-muted: #98b092;
+  --color-line: #233b1b;
+  --color-line-strong: #3c5e31;
+  --color-tint: #182d11;
+  --color-accent: #9fe870;
+  --color-accent-hover: #b4f08d;
+  --color-accent-fg: #163300;
+  --color-accent-soft: rgb(159 232 112 / 0.15);
+  --color-cta: #9fe870;
+  --color-cta-hover: #b4f08d;
+  --color-cta-fg: #163300;
+  --color-ok: #9fe870;
+  --color-ok-soft: rgb(159 232 112 / 0.15);
+  --color-warn: #f5c469;
+  --color-warn-soft: rgb(245 196 105 / 0.15);
+  --color-danger: #ff8b92;
+  --color-danger-soft: rgb(255 139 146 / 0.15);
+  --color-info: #7cc8f5;
+  --color-info-soft: rgb(124 200 245 / 0.15);
+  --color-sky-1: #071004;
+  --color-sky-2: #0e1d09;
+  --color-sky-3: #163300;
+  --color-sky-4: #054d28;
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+  --shadow-card-hover: 0 4px 14px -2px rgb(0 0 0 / 0.4);
+}
+
+/* Thẻ chuẩn Wise: phẳng, bo 10px, viền hairline 1px rõ ràng, không bóng mờ ảo (loại bỏ ghost card) */
+@utility card {
+  border-radius: var(--radius-card);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line);
+}
+
+/* Thẻ cần chú ý (trạng thái đặt chỗ, chiều đi đã chọn, tổng tiền): như card, viền màu nhấn thương hiệu */
+@utility card-hi {
+  border-radius: var(--radius-card);
+  background-color: var(--color-surface);
+  border: 1.5px solid var(--color-accent);
+}
+
+/* Thẻ vuông: như card nhưng không bo góc */
+@utility card-square {
+  border-radius: 0;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-line);
+}
+
+/* Nền tối Forest Ink để vùng kéo quá đáy trang liền với footer (#163300 theo DESIGN.md). */
+html {
+  background: #163300;
+  color-scheme: light dark;
+}
+html[data-theme="light"] {
+  color-scheme: light;
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Nền canvas phẳng, tự nhiên, loại bỏ các vệt gradient mesh mờ kiểu AI template */
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  option {
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+  }
+
+  ::selection {
+    background: var(--color-lime-voltage);
+    color: var(--color-forest-ink);
+  }
+
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [tabindex]
+  ):focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* HTML sinh từ Markdown của trang chính sách (/chinh-sach/*): không có class Tailwind nên định kiểu theo thẻ. */
+@layer components {
+  .policy {
+    display: grid;
+    gap: 14px;
+    color: var(--color-ink-2);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+
+    & h2 {
+      margin-top: 22px;
+      scroll-margin-top: 88px;
+      color: var(--color-ink);
+      font-size: var(--text-heading-sm);
+      line-height: var(--text-heading-sm--line-height);
+      letter-spacing: var(--text-heading-sm--letter-spacing);
+      font-weight: 700;
+    }
+    & h3 {
+      margin-top: 8px;
+      color: var(--color-ink);
+      font-size: var(--text-subheading);
+      line-height: var(--text-subheading--line-height);
+      font-weight: 700;
+    }
+    & strong {
+      color: var(--color-ink);
+      font-weight: 600;
+    }
+    & a {
+      color: var(--color-accent);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    & ul,
+    & ol {
+      display: grid;
+      gap: 6px;
+      padding-left: 22px;
+    }
+    & ul {
+      list-style: disc;
+    }
+    & ol {
+      list-style: decimal;
+    }
+    & li::marker {
+      color: var(--color-muted);
+    }
+    & code {
+      font-size: var(--text-table);
+    }
+    /* Bảng cuộn ngang trên màn hẹp thay vì làm tràn trang. */
+    & table {
+      display: block;
+      overflow-x: auto;
+      border-collapse: collapse;
+      font-size: var(--text-table);
+      line-height: var(--text-table--line-height);
+    }
+    & th,
+    & td {
+      border: 1px solid var(--color-line);
+      padding: 8px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    & th {
+      background-color: var(--color-surface);
+      color: var(--color-ink);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+  }
+}

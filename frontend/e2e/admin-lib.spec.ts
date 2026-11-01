@@ -1,0 +1,51 @@
+import { expect, test } from "@playwright/test";
+import { ApiError } from "../src/lib/api";
+import {
+  errorText,
+  vnTime,
+  validateSettingValue,
+  WEEKDAY_OPTIONS,
+  VOUCHER_TYPE_LABEL,
+} from "../src/lib/admin";
+
+test.describe("admin.ts pure helpers", () => {
+  test("WEEKDAY_OPTIONS contains 7 days from Monday (1) to Sunday (7)", () => {
+    expect(WEEKDAY_OPTIONS).toHaveLength(7);
+    expect(WEEKDAY_OPTIONS[0]).toEqual({ day: 1, label: "Thứ 2" });
+    expect(WEEKDAY_OPTIONS[6]).toEqual({ day: 7, label: "Chủ nhật" });
+  });
+
+  test("VOUCHER_TYPE_LABEL maps percent and fixed", () => {
+    expect(VOUCHER_TYPE_LABEL.PERCENT).toBe("Phần trăm (%)");
+    expect(VOUCHER_TYPE_LABEL.FIXED).toBe("Số tiền cố định");
+  });
+
+  test("validateSettingValue verifies bounds and connection rules", () => {
+    expect(validateSettingValue("booking.hold_minutes", 15)).toBeNull();
+    expect(validateSettingValue("booking.hold_minutes", 3)).toBe(
+      "Giá trị phải từ 5 đến 60",
+    );
+    expect(validateSettingValue("booking.hold_minutes", 70)).toBe(
+      "Giá trị phải từ 5 đến 60",
+    );
+  });
+  test("errorText prefers field messages over the generic detail", () => {
+    expect(
+      errorText(
+        new ApiError(400, "VALIDATION_FAILED", "Dữ liệu không hợp lệ", [
+          { field: "departureTime", message: "Giờ cất cánh phải sau thời điểm hiện tại" },
+        ]),
+      ),
+    ).toBe("Giờ cất cánh phải sau thời điểm hiện tại");
+    expect(errorText(new ApiError(409, "RESOURCE_IN_USE", "Đang được dùng"))).toBe("Đang được dùng");
+  });
+
+  test("vnTime shows a UTC instant in Vietnam time like at()", () => {
+    expect(vnTime("2026-10-09T13:06:09.166956Z")).toBe("20:06 09/10/2026");
+    expect(vnTime("2026-12-31T20:30:00Z")).toBe("03:30 01/01/2027");
+  });
+
+  test("errorText gives a generic message for errors that are not ApiError", () => {
+    expect(errorText(new TypeError("Failed to fetch"))).toBe("Đã có lỗi xảy ra. Hãy thử lại.");
+  });
+});

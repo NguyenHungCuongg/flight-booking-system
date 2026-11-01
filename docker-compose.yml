@@ -8,7 +8,7 @@ services:
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
-      - pgdata:/var/lib/postgresql   # postgres:18 lưu dữ liệu ở /var/lib/postgresql/18/docker
+      - pgdata:/var/lib/postgresql # postgres:18 lưu dữ liệu ở /var/lib/postgresql/18/docker
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -40,6 +40,19 @@ services:
       timeout: 5s
       retries: 12
       start_period: 30s
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
 
 volumes:
   pgdata:

@@ -1,253 +1,306 @@
-# SkyLine — Design System
+# Wise — Style Reference
 
-> Cockpit twilight over parchment. A pale dawn-sky meets a sans-serif wordmark the size of a fuselage, with one warm clay accent breaking the monochrome restraint.
+> deep moss with lime voltage. Lime sparks on a near-black forest floor, with massive blocky display type announcing every move.
 
-**Theme:** mixed
+**Theme:** light
 
-Visual direction (measurements, palette, layout) is inspired by the public website of Hyer Aviation. All brand names, copy, logos, fonts and imagery in this document are SkyLine's own or freely licensed — see [Assets & Licensing](#assets--licensing).
+Source measurements are normalized; roles and recommendations are interpreted. Font summary lists are independent, not paired by position. HTML examples are reconstructions, not source components.
 
-SkyLine reads as a luxury travel editorial: a pale sky-bluish hero with a sculptural jet floats over a bright white canvas, anchored by near-black typography so heavy it feels cast in metal. The palette is deliberately austere — one warm terracotta accent punctuates an otherwise monochromatic system, appearing only in featured solution cards while the rest of the interface stays in deep ink and parchment. Typography is the brand's loudest voice: a single display face at 187px and 131px with extreme tight tracking dominates hero sections, while body text settles at 18px with generous 1.61 line-height for a calm, breathable rhythm. Every interactive element is a full pill (1000px+ radius) or a hard-edged panel, creating a tension between soft, inviting buttons and the architectural boldness of the headlines.
+Wise speaks in a confident, slightly loud voice: a deep forest green (#163300) carries most of the surface area — text, nav, dark sections, icons — while a single electric lime (#9fe870) acts as functional punctuation on CTAs, active tabs, and key highlights. The display type is almost aggressive: Wise Sans at weight 900, tightly tracked, shouted across the hero in 100px+ block letters. The rest of the system stays restrained on a near-white canvas with soft gray surfaces (#e8ebe6). Buttons, nav segments, inputs and cards share one gentle 10px radius; tags use 6px; only flag thumbnails and tiny dots are circular. Color rarely gradients; instead, the lime–forest pairing inverts cleanly when sections go dark, creating rhythm without decoration.
 
 ## Tokens — Colors
 
-| Name          | Value     | Token                   | Role                                                                                                                                                    |
-| ------------- | --------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Deep Ink      | `#000d10` | `--color-deep-ink`      | Primary text, footer background, filled action buttons, icon strokes — the structural near-black carries the entire brand voice in type and CTAs        |
-| Pure White    | `#ffffff` | `--color-pure-white`    | Page canvas, card surfaces, button text on dark, nav backdrop — the quiet field against which everything else reads                                     |
-| Cool Ash      | `#8e8e95` | `--color-cool-ash`      | Secondary body text, nav items, muted helper labels — the only neutral that recedes deliberately behind primary copy                                    |
-| Pebble        | `#d5d3d4` | `--color-pebble`        | Hairline borders, dividers, subtle surface alternation between dark sections — visible only at edges                                                    |
-| Midnight Hull | `#0f0f1c` | `--color-midnight-hull` | Dark section backgrounds (Customer Support area) — slightly bluer than Deep Ink to differentiate stacked dark bands                                     |
-| Charcoal Deck | `#151623` | `--color-charcoal-deck` | Elevated dark panels and deep section backgrounds — the top of the dark surface stack with a faint indigo cast                                          |
-| Clay Ember    | `#bc7155` | `--color-clay-ember`    | Featured solution card background, decorative fills — the single warm note in an otherwise cold system, used sparingly to make one offering feel chosen |
+| Name         | Value     | Token                  | Role                                                                                                                                                                                                                          |
+| ------------ | --------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Forest Ink   | `#163300` | `--color-forest-ink`   | Dominant brand dark — nav text, dark section backgrounds, primary copy on light surfaces, icon strokes, filled navigation pills. This is the brand's gravity: wherever you need weight or authority, you reach for Forest Ink |
+| Lime Voltage | `#9fe870` | `--color-lime-voltage` | Green supporting accent for decorative details and low-frequency emphasis. Do not promote it to the primary CTA color                                                                                                         |
+| Spruce       | `#054d28` | `--color-spruce`       | Secondary dark green for card surfaces, supporting iconography, and tonal depth on dark sections where Forest Ink is too heavy                                                                                                |
+| Linen Mist   | `#e2f6d5` | `--color-linen-mist`   | Pale green wash for soft highlight surfaces, tinted card backgrounds, nav hover states. A whisper of the brand green for low-emphasis containers                                                                              |
+| Signal Blue  | `#0b4c72` | `--color-signal-blue`  | Blue supporting accent for decorative details and low-frequency emphasis                                                                                                                                                      |
+| Alarm Red    | `#cb272f` | `--color-alarm-red`    | Red supporting accent for decorative details and low-frequency emphasis. Use as a supporting accent, not as a status color                                                                                                    |
+| Charcoal     | `#454745` | `--color-charcoal`     | Primary text, body copy, dense UI — slightly warm black that feels softer than pure #000 against white                                                                                                                        |
+| Obsidian     | `#0e0f0c` | `--color-obsidian`     | Display headlines, high-contrast headings, pure-black moments in nav and hero. Slightly green-tinted black, not neutral gray                                                                                                  |
+| Pebble       | `#868685` | `--color-pebble`       | Muted secondary text, placeholder copy, icon strokes, input borders. The mid-gray that recedes                                                                                                                                |
+| Slate        | `#6a6c6a` | `--color-slate`        | Supporting body text, helper labels, subdued iconography. One step darker than Pebble for slightly more emphasis                                                                                                              |
+| Fog          | `#e8ebe6` | `--color-fog`          | Card surfaces, section dividers, subtle panel backgrounds on the white canvas. Green-tinted off-white, not pure neutral                                                                                                       |
+| Paper        | `#ffffff` | `--color-paper`        | Page canvas, inverted card surfaces, button text on lime fill                                                                                                                                                                 |
 
 ## Tokens — Typography
 
-### Inter — Sole typeface across the system. The weight 700 at 187px with -0.02em tracking is the signature: it sets the wordmark and hero at near-architectural scale, turning headlines into physical objects. Weight 400 at 18px with 1.61 line-height handles all body copy, creating the most spacious text block in the type system. · `--font-sans`
+### Inter — Body, UI, labels, and sub-headings across the entire product. The 700 weight handles mid-tier headings (36–45px), 500–600 for subheadings and labels, 400 for body and captions. Inter does the quiet work while Wise Sans shouts. · `--font-inter`
 
-- **License:** SIL Open Font License 1.1 — free for personal, academic and commercial use, including web embedding. Source: Google Fonts / rsms.me/inter.
-- **Why Inter:** closest free match to the reference's neo-grotesque display face; full Vietnamese diacritic coverage (required by NFR-09); variable `wght` and `opsz` axes, so display sizes automatically get the tighter display cut.
-- **Loading (Next.js):** `next/font/google` → `Inter({ subsets: ["latin", "vietnamese"], axes: ["opsz"], variable: "--font-sans" })`. Self-hosted at build time, no runtime request to Google.
-- **Substitute:** Inter Tight (OFL, display-only alternative — reduce tracking if used), system-ui
-- **Weights:** 400, 700
-- **Sizes:** 17px, 18px, 20px, 23px, 30px, 37px, 52px, 60px, 63px, 131px, 187px
-- **Line height:** 0.80 (display) → 1.00 (headings) → 1.61 (body)
-- **Letter spacing:** -3.74px at 187px, -2.62px at 131px, -1.26px at 63px, -0.52px at 52px, -0.37px at 37px, -0.23px at 23px, 0 at 18-20px
-- **OpenType features:** `normal`
-- **Vietnamese note:** at line-height 0.80–1.00, stacked diacritics on capitals (Ấ, Ở, Ữ) can collide with the line above. Keep display headlines short (1–2 words per line) or prefer lowercase for multi-line display text.
-- **Role:** Sole typeface across the system, including 17px weight 700 button/caption labels.
+- **Substitute:** Inter (native Google Fonts)
+- **Weights:** 400,500,600,700
+- **Sizes:** 12px, 14px, 16px, 18px, 20px, 22px, 25px, 36px, 45px, 61px, 300px
+- **Line height:** 0.72, 1.00, 1.10, 1.25, 1.30, 1.40, 1.43, 1.44, 1.50, 1.55, 1.63, 1.71, 1.86, 2.17
+- **Letter spacing:** -0.030em at 105px, -0.015em at 61px, -0.011em at 36px, -0.009em at 25px, -0.007em at 18px, -0.006em at 16px, -0.005em at 14px, -0.003em at 12px
+- **OpenType features:** `"calt"`
+- **Role:** Body, UI, labels, and sub-headings across the entire product. The 700 weight handles mid-tier headings (36–45px), 500–600 for subheadings and labels, 400 for body and captions. Inter does the quiet work while Wise Sans shouts.
+
+### Wise Sans — Display headlines — the brand's signature shout. Ultra-heavy weight 900 at 89–105px with tight -0.03em tracking makes every headline a block-letter announcement. Used sparingly: hero, section openers, campaign moments. · `--font-wise-sans`
+
+- **Substitute:** Inter Black (900) with -0.04em tracking
+- **Weights:** 900
+- **Sizes:** 40px, 52px, 59px, 89px, 105px, 300px
+- **Line height:** 0.85, 1.50
+- **Letter spacing:** -0.0020em
+- **OpenType features:** `"calt"`
+- **Role:** Display headlines — the brand's signature shout. Ultra-heavy weight 900 at 89–105px with tight -0.03em tracking makes every headline a block-letter announcement. Used sparingly: hero, section openers, campaign moments.
+
+### monospace — monospace — detected in extracted data but not described by AI · `--font-monospace`
+
+- **Weights:** 400
+- **Sizes:** 300px
+- **Line height:**
+- **OpenType features:** `"calt"`
+- **Role:** monospace — detected in extracted data but not described by AI
+
+### sans-serif — sans-serif — detected in extracted data but not described by AI · `--font-sans-serif`
+
+- **Weights:** 400
+- **Sizes:** 300px
+- **Line height:**
+- **OpenType features:** `"calt"`
+- **Role:** sans-serif — detected in extracted data but not described by AI
 
 ### Type Scale
 
 | Role       | Family | Weight | Size  | Line Height | Letter Spacing | Token               |
 | ---------- | ------ | ------ | ----- | ----------- | -------------- | ------------------- |
-| caption    | —      | —      | 17px  | 17          | 0px            | `--text-caption`    |
-| nav        | —      | —      | 20px  | 20          | 0px            | `--text-nav`        |
-| subheading | —      | —      | 23px  | 23          | -0.23px        | `--text-subheading` |
-| heading-sm | —      | —      | 30px  | 30          | 0px            | `--text-heading-sm` |
-| heading    | —      | —      | 37px  | 37          | -0.37px        | `--text-heading`    |
-| heading-lg | —      | —      | 52px  | 52          | -0.52px        | `--text-heading-lg` |
-| display    | —      | —      | 63px  | 63          | -1.26px        | `--text-display`    |
-| display-xl | —      | —      | 131px | 131         | -2.62px        | `--text-display-xl` |
-| hero       | —      | —      | 187px | 150         | -3.74px        | `--text-hero`       |
+| micro      | —      | —      | 12px  | 1.63        | -0.036px       | `--text-micro`      |
+| caption    | —      | —      | 14px  | 1.55        | -0.07px        | `--text-caption`    |
+| body-sm    | —      | —      | 16px  | 1.5         | -0.096px       | `--text-body-sm`    |
+| body       | —      | —      | 18px  | 1.5         | -0.126px       | `--text-body`       |
+| body-lg    | —      | —      | 25px  | 1.3         | -0.225px       | `--text-body-lg`    |
+| subheading | —      | —      | 36px  | 1.25        | -0.396px       | `--text-subheading` |
+| heading-sm | —      | —      | 45px  | 1.1         | -0.495px       | `--text-heading-sm` |
+| heading    | —      | —      | 61px  | 1.1         | -0.915px       | `--text-heading`    |
+| heading-lg | —      | —      | 89px  | 0.85        | -2.67px        | `--text-heading-lg` |
+| display    | —      | —      | 105px | 0.85        | -3.15px        | `--text-display`    |
 
 ## Tokens — Spacing & Shapes
 
 **Base unit:** 4px
 
-**Density:** spacious
+**Density:** comfortable
 
 ### Spacing Scale
 
 | Name | Value | Token           |
 | ---- | ----- | --------------- |
-| 11   | 11px  | `--spacing-11`  |
-| 13   | 13px  | `--spacing-13`  |
-| 15   | 15px  | `--spacing-15`  |
+| 4    | 4px   | `--spacing-4`   |
+| 8    | 8px   | `--spacing-8`   |
+| 12   | 12px  | `--spacing-12`  |
 | 16   | 16px  | `--spacing-16`  |
-| 17   | 17px  | `--spacing-17`  |
-| 21   | 21px  | `--spacing-21`  |
-| 22   | 22px  | `--spacing-22`  |
-| 23   | 23px  | `--spacing-23`  |
-| 31   | 31px  | `--spacing-31`  |
-| 34   | 34px  | `--spacing-34`  |
-| 38   | 38px  | `--spacing-38`  |
-| 52   | 52px  | `--spacing-52`  |
-| 53   | 53px  | `--spacing-53`  |
-| 59   | 59px  | `--spacing-59`  |
-| 68   | 68px  | `--spacing-68`  |
-| 119  | 119px | `--spacing-119` |
+| 20   | 20px  | `--spacing-20`  |
+| 24   | 24px  | `--spacing-24`  |
+| 28   | 28px  | `--spacing-28`  |
+| 32   | 32px  | `--spacing-32`  |
+| 40   | 40px  | `--spacing-40`  |
+| 44   | 44px  | `--spacing-44`  |
+| 48   | 48px  | `--spacing-48`  |
+| 56   | 56px  | `--spacing-56`  |
+| 64   | 64px  | `--spacing-64`  |
+| 100  | 100px | `--spacing-100` |
+| 124  | 124px | `--spacing-124` |
 
 ### Border Radius
 
 | Element     | Value  |
 | ----------- | ------ |
-| nav         | 1000px |
-| buttons     | 1000px |
-| decorative  | 45px   |
-| heroPanels  | 0px    |
-| iconButtons | 100%   |
+| tags        | 6px    |
+| cards       | 10px   |
+| inputs      | 10px   |
+| buttons     | 10px   |
+| imageMasks  | 1000px |
+| largeCards  | 28px   |
+| navSegments | 10px   |
+
+### Shadows
+
+| Name     | Value                                                          | Token               |
+| -------- | -------------------------------------------------------------- | ------------------- |
+| subtle   | `rgba(14, 15, 12, 0.12) 0px 0px 0px 1px`                       | `--shadow-subtle`   |
+| subtle-2 | `rgb(134, 134, 133) 0px 0px 0px 1px inset`                     | `--shadow-subtle-2` |
+| xl       | `rgba(0, 0, 0, 0.15) 0px 10px 32px 0px, rgba(0, 0, 0, 0.04...` | `--shadow-xl`       |
+| lg       | `rgba(0, 0, 0, 0.08) 0px 6px 20px 0px`                         | `--shadow-lg`       |
 
 ### Layout
 
 - **Page max-width:** 1200px
-- **Section gap:** 80px
-- **Card padding:** 22px
-- **Element gap:** 16px
+- **Section gap:** 64-80px
+- **Card padding:** 24px
+- **Element gap:** 8-12px
 
 ## Components
 
-### Filled Dark Pill Button
+### Primary CTA Button
 
-**Role:** Primary action trigger on light backgrounds
+**Role:** The signature action element — filled lime block that signals "do this next."
 
-Background #000d10, text #ffffff, 1000px border-radius, padding 15px 22px 16px 22px, font 17px weight 700. Used for CTAs like 'Tìm chuyến bay' and 'Quản lý đặt chỗ' that need to feel confident and terminal.
+10px radius button (same as inputs) with Lime Voltage (#9fe870) fill and Charcoal (#454745) or Forest Ink (#163300) text. Padding 11px vertical, 24px horizontal. Inter weight 500 at 16px. No border, no shadow, no hover lift: hover only darkens the fill.
 
-### Ghost White Pill Button
+### Outlined Button
 
-**Role:** Secondary action on dark surfaces
+**Role:** Secondary action in the nav and inline CTAs.
 
-Transparent background, text #ffffff, 1px white border, 1000px border-radius, same 15px 22px padding. Inverts the dark button for use on dark hero or footer contexts.
+White fill, 1px Forest Ink border, 10px radius. Same padding as primary. Used for "Sign up" in the header and non-primary calls to action where the lime would compete with a primary action nearby.
 
-### Circular Icon Button
+### Text Link Button
 
-**Role:** Menu toggle and compact icon affordance
+**Role:** Inline secondary action with low visual weight.
 
-100% border-radius, background #000d10, white icon, square hit area. Used for the hamburger nav toggle in the hero.
+Underlined Forest Ink text at 16px Inter weight 500, no background, no border. Pairs with the primary CTA when two adjacent actions are needed (e.g. "Open an account" + "Send money now").
 
-### Featured Clay Card
+### Top Navigation Bar
 
-**Role:** Highlighted solution offering
+**Role:** Persistent header with brand, section switcher, and account access.
 
-Hard-edged 0px radius rectangle, background #bc7155, white text, generous padding 53px 59px. The only warm block in the system — reserved for one product card per page to create focal asymmetry.
+White background, 64px height. Logo left, three-segment nav (Personal / Business / Platform) with 10px radius and Forest Ink text, right cluster has language flag, Help, Log in, and outlined Sign up button.
 
-### Standard White Card
+### Segmented Tab Control
 
-**Role:** Default content container
+**Role:** In-page section switcher — single active state in lime.
 
-White background on canvas, 0px radius, no border, no shadow. Relies on surrounding negative space and hairline #d5d3d4 dividers above titles to define its boundary.
+Container (10px radius) holding multiple text labels. Active tab: Lime Voltage fill with Charcoal text. Inactive tabs: transparent with Charcoal text. ~40px height, 12px horizontal padding per segment.
 
-### Hero Wordmark
+### Display Headline
 
-**Role:** Brand mark at extreme scale
+**Role:** The brand's voice — used in hero and major section openers.
 
-SkyLine set at 131px weight 700, letter-spacing -2.62px, #000d10. No ® mark — the name is not a registered trademark. Sits flush-left of the hero viewport.
+Wise Sans weight 900 at 89–105px, line-height 0.85, letter-spacing -3.15px. Charcoal (#454745) or Obsidian (#0e0f0c) on light, Lime Voltage on dark sections. Set as block text, often in ALL CAPS for hero moments.
 
-### Hero Headline
+### Feature Row
 
-**Role:** Primary hero statement
+**Role:** Three-column trust signal block — icon + heading + supporting line.
 
-60-63px weight 700, letter-spacing -1.26px, #000d10, line-height 1.0. Two-line blocks like 'Cất / cánh.' with the period as a deliberate typographic stop.
+Single-column-on-mobile, three-column-on-desktop. Icon (24px, Charcoal stroke) at top, heading in Inter 700 at 18px, body in Inter 400 at 16px Pebble. Generous 24px vertical gap between icon and heading.
 
-### Section Headline
+### Country Grid Item
 
-**Role:** Content section title
+**Role:** Flag thumbnail + country name link in a 5-column grid.
 
-37-52px weight 700, letter-spacing -0.37 to -0.52px, #000d10, four-line blocks max with line-height 1.0. Anchors every white content band.
+Circular flag thumbnail (1000px radius, ~56px diameter), 12px gap to country name in Inter 500 at 16px Forest Ink. Name is a text link with no underline at rest, underline on hover. Items sit in a generous grid with ~32px row gap.
 
-### Feature Block
+### Dark Section Card
 
-**Role:** Sub-section with title and description
+**Role:** Inverted surface for emphasis — used for the send-money CTA block.
 
-Title 23px weight 700 in #000d10, body 18px weight 400 in #8e8e95 with 1.61 line-height, separated from the next block by a 1px #d5d3d4 hairline rule. Arranged in 2-column grids.
+Forest Ink (#163300) background, 28px radius, 40px padding. Lime Voltage text for headline, Paper for body. Contains an inset white card (10px radius, 16px padding) for the currency selector.
 
-### Dark Content Section
+### Currency Selector Pill
 
-**Role:** Full-bleed dark band for contrast content
+**Role:** Interactive country/currency picker with a "Change" action.
 
-Background #0f0f1c or #151623, white heading at 30-37px, white body at 18px, content right-aligned in a single column. Language list with flag emoji is the only chromatic content within.
+White pill inside a dark section card. Left: circular flag (24px) + country name in Charcoal Inter 500. Right: outlined "Change" button in Forest Ink. 9999px radius, 8px vertical padding.
 
-### Footer Terminal
+### Input Field
 
-**Role:** Page-end navigation and identity
+**Role:** Form input — used for amounts, emails, references.
 
-Full-bleed #000d10 background, large white wordmark, nav links in #8e8e95 at 20px, multi-column layout with social and legal rows.
+10px radius, 1px Pebble (#868685) border, 12px vertical and 16px horizontal padding. Inter 400 at 16px. Focus state: Forest Ink border, no glow ring.
 
-### Top Navigation
+### Floating QR Badge
 
-**Role:** Primary site navigation
+**Role:** Persistent "Get the Wise app" download prompt.
 
-Transparent over hero, sticky or absolute positioned. Items at 20px weight 400, #000d10 on light, with 13px vertical gap between stacked items in mobile.
+Forest Ink (#163300) rounded square (16px radius), fixed bottom-right, 120px wide. QR code in Paper at top, "Get the Wise app" label in Lime Voltage Inter 500 at 12px below.
+
+### Badge / Tag
+
+**Role:** Small status labels and category tags.
+
+6px radius, 2px vertical and 8px horizontal padding. Only for real state or category (booking status, domestic or international, applied voucher), never as a decorative eyebrow, step number or a copy of nearby text. Linen Mist (#e2f6d5) background with Forest Ink text, or Forest Ink background with Lime Voltage text. Inter 500 at 12px.
 
 ## Do's and Don'ts
 
 ### Do
 
-- Set display headlines at 60-187px weight 700 with letter-spacing between -1.26px and -3.74px — the tightness is what makes the type read as architectural, not decorative.
-- Use #000d10 for all primary text, filled buttons, icon strokes, and footer — treat it as the single structural color of the system.
-- Reserve #bc7155 clay for one featured card per page — the restraint is the point, not the warmth.
-- Use 1000px border-radius on every button and nav pill — no square buttons, no partial rounding, the pill is the action shape.
-- Set body copy at 18px with line-height 29 (1.61 ratio) — the generous leading is what makes the dense editorial layout breathe.
-- Alternate between white canvas sections and #0f0f1c/#151623 dark bands to create vertical contrast — the page should oscillate, not stay flat.
-- End every hero headline with a period — 'Cất cánh.' is the signature punctuation pattern.
+- Set display headlines in Wise Sans weight 900 with letter-spacing -3.15px at 105px; the extreme heaviness is the brand's signature — don't soften it to 700.
+- Use Lime Voltage (#9fe870) exclusively for primary action fills and active states; one lime element per visible viewport section is usually enough.
+- Use one radius scale: 10px for buttons, inputs, nav segments and cards; 6px for tags; 28px for large dark section cards. No pill (9999px) shapes.
+- Use Forest Ink (#163300) for text and dark surfaces, not pure black; the green-tinted near-black is warmer and more on-brand.
+- Apply tight negative letter-spacing at large sizes (-0.030em at 100px+ down to -0.003em at 12px); headings should feel compact, not airy.
+- Pair a filled primary CTA with an underlined text link as the secondary action — never two filled buttons side by side.
+- Invert section backgrounds from white to Forest Ink to create rhythm; the lime text on dark green is the system's built-in emphasis.
 
 ### Don't
 
-- Don't apply shadows to cards or buttons — the system defines elevation through surface color shifts (white → clay → dark slate), not drop shadows.
-- Don't introduce additional accent hues — the system is monochrome with one warm note; adding green, blue, or any secondary accent breaks the austere editorial voice.
-- Don't use #000d10 in the page background role on white sections — it is the text and button color, not a surface color, on the light canvas.
-- Don't round the featured clay card — it must remain 0px radius to contrast with every pill-shaped element around it.
-- Don't set body type below 18px — the spaciousness of 18/29 is a signature; smaller sizes break the breathing rhythm.
-- Don't use light or thin weights for headlines — weight 700 is non-negotiable from 23px upward; the weight IS the brand voice.
-- Don't place two #bc7155 elements on the same page — the accent is single-use per viewport.
+- Don't use Charcoal (#454745) for display headlines — reserve Obsidian (#0e0f0c) or Forest Ink for maximum contrast at large sizes.
+- Don't introduce gradients, drop shadows beyond hairline borders, or decorative blurs — the system is flat by design.
+- Don't use Lime Voltage as text color on light backgrounds; its contrast is too low. It only works as fill or on dark green.
+- Don't use pill (9999px) radii on buttons, tags or nav elements, and don't put eyebrow badges or numbered badges (01, 02...) above headings.
+- Don't set display headlines in Inter — Wise Sans 900 is the only acceptable voice for 60px+ type.
+- Don't stack multiple lime elements close together; space them so the accent reads as a single punctuation mark.
+- Don't use #000000 for body text; Charcoal (#454745) at 18px on white is the baseline that keeps the page from feeling harsh.
 
 ## Surfaces
 
-| Level | Name          | Value     | Purpose                                                     |
-| ----- | ------------- | --------- | ----------------------------------------------------------- |
-| 0     | Canvas White  | `#ffffff` | Primary page background across all content sections         |
-| 1     | Card White    | `#ffffff` | Feature cards and content blocks sitting on canvas          |
-| 2     | Featured Clay | `#bc7155` | Highlighted solution card that breaks the monochrome rhythm |
-| 3     | Dark Slate    | `#151623` | Full-bleed dark content sections (Customer Support)         |
-| 4     | Footer Ink    | `#000d10` | Terminal dark band at the base of every page                |
+| Level | Name         | Value     | Purpose                                                                            |
+| ----- | ------------ | --------- | ---------------------------------------------------------------------------------- |
+| 0     | Paper        | `#ffffff` | Page canvas — the default background for all content sections                      |
+| 1     | Fog          | `#e8ebe6` | Card surfaces, soft panels, and section backgrounds on the white canvas            |
+| 2     | Linen Mist   | `#e2f6d5` | Tinted highlight surfaces — pale green wash for accent containers and hover states |
+| 3     | Lime Voltage | `#9fe870` | Active surface — selected tabs, primary CTA fill, emphasis zones                   |
+| 4     | Forest Ink   | `#163300` | Inverted surface — dark section backgrounds, nav, high-contrast blocks             |
 
 ## Elevation
 
-- **No elevation system detected:** `Cards and buttons rely on surface color contrast and hairline borders, not box-shadow`
+- **Cards:** `rgba(0, 0, 0, 0.15) 0px 10px 32px 0px, rgba(0, 0, 0, 0.04) 0px 40px 40px 0px`
+- **Elevated panels:** `rgba(0, 0, 0, 0.08) 0px 6px 20px 0px`
+- **Input/button focus:** `rgb(134, 134, 133) 0px 0px 0px 1px inset`
+- **Icon containers:** `rgba(14, 15, 12, 0.12) 0px 0px 0px 1px`
 
 ## Imagery
 
-Photography and 3D renders dominate the visual language, specifically a single hero image of a white commercial airliner, shown against a soft gradient sky transitioning from pale blue at top to warm cream at the horizon. The aircraft carries a plain white livery with no airline logos or markings — SkyLine sells tickets across many airlines and must not imply partnership with any one carrier. The aircraft is shown in a three-quarter banking pose, positioned left-of-center to leave room for the wordmark and headline. The image is hyper-clean, product-showcase style — no lifestyle context, no passengers, no airports. The aircraft IS the hero. Additional imagery (when used in content sections) follows the same product-crop logic: tight, isolated, on pure white. Iconography is minimal and always stroke-based in #000d10.
+Painted 3D-style illustrations of a globe with gold coins establish the brand's visual world — tactile, slightly surreal, rendered with soft gradients and warm light. Photography is minimal; when used, it's high-key and lifestyle-casual. Country flags appear as circular thumbnails in a 5-column grid — the only "icon" system is national identity. No abstract graphics, no stock patterns. The globe and coins are the recurring mascot motif, signaling global reach through a single warm, optimistic object rather than a montage.
 
 ## Layout
 
-Full-bleed sections that alternate between pale sky-tinged hero, white content bands, and dark midnight sections. The hero is the only asymmetric composition: wordmark flush-left at extreme scale, a right-side two-line headline, and the aircraft floating in the lower-center negative space. Content sections are right-aligned single-column (heading + 2×2 feature grid) on white, creating strong rightward gravity. Navigation is a single transparent row at the top with three text links and a circular menu button. Footer is a full-bleed dark terminal with large wordmark. Vertical rhythm is set by 80px section gaps with no visible dividers between most bands — the color shift itself separates them.
+Max-width 1200px centered container, with hero and dark sections going full-bleed. Hero pattern: centered massive display headline over white space, with a large illustration (globe) breaking the lower edge of the viewport. Section rhythm alternates white → light green band → dark Forest Ink section, creating a natural color cadence. Content arrangement is predominantly centered stacks in the hero, then 2-column text+visual or 3-column feature rows in supporting sections. A 5-column flag grid handles the country directory. Navigation is a single sticky top bar with a segmented switcher. The QR badge floats fixed in the bottom-right corner across all scroll positions.
+
+## Motion
+
+Motion is as restrained as the rest of the system: it confirms an action, shows a state change, or gives the landing one authored moment. It never decorates.
+
+- **Scope:** guest pages (landing, `/flights`, `/chinh-sach/*`, `(auth)`, `/assistant`) and customer pages (`/checkout`, `/bookings/*`, `/account`). `/staff` and `/admin` keep only CSS hover/focus transitions; never import GSAP there.
+- **Tooling:** CSS transitions for hover, focus, open/close and other state changes. GSAP (`gsap` + `@gsap/react`, skills `gsap-*` in `.claude/skills/`) only for scroll-linked motion (ScrollTrigger): landing section reveals and the hero jet climbing as the page scrolls. Motion that plays on load (the hero entrance) is CSS keyframes, because a GSAP tween starts only after hydration and would hide content that is already painted.
+- **Timing:** 150–200ms for feedback (buttons, inputs, toggles); 250–400ms for popovers, panels and step changes; the landing entrance sequence stays under 1s in total. Ease out on enter (`power2.out`, `cubic-bezier(0.22, 1, 0.36, 1)`), ease in on exit. No bounce or elastic easing.
+- **Properties:** animate `transform` and `opacity`; never `width`, `height`, `top`, `left` or margins.
+- **Reduced motion:** every animation has a `prefers-reduced-motion` path. GSAP code runs inside `gsap.matchMedia()` under `(prefers-reduced-motion: no-preference)`; CSS motion sits in `@media (prefers-reduced-motion: no-preference)`, as `globals.css` does for smooth scroll. Under reduce, drop movement but keep the opacity and colour changes that carry state.
+- **Visible by default:** never hide content in markup or CSS waiting for JS (no initial `opacity: 0`); hide it only from JS (`gsap.set`/`gsap.from`) so a failed script still shows the page. Playwright runs with `reducedMotion: "reduce"`.
+- **Next.js:** GSAP lives in `"use client"` components and runs in `useGSAP` with a `scope` ref, after mount; never call `gsap.utils.random` or read the time while rendering (Cache Components).
+- **Don't:** animate the hold countdown or payment hand-off beyond state feedback, loop decorative animations, add parallax to text, or block interaction until an animation ends.
 
 ## Agent Prompt Guide
 
-**Quick Color Reference**
+Quick Color Reference
 
-- text: #000d10
-- background: #ffffff
-- border: #d5d3d4
-- accent: #bc7155 (featured card only)
-- primary action: #bc7155 (filled action)
-- dark surface: #0f0f1c / #151623
-- muted text: #8e8e95
+- text: #454745 (Charcoal) for body, #0e0f0c (Obsidian) for display
+- background: #ffffff (Paper) canvas, #e8ebe6 (Fog) cards
+- border: #868685 (Pebble) for hairlines, #163300 (Forest Ink) for emphasis
+- accent: #9fe870 (Lime Voltage) for active states and highlights
+- primary action: no distinct CTA color
+- dark surface: #163300 (Forest Ink) for inverted sections
 
-**Example Component Prompts**
+Example Component Prompts
 
-1. Create a Primary Action Button: #bc7155 background, #ffffff text, 9999px radius, compact pill padding. Use this filled treatment for the main CTA.
+No distinct primary action color was observed; use the extracted neutral button treatments instead of inventing a filled CTA color.
 
-2. Create a featured solution card: background #bc7155, text #ffffff, border-radius 0px, padding 53px 59px, title at 37px weight 700, description at 18px weight 400 line-height 29. This is the only warm block in the system — use it once per page for one highlighted offering.
+2. Feature row (3-column): icon at 24px stroke #454745, 24px gap to heading at 18px Inter 700 in #0e0f0c, 8px gap to body at 16px Inter 400 in #868685. Column gap 32px, centered max-width 1200px.
 
-3. Create a hero section: pale blue-to-cream gradient sky background, wordmark 'SkyLine' at 131px weight 700 letter-spacing -2.62px in #000d10 flush-left, headline 'Cất cánh.' at 60px weight 700 in #000d10 right-aligned, unbranded white airliner image floating center-low, ghost pill button bottom-right with white border on transparent background.
+3. Country grid item: circular flag thumbnail at 56px diameter (1000px radius), 12px vertical gap to country name in Inter 500 at 16px #163300. Arranged in a 5-column grid with 32px row gap and 24px column gap. Hover state: underline appears on the country name.
 
-4. Create a feature block grid: 2-column layout on white canvas, each block has a 1px solid #d5d3d4 hairline above the title, title at 23px weight 700 in #000d10, body at 18px weight 400 in #8e8e95 with line-height 29. Gap between columns 80px.
+4. Dark section card: Forest Ink (#163300) background, 28px radius, 40px padding. Headline in Lime Voltage (#9fe870) at 36px Inter 700. Body text in #ffffff at 16px Inter 400. Contains an inset white card (10px radius) for a currency selector: circular flag + country name in Charcoal + outlined "Change" button.
 
-5. Create a dark content section: full-bleed background #0f0f1c, right-aligned content column at ~50% width, heading at 37px weight 700 in #ffffff, body at 18px weight 400 in #ffffff with line-height 29. Use this for support, contact, or contrast content that needs to feel terminal.
+5. Outlined nav button: white fill, 1px solid #163300 border, 10px radius, 8px 16px padding, Inter 500 at 16px in #163300. Used in the top-right nav cluster for secondary account actions.
 
-## Assets & Licensing
+## Similar Brands
 
-SkyLine is a non-commercial, personal academic project. Every asset must still carry a license that permits web use — "educational use" is not a legal exemption for fonts or images.
-
-| Asset                    | Choice                                                   | Status                                                                                           |
-| ------------------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Typeface                 | Inter (variable, `wght` + `opsz`)                        | Free — SIL OFL 1.1                                                                               |
-| Reference typeface       | Helvetica Now Display (Monotype)                         | Not used — commercial license required, even for non-commercial web use                          |
-| Reference substitutes    | Neue Haas Grotesk Display, Helvetica Neue                | Not used — commercial (Neue Haas only via a paid Adobe Fonts subscription)                       |
-| Hero aircraft image      | Own render, or a photo/model under Unsplash, Pexels, CC0 | Must be free-licensed; keep the source URL in the repo. CC-BY models require visible attribution |
-| Icons                    | Any stroke-based OFL/MIT/ISC set (e.g. Lucide)           | Free                                                                                             |
-| Wordmark, copy, taglines | SkyLine's own                                            | Do not reuse the reference site's logo, copy, or imagery                                         |
+- **Revolut** — Same dual-brand color strategy — deep brand color as dominant surface and text, one bright accent for CTAs and highlights, with pill-shaped buttons and large confident headlines.
+- **Monzo** — Bright single-accent color system on a neutral canvas, pill-shaped interactive elements, friendly rounded geometry, and display type that speaks directly to the user.
+- **Cash App** — High-contrast near-black text on white with a single vivid brand accent, oversized bold headlines as the primary brand expression, minimal decoration.
+- **N26** — Flat surfaces, hairline borders instead of shadows, generous white space, and a single saturated accent color driving all interactive emphasis.
 
 ## Quick Start
 
@@ -256,95 +309,129 @@ SkyLine is a non-commercial, personal academic project. Every asset must still c
 ```css
 :root {
   /* Colors */
-  --color-deep-ink: #000d10;
-  --color-pure-white: #ffffff;
-  --color-cool-ash: #8e8e95;
-  --color-pebble: #d5d3d4;
-  --color-midnight-hull: #0f0f1c;
-  --color-charcoal-deck: #151623;
-  --color-clay-ember: #bc7155;
+  --color-forest-ink: #163300;
+  --color-lime-voltage: #9fe870;
+  --color-spruce: #054d28;
+  --color-linen-mist: #e2f6d5;
+  --color-signal-blue: #0b4c72;
+  --color-alarm-red: #cb272f;
+  --color-charcoal: #454745;
+  --color-obsidian: #0e0f0c;
+  --color-pebble: #868685;
+  --color-slate: #6a6c6a;
+  --color-fog: #e8ebe6;
+  --color-paper: #ffffff;
 
   /* Typography — Font Families */
-  --font-sans:
+  --font-inter:
     "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  --font-wise-sans:
+    "Wise Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  --font-monospace:
+    "monospace", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    monospace;
+  --font-sans-serif:
+    "sans-serif", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, sans-serif;
 
   /* Typography — Scale */
-  --text-caption: 17px;
-  --leading-caption: 17;
-  --tracking-caption: 0px;
-  --text-nav: 20px;
-  --leading-nav: 20;
-  --tracking-nav: 0px;
-  --text-subheading: 23px;
-  --leading-subheading: 23;
-  --tracking-subheading: -0.23px;
-  --text-heading-sm: 30px;
-  --leading-heading-sm: 30;
-  --tracking-heading-sm: 0px;
-  --text-heading: 37px;
-  --leading-heading: 37;
-  --tracking-heading: -0.37px;
-  --text-heading-lg: 52px;
-  --leading-heading-lg: 52;
-  --tracking-heading-lg: -0.52px;
-  --text-display: 63px;
-  --leading-display: 63;
-  --tracking-display: -1.26px;
-  --text-display-xl: 131px;
-  --leading-display-xl: 131;
-  --tracking-display-xl: -2.62px;
-  --text-hero: 187px;
-  --leading-hero: 150;
-  --tracking-hero: -3.74px;
+  --text-micro: 12px;
+  --leading-micro: 1.63;
+  --tracking-micro: -0.036px;
+  --text-caption: 14px;
+  --leading-caption: 1.55;
+  --tracking-caption: -0.07px;
+  --text-body-sm: 16px;
+  --leading-body-sm: 1.5;
+  --tracking-body-sm: -0.096px;
+  --text-body: 18px;
+  --leading-body: 1.5;
+  --tracking-body: -0.126px;
+  --text-body-lg: 25px;
+  --leading-body-lg: 1.3;
+  --tracking-body-lg: -0.225px;
+  --text-subheading: 36px;
+  --leading-subheading: 1.25;
+  --tracking-subheading: -0.396px;
+  --text-heading-sm: 45px;
+  --leading-heading-sm: 1.1;
+  --tracking-heading-sm: -0.495px;
+  --text-heading: 61px;
+  --leading-heading: 1.1;
+  --tracking-heading: -0.915px;
+  --text-heading-lg: 89px;
+  --leading-heading-lg: 0.85;
+  --tracking-heading-lg: -2.67px;
+  --text-display: 105px;
+  --leading-display: 0.85;
+  --tracking-display: -3.15px;
 
   /* Typography — Weights */
   --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
   --font-weight-bold: 700;
+  --font-weight-black: 900;
 
   /* Spacing */
   --spacing-unit: 4px;
-  --spacing-11: 11px;
-  --spacing-13: 13px;
-  --spacing-15: 15px;
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
   --spacing-16: 16px;
-  --spacing-17: 17px;
-  --spacing-21: 21px;
-  --spacing-22: 22px;
-  --spacing-23: 23px;
-  --spacing-31: 31px;
-  --spacing-34: 34px;
-  --spacing-38: 38px;
-  --spacing-52: 52px;
-  --spacing-53: 53px;
-  --spacing-59: 59px;
-  --spacing-68: 68px;
-  --spacing-119: 119px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-28: 28px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-44: 44px;
+  --spacing-48: 48px;
+  --spacing-56: 56px;
+  --spacing-64: 64px;
+  --spacing-100: 100px;
+  --spacing-124: 124px;
 
   /* Layout */
   --page-max-width: 1200px;
-  --section-gap: 80px;
-  --card-padding: 22px;
-  --element-gap: 16px;
+  --section-gap: 64-80px;
+  --card-padding: 24px;
+  --element-gap: 8-12px;
 
   /* Border Radius */
-  --radius-3xl: 45px;
+  --radius-sm: 2px;
+  --radius-lg: 10px;
+  --radius-2xl: 16px;
+  --radius-2xl-2: 18.7693px;
+  --radius-3xl: 28.1539px;
+  --radius-3xl-2: 32px;
+  --radius-3xl-3: 37.5385px;
   --radius-full: 1000px;
   --radius-full-2: 9999px;
 
   /* Named Radii */
-  --radius-nav: 1000px;
-  --radius-buttons: 1000px;
-  --radius-decorative: 45px;
-  --radius-heropanels: 0px;
-  --radius-iconbuttons: 100%;
+  --radius-tags: 6px;
+  --radius-cards: 10px;
+  --radius-inputs: 10px;
+  --radius-buttons: 10px;
+  --radius-imagemasks: 1000px;
+  --radius-largecards: 28px;
+  --radius-navsegments: 10px;
+
+  /* Shadows */
+  --shadow-subtle: rgba(14, 15, 12, 0.12) 0px 0px 0px 1px;
+  --shadow-subtle-2: rgb(134, 134, 133) 0px 0px 0px 1px inset;
+  --shadow-xl:
+    rgba(0, 0, 0, 0.15) 0px 10px 32px 0px, rgba(0, 0, 0, 0.04) 0px 40px 40px 0px;
+  --shadow-lg: rgba(0, 0, 0, 0.08) 0px 6px 20px 0px;
 
   /* Surfaces */
-  --surface-canvas-white: #ffffff;
-  --surface-card-white: #ffffff;
-  --surface-featured-clay: #bc7155;
-  --surface-dark-slate: #151623;
-  --surface-footer-ink: #000d10;
+  --surface-paper: #ffffff;
+  --surface-fog: #e8ebe6;
+  --surface-linen-mist: #e2f6d5;
+  --surface-lime-voltage: #9fe870;
+  --surface-forest-ink: #163300;
 }
 ```
 
@@ -353,69 +440,342 @@ SkyLine is a non-commercial, personal academic project. Every asset must still c
 ```css
 @theme {
   /* Colors */
-  --color-deep-ink: #000d10;
-  --color-pure-white: #ffffff;
-  --color-cool-ash: #8e8e95;
-  --color-pebble: #d5d3d4;
-  --color-midnight-hull: #0f0f1c;
-  --color-charcoal-deck: #151623;
-  --color-clay-ember: #bc7155;
+  --color-forest-ink: #163300;
+  --color-lime-voltage: #9fe870;
+  --color-spruce: #054d28;
+  --color-linen-mist: #e2f6d5;
+  --color-signal-blue: #0b4c72;
+  --color-alarm-red: #cb272f;
+  --color-charcoal: #454745;
+  --color-obsidian: #0e0f0c;
+  --color-pebble: #868685;
+  --color-slate: #6a6c6a;
+  --color-fog: #e8ebe6;
+  --color-paper: #ffffff;
 
   /* Typography */
-  --font-sans:
+  --font-inter:
     "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  --font-wise-sans:
+    "Wise Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  --font-monospace:
+    "monospace", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    monospace;
+  --font-sans-serif:
+    "sans-serif", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, sans-serif;
 
   /* Typography — Scale */
-  --text-caption: 17px;
-  --leading-caption: 17;
-  --tracking-caption: 0px;
-  --text-nav: 20px;
-  --leading-nav: 20;
-  --tracking-nav: 0px;
-  --text-subheading: 23px;
-  --leading-subheading: 23;
-  --tracking-subheading: -0.23px;
-  --text-heading-sm: 30px;
-  --leading-heading-sm: 30;
-  --tracking-heading-sm: 0px;
-  --text-heading: 37px;
-  --leading-heading: 37;
-  --tracking-heading: -0.37px;
-  --text-heading-lg: 52px;
-  --leading-heading-lg: 52;
-  --tracking-heading-lg: -0.52px;
-  --text-display: 63px;
-  --leading-display: 63;
-  --tracking-display: -1.26px;
-  --text-display-xl: 131px;
-  --leading-display-xl: 131;
-  --tracking-display-xl: -2.62px;
-  --text-hero: 187px;
-  --leading-hero: 150;
-  --tracking-hero: -3.74px;
+  --text-micro: 12px;
+  --leading-micro: 1.63;
+  --tracking-micro: -0.036px;
+  --text-caption: 14px;
+  --leading-caption: 1.55;
+  --tracking-caption: -0.07px;
+  --text-body-sm: 16px;
+  --leading-body-sm: 1.5;
+  --tracking-body-sm: -0.096px;
+  --text-body: 18px;
+  --leading-body: 1.5;
+  --tracking-body: -0.126px;
+  --text-body-lg: 25px;
+  --leading-body-lg: 1.3;
+  --tracking-body-lg: -0.225px;
+  --text-subheading: 36px;
+  --leading-subheading: 1.25;
+  --tracking-subheading: -0.396px;
+  --text-heading-sm: 45px;
+  --leading-heading-sm: 1.1;
+  --tracking-heading-sm: -0.495px;
+  --text-heading: 61px;
+  --leading-heading: 1.1;
+  --tracking-heading: -0.915px;
+  --text-heading-lg: 89px;
+  --leading-heading-lg: 0.85;
+  --tracking-heading-lg: -2.67px;
+  --text-display: 105px;
+  --leading-display: 0.85;
+  --tracking-display: -3.15px;
 
   /* Spacing */
-  --spacing-11: 11px;
-  --spacing-13: 13px;
-  --spacing-15: 15px;
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
   --spacing-16: 16px;
-  --spacing-17: 17px;
-  --spacing-21: 21px;
-  --spacing-22: 22px;
-  --spacing-23: 23px;
-  --spacing-31: 31px;
-  --spacing-34: 34px;
-  --spacing-38: 38px;
-  --spacing-52: 52px;
-  --spacing-53: 53px;
-  --spacing-59: 59px;
-  --spacing-68: 68px;
-  --spacing-119: 119px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-28: 28px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-44: 44px;
+  --spacing-48: 48px;
+  --spacing-56: 56px;
+  --spacing-64: 64px;
+  --spacing-100: 100px;
+  --spacing-124: 124px;
 
   /* Border Radius */
-  --radius-3xl: 45px;
+  --radius-sm: 2px;
+  --radius-lg: 10px;
+  --radius-2xl: 16px;
+  --radius-2xl-2: 18.7693px;
+  --radius-3xl: 28.1539px;
+  --radius-3xl-2: 32px;
+  --radius-3xl-3: 37.5385px;
   --radius-full: 1000px;
   --radius-full-2: 9999px;
+
+  /* Shadows */
+  --shadow-subtle: rgba(14, 15, 12, 0.12) 0px 0px 0px 1px;
+  --shadow-subtle-2: rgb(134, 134, 133) 0px 0px 0px 1px inset;
+  --shadow-xl:
+    rgba(0, 0, 0, 0.15) 0px 10px 32px 0px, rgba(0, 0, 0, 0.04) 0px 40px 40px 0px;
+  --shadow-lg: rgba(0, 0, 0, 0.08) 0px 6px 20px 0px;
 }
 ```
+
+5. Outlined nav button: white fill, 1px solid #163300 border, 10px radius, 8px 16px padding, Inter 500 at 16px in #163300. Used in the top-right nav cluster for secondary account actions.
+
+## Similar Brands
+
+- **Revolut** — Same dual-brand color strategy — deep brand color as dominant surface and text, one bright accent for CTAs and highlights, with pill-shaped buttons and large confident headlines.
+- **Monzo** — Bright single-accent color system on a neutral canvas, pill-shaped interactive elements, friendly rounded geometry, and display type that speaks directly to the user.
+- **Cash App** — High-contrast near-black text on white with a single vivid brand accent, oversized bold headlines as the primary brand expression, minimal decoration.
+- **N26** — Flat surfaces, hairline borders instead of shadows, generous white space, and a single saturated accent color driving all interactive emphasis.
+
+## Quick Start
+
+### CSS Custom Properties
+
+```css
+:root {
+  /* Colors */
+  --color-forest-ink: #163300;
+  --color-lime-voltage: #9fe870;
+  --color-spruce: #054d28;
+  --color-linen-mist: #e2f6d5;
+  --color-signal-blue: #0b4c72;
+  --color-alarm-red: #cb272f;
+  --color-charcoal: #454745;
+  --color-obsidian: #0e0f0c;
+  --color-pebble: #868685;
+  --color-slate: #6a6c6a;
+  --color-fog: #e8ebe6;
+  --color-paper: #ffffff;
+
+  /* Typography — Font Families */
+  --font-inter:
+    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  --font-wise-sans:
+    "Wise Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  --font-monospace:
+    "monospace", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    monospace;
+  --font-sans-serif:
+    "sans-serif", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+
+  /* Typography — Scale */
+  --text-micro: 12px;
+  --leading-micro: 1.63;
+  --tracking-micro: -0.036px;
+  --text-caption: 14px;
+  --leading-caption: 1.55;
+  --tracking-caption: -0.07px;
+  --text-body-sm: 16px;
+  --leading-body-sm: 1.5;
+  --tracking-body-sm: -0.096px;
+  --text-body: 18px;
+  --leading-body: 1.5;
+  --tracking-body: -0.126px;
+  --text-body-lg: 25px;
+  --leading-body-lg: 1.3;
+  --tracking-body-lg: -0.225px;
+  --text-subheading: 36px;
+  --leading-subheading: 1.25;
+  --tracking-subheading: -0.396px;
+  --text-heading-sm: 45px;
+  --leading-heading-sm: 1.1;
+  --tracking-heading-sm: -0.495px;
+  --text-heading: 61px;
+  --leading-heading: 1.1;
+  --tracking-heading: -0.915px;
+  --text-heading-lg: 89px;
+  --leading-heading-lg: 0.85;
+  --tracking-heading-lg: -2.67px;
+  --text-display: 105px;
+  --leading-display: 0.85;
+  --tracking-display: -3.15px;
+
+  /* Typography — Weights */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-black: 900;
+
+  /* Spacing */
+  --spacing-unit: 4px;
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-28: 28px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-44: 44px;
+  --spacing-48: 48px;
+  --spacing-56: 56px;
+  --spacing-64: 64px;
+  --spacing-100: 100px;
+  --spacing-124: 124px;
+
+  /* Layout */
+  --page-max-width: 1200px;
+  --section-gap: 64-80px;
+  --card-padding: 24px;
+  --element-gap: 8-12px;
+
+  /* Border Radius */
+  --radius-sm: 2px;
+  --radius-lg: 10px;
+  --radius-2xl: 16px;
+  --radius-2xl-2: 18.7693px;
+  --radius-3xl: 28.1539px;
+  --radius-3xl-2: 32px;
+  --radius-3xl-3: 37.5385px;
+  --radius-full: 1000px;
+  --radius-full-2: 9999px;
+
+  /* Named Radii */
+  --radius-tags: 6px;
+  --radius-cards: 10px;
+  --radius-inputs: 10px;
+  --radius-buttons: 10px;
+  --radius-imagemasks: 1000px;
+  --radius-largecards: 28px;
+  --radius-navsegments: 10px;
+
+  /* Shadows */
+  --shadow-subtle: rgba(14, 15, 12, 0.12) 0px 0px 0px 1px;
+  --shadow-subtle-2: rgb(134, 134, 133) 0px 0px 0px 1px inset;
+  --shadow-xl:
+    rgba(0, 0, 0, 0.15) 0px 10px 32px 0px, rgba(0, 0, 0, 0.04) 0px 40px 40px 0px;
+  --shadow-lg: rgba(0, 0, 0, 0.08) 0px 6px 20px 0px;
+
+  /* Surfaces */
+  --surface-paper: #ffffff;
+  --surface-fog: #e8ebe6;
+  --surface-linen-mist: #e2f6d5;
+  --surface-lime-voltage: #9fe870;
+  --surface-forest-ink: #163300;
+}
+```
+
+### Tailwind v4
+
+```css
+@theme {
+  /* Colors */
+  --color-forest-ink: #163300;
+  --color-lime-voltage: #9fe870;
+  --color-spruce: #054d28;
+  --color-linen-mist: #e2f6d5;
+  --color-signal-blue: #0b4c72;
+  --color-alarm-red: #cb272f;
+  --color-charcoal: #454745;
+  --color-obsidian: #0e0f0c;
+  --color-pebble: #868685;
+  --color-slate: #6a6c6a;
+  --color-fog: #e8ebe6;
+  --color-paper: #ffffff;
+
+  /* Typography */
+  --font-inter:
+    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  --font-wise-sans:
+    "Wise Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  --font-monospace:
+    "monospace", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    monospace;
+  --font-sans-serif:
+    "sans-serif", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+
+  /* Typography — Scale */
+  --text-micro: 12px;
+  --leading-micro: 1.63;
+  --tracking-micro: -0.036px;
+  --text-caption: 14px;
+  --leading-caption: 1.55;
+  --tracking-caption: -0.07px;
+  --text-body-sm: 16px;
+  --leading-body-sm: 1.5;
+  --tracking-body-sm: -0.096px;
+  --text-body: 18px;
+  --leading-body: 1.5;
+  --tracking-body: -0.126px;
+  --text-body-lg: 25px;
+  --leading-body-lg: 1.3;
+  --tracking-body-lg: -0.225px;
+  --text-subheading: 36px;
+  --leading-subheading: 1.25;
+  --tracking-subheading: -0.396px;
+  --text-heading-sm: 45px;
+  --leading-heading-sm: 1.1;
+  --tracking-heading-sm: -0.495px;
+  --text-heading: 61px;
+  --leading-heading: 1.1;
+  --tracking-heading: -0.915px;
+  --text-heading-lg: 89px;
+  --leading-heading-lg: 0.85;
+  --tracking-heading-lg: -2.67px;
+  --text-display: 105px;
+  --leading-display: 0.85;
+  --tracking-display: -3.15px;
+
+  /* Spacing */
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-20: 20px;
+  --spacing-24: 24px;
+  --spacing-28: 28px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-44: 44px;
+  --spacing-48: 48px;
+  --spacing-56: 56px;
+  --spacing-64: 64px;
+  --spacing-100: 100px;
+  --spacing-124: 124px;
+
+  /* Border Radius */
+  --radius-sm: 2px;
+  --radius-lg: 10px;
+  --radius-2xl: 16px;
+  --radius-2xl-2: 18.7693px;
+  --radius-3xl: 28.1539px;
+  --radius-3xl-2: 32px;
+  --radius-3xl-3: 37.5385px;
+  --radius-full: 1000px;
+  --radius-full-2: 9999px;
+
+  /* Shadows */
+  --shadow-subtle: rgba(14, 15, 12, 0.12) 0px 0px 0px 1px;
+  --shadow-subtle-2: rgb(134, 134, 133) 0px 0px 0px 1px inset;
+  --shadow-xl:
+    rgba(0, 0, 0, 0.15) 0px 10px 32px 0px, rgba(0, 0, 0, 0.04) 0px 40px 40px 0px;
+  --shadow-lg: rgba(0, 0, 0, 0.08) 0px 6px 20px 0px;
+}
+```
+

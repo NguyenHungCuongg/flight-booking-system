@@ -1,0 +1,501 @@
+"use client";
+
+import Link from "next/link";
+import StatusBadge from "@/components/status-badge";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, type ReactNode } from "react";
+import SiteHeader from "@/components/site-header";
+import {
+  FormSkeleton,
+  Notice,
+  pillPrimary,
+  pillLine,
+  textLink,
+} from "@/components/form";
+import { CABINS } from "@/components/landing/data";
+import PriceTable from "@/components/price-table";
+import { ApiError, apiFetch, type Schemas } from "@/lib/api";
+import {
+  DIRECTION_LABEL,
+  PASSENGER_LABEL,
+  PAYMENT_STATUS,
+  REFUND_SOURCE,
+  REFUND_STATUS,
+  RESCHEDULE_STATUS,
+  STATUS_LABEL,
+  at,
+  clock,
+  countdown,
+  dmy,
+  journeyActions,
+  useNow,
+} from "@/lib/booking";
+import { fareRules, vnd } from "../../flights/itineraries";
+
+type Detail = Schemas["BookingDetail"];
+
+const PAYMENT_KIND: Record<string, string> = {
+  CHARGE: "Thanh toán",
+  REFUND: "Hoàn tiền",
+};
+
+export function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      aria-label={title}
+      className="grid content-start gap-16 border-t border-line pt-16 first:border-t-0 first:pt-0"
+    >
+      <h2 className="text-subheading font-bold">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+/** Phần thân của FR-41: hành trình (kèm thao tác hoàn, đổi), hành khách và vé, bảng giá, liên hệ, thanh toán, hậu mãi. */
+export function BookingBody({
+  booking,
+  now,
+  staff = false,
+  busy = false,
+  onPayReschedule,
+}: {
+  booking: Detail;
+  now: number | null;
+  staff?: boolean;
+  busy?: boolean;
+  onPayReschedule?: (id: number) => void;
+}) {
+  const rows: [string, number][] = [["Giá vé", booking.fareTotal]];
+  if (booking.baggageTotal)
+    rows.push(["Hành lý mua thêm", booking.baggageTotal]);
+  if (booking.discountTotal) {
+    rows.push([
+      `Giảm giá ${booking.voucherCode ?? ""}`,
+      -booking.discountTotal,
+    ]);
+  }
+
+  return (
+    <div className="grid gap-28 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+      <div className="grid gap-28">
+        <Section title="Hành trình">
+          {booking.journeys.map((j) => {
+            const cabin =
+              CABINS.find((c) => c.id === j.cabinClass)?.label ?? j.cabinClass;
+            const acts = journeyActions(booking, j, now);
+            const dirSlug = j.direction.toLowerCase();
+            return (
+              <article
+                key={j.direction}
+                aria-label={DIRECTION_LABEL[j.direction]}
+                className="grid gap-8 card p-16"
+              >
+                <p className="font-bold">
+                  {DIRECTION_LABEL[j.direction]}
+                  {j.status === "REFUNDED" && ", đã hoàn"}
+                </p>
+                <ol className="grid gap-4">
+                  {j.segments.map((s) => (
+                    <li key={s.flightId}>
+                      {`${s.flightNumber}: ${clock(s.departureTime)} ${s.departureAirport} → ${clock(s.arrivalTime)} ${s.arrivalAirport}, ${dmy(s.departureTime)}`}
+                      {s.status === "CANCELLED" && " (đã huỷ)"}
+                    </li>
+                  ))}
+                </ol>
+                <p className="text-caption text-muted">
+                  {`${j.fareFamilyName}, ${cabin}. ${fareRules(j).join(", ")}.`}
+                </p>
+                {!staff && (acts.refund || acts.change) && (
+                  <div className="flex flex-wrap gap-16 text-caption">
+                    {acts.refund && (
+                      <Link
+                        className={textLink}
+                        href={`/bookings/${booking.code}/refund/${dirSlug}`}
+                      >
+                        Hoàn chiều này
+                      </Link>
+                    )}
+                    {acts.change && (
+                      <Link
+                        className={textLink}
+                        href={`/bookings/${booking.code}/reschedule/${dirSlug}`}
+                      >
+                        Đổi chiều này
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </article>
+            );
+          })}
+        </Section>
+
+        <Section title="Hành khách">
+          <ul className="grid gap-16">
+            {booking.passengers.map((p, i) => (
+              <li key={i} className="grid gap-4 card p-16">
+                <p className="font-bold">{`${p.lastName} ${p.firstName}`}</p>
+                <p className="text-caption text-muted">
+                  {`${PASSENGER_LABEL[p.type]}, ${p.gender === "MALE" ? "nam" : "nữ"}, sinh ngày ${dmy(p.dateOfBirth)}`}
+                  {p.passportNumber &&
+                    p.passportExpiry &&
+                    `, hộ chiếu ${p.passportNumber} (${p.nationality}, hết hạn ${dmy(p.passportExpiry)})`}
+                </p>
+                {p.tickets.map((t) => (
+                  <p
+                    key={`${t.direction}-${t.flightNumber}`}
+                    className="text-caption"
+                  >
+                    {`Vé ${t.flightNumber}: ${t.ticketNumber ?? "chưa xuất vé"}`}
+                  </p>
+                ))}
+                {booking.journeys.flatMap((j) =>
+                  j.baggage
+                    .filter((b) => b.passengerIndex === i)
+                    .map((b) => (
+                      <p key={j.direction} className="text-caption">
+                        {`Hành lý mua thêm ${DIRECTION_LABEL[j.direction].toLowerCase()}: ${b.weightKg} kg`}
+                      </p>
+                    )),
+                )}
+              </li>
+            ))}
+          </ul>
+        </Section>
+      </div>
+
+      <div className="card grid gap-16 p-16 lg:sticky lg:top-80">
+        <Section title="Bảng giá">
+          <PriceTable rows={rows} total={booking.totalAmount} />
+        </Section>
+        <Section title="Liên hệ">
+          <p>{booking.contact.name}</p>
+          <p className="text-caption text-muted">
+            {`${booking.contact.email}, ${booking.contact.phone}`}
+          </p>
+        </Section>
+        {booking.payments.length > 0 && (
+          <Section title="Lịch sử thanh toán">
+            <ul className="grid gap-4 text-caption">
+              {booking.payments.map((p, i) => (
+                <li key={i}>
+                  {`${PAYMENT_KIND[p.kind] ?? p.kind}, ${PAYMENT_STATUS[p.status] ?? p.status}, ${vnd(p.amount)}, ${at(p.createdAt)}`}
+                </li>
+              ))}
+            </ul>
+          </Section>
+        )}
+        {booking.refundRequests.length > 0 && (
+          <Section title="Yêu cầu hoàn">
+            <ul className="grid gap-16">
+              {booking.refundRequests.map((r) => (
+                <li key={r.id} className="grid gap-4">
+                  <p className="font-bold">
+                    {`${r.direction ? DIRECTION_LABEL[r.direction] : "Khoản thanh toán thừa"}, ${REFUND_STATUS[r.status] ?? r.status}, hoàn ${vnd(r.refundAmount)}`}
+                  </p>
+                  <p className="text-caption text-muted">
+                    {`Gửi lúc ${at(r.createdAt)} (giờ Việt Nam)`}
+                    {r.source !== "CUSTOMER" &&
+                      `. ${REFUND_SOURCE[r.source] ?? r.source}`}
+                  </p>
+                  {r.reason && (
+                    <p className="text-caption">{`Lý do: ${r.reason}`}</p>
+                  )}
+                  {r.staffNote && (
+                    <p className="text-caption">
+                      {`Ghi chú của nhân viên: ${r.staffNote}`}
+                    </p>
+                  )}
+                  {staff && (
+                    <Link
+                      className={`${textLink} text-caption justify-self-start`}
+                      href={`/staff/refunds/${r.id}`}
+                    >
+                      Xử lý yêu cầu
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </Section>
+        )}
+        {booking.reschedules.length > 0 && (
+          <Section title="Đổi chuyến">
+            <ul className="grid gap-16">
+              {booking.reschedules.map((r) => {
+                const left =
+                  r.status === "PENDING_PAYMENT" && now !== null
+                    ? Date.parse(r.holdExpiresAt) - now
+                    : null;
+                return (
+                  <li key={r.id} className="grid gap-4">
+                    <p className="font-bold">
+                      {`${DIRECTION_LABEL[r.direction]}: ${r.flightNumbers.join(" + ")}, ${RESCHEDULE_STATUS[r.status] ?? r.status}, phải trả ${vnd(r.amountDue)}`}
+                    </p>
+                    <p className="text-caption text-muted">
+                      {`Xác nhận lúc ${at(r.createdAt)} (giờ Việt Nam)`}
+                    </p>
+                    {left !== null && left > 0 && (
+                      <>
+                        <p className="text-caption">
+                          {`Còn ${countdown(left)} để thanh toán`}
+                        </p>
+                        {!staff && onPayReschedule && (
+                          <button
+                            type="button"
+                            className={`${pillPrimary} justify-self-start`}
+                            disabled={busy}
+                            onClick={() => onPayReschedule(r.id)}
+                          >
+                            {`Thanh toán đổi chuyến ${vnd(r.amountDue)}`}
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {left !== null && left <= 0 && (
+                      <p className="text-caption">
+                        Đã hết hạn thanh toán đổi chuyến.
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </Section>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * C-09 (APP_FLOW §2.1, FR-41): chỉ chủ booking (của người khác backend trả 404, BR-104). Đang chờ thanh toán thì đếm
+ * ngược hạn giữ chỗ, cho thanh toán (FR-30) và huỷ (FR-33). `?payment=` là kết quả VNPay do Return URL gắn vào.
+ */
+export default function BookingView() {
+  const { code } = useParams<{ code: string }>();
+  const params = useSearchParams();
+  const payment = params.get("payment");
+  const refund = params.get("refund");
+  const reschedule = params.get("reschedule");
+  const router = useRouter();
+  const now = useNow();
+  // undefined: đang tải; null: không tìm thấy.
+  const [booking, setBooking] = useState<Detail | null>();
+  const [loadError, setLoadError] = useState<string>();
+  const [version, setVersion] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string>();
+
+  useEffect(() => {
+    let live = true;
+    apiFetch<Detail>(`/bookings/${encodeURIComponent(code)}`).then(
+      (b) => live && setBooking(b),
+      (e: ApiError) => {
+        if (!live) return;
+        if (e.status === 401) {
+          router.replace(
+            `/login?next=${encodeURIComponent(location.pathname + location.search)}`,
+          );
+        } else if (e.status === 404) {
+          setBooking(null);
+        } else {
+          setLoadError(e.detail);
+        }
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [code, version, router]);
+  const reload = () => setVersion((v) => v + 1);
+
+  async function startPayment(path: string) {
+    setBusy(true);
+    setActionError(undefined);
+    try {
+      const { paymentUrl } = await apiFetch<Schemas["PaymentUrlResponse"]>(
+        path,
+        { method: "POST" },
+      );
+      // Giữ busy: trang đang chuyển sang VNPay.
+      window.location.assign(paymentUrl);
+    } catch (e) {
+      setBusy(false);
+      if (!(e instanceof ApiError)) throw e;
+      // HOLD_EXPIRED, INVALID_STATE: trạng thái trên trang đã cũ.
+      setActionError(e.detail);
+      reload();
+    }
+  }
+
+  async function cancel() {
+    if (
+      !confirm(
+        `Huỷ giữ chỗ ${code.toUpperCase()}? Ghế đã giữ sẽ được trả lại, không khôi phục được.`,
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setActionError(undefined);
+    try {
+      await apiFetch(`/bookings/${encodeURIComponent(code)}/cancel`, {
+        method: "POST",
+      });
+    } catch (e) {
+      if (!(e instanceof ApiError)) throw e;
+      setActionError(e.detail);
+    } finally {
+      setBusy(false);
+      reload();
+    }
+  }
+
+  const pending = booking?.status === "PENDING_PAYMENT";
+  // Thời gian giữ chỗ còn lại (ms); null khi không chờ thanh toán hoặc chưa hydrate.
+  const left =
+    booking && booking.status === "PENDING_PAYMENT" && now !== null
+      ? Date.parse(booking.holdExpiresAt) - now
+      : null;
+  const canPay = left !== null && left > 0;
+  // Trả phí đổi chuyến sau khi lượt đổi hết hạn: backend không đổi chuyến mà tạo yêu cầu hoàn.
+  const rescheduleExpired =
+    booking?.reschedules.some((r) => r.status === "EXPIRED") ?? false;
+  const canPayReschedule =
+    booking !== null &&
+    booking !== undefined &&
+    now !== null &&
+    booking.reschedules.some(
+      (r) =>
+        r.status === "PENDING_PAYMENT" && Date.parse(r.holdExpiresAt) > now,
+    );
+
+  return (
+    <div className="min-h-dvh">
+      <SiteHeader />
+      <main className="mx-auto grid max-w-page gap-28 px-16 pt-16 pb-80 sm:px-38">
+        <div className="grid gap-13">
+          <Link href="/bookings" className={`${textLink} text-caption`}>
+            Tất cả đặt chỗ
+          </Link>
+          <h1 className="text-heading-lg font-bold break-words">
+            {booking === null
+              ? "Không tìm thấy đặt chỗ."
+              : `Đặt chỗ ${code.toUpperCase()}.`}
+          </h1>
+          {booking === null && (
+            <p className="text-muted">
+              {`Mã ${code.toUpperCase()} không có trong các đặt chỗ của bạn.`}
+            </p>
+          )}
+          {booking && (
+            <p className="text-muted">{`Đặt lúc ${at(booking.createdAt)} (giờ Việt Nam)`}</p>
+          )}
+        </div>
+
+        {loadError && <Notice>{loadError}</Notice>}
+        {booking === undefined && !loadError && <FormSkeleton rows={3} />}
+
+        {booking && payment === "success" && (
+          <Notice tone="ok">
+            {booking.status === "ISSUED" && rescheduleExpired
+              ? "Đã nhận thanh toán nhưng lượt đổi chuyến đã hết hạn nên chưa đổi được. Khoản đã trả sẽ được hoàn lại, bạn có thể theo dõi ở mục yêu cầu hoàn."
+              : booking.status === "ISSUED"
+                ? `Thanh toán thành công. Vé điện tử đã được gửi tới ${booking.contact.email}.`
+                : "Đã nhận kết quả từ VNPay, hệ thống đang xác nhận thanh toán. Hãy tải lại trang sau ít phút."}
+          </Notice>
+        )}
+        {booking && payment === "failed" && (
+          <Notice>
+            Thanh toán chưa thành công.
+            {canPay && " Bạn có thể thanh toán lại trước khi hết hạn giữ chỗ."}
+            {canPayReschedule &&
+              " Bạn có thể thanh toán lại phí đổi chuyến trước khi hết hạn."}
+          </Notice>
+        )}
+        {booking && refund === "sent" && (
+          <Notice tone="ok">
+            {`Đã gửi yêu cầu hoàn. Nhân viên sẽ xét duyệt và báo kết quả qua email ${booking.contact.email}.`}
+          </Notice>
+        )}
+        {booking && reschedule === "done" && (
+          <Notice tone="ok">
+            {`Đổi chuyến thành công. Vé mới đã được gửi tới ${booking.contact.email}.`}
+          </Notice>
+        )}
+        {actionError && <Notice>{actionError}</Notice>}
+
+        {booking && (
+          <section
+            aria-label="Trạng thái"
+            className="grid gap-16 card-hi p-16 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+          >
+            <div className="grid gap-4">
+              <StatusBadge
+                large
+                status={booking.status}
+                label={STATUS_LABEL[booking.status]}
+              />
+              {canPay && <p>{`Còn ${countdown(left ?? 0)} để thanh toán`}</p>}
+              {left !== null && !canPay && <p>Đã hết hạn giữ chỗ.</p>}
+              {pending && (
+                <p className="text-caption text-muted">
+                  {`Giữ chỗ đến ${at(booking.holdExpiresAt)} (giờ Việt Nam)`}
+                </p>
+              )}
+              {booking.status === "ISSUED" && booking.issuedAt && (
+                <p className="text-caption text-muted">
+                  {`Xuất vé lúc ${at(booking.issuedAt)} (giờ Việt Nam)`}
+                </p>
+              )}
+            </div>
+            {pending && (
+              <div className="flex flex-wrap gap-13">
+                {canPay && (
+                  <button
+                    type="button"
+                    className={pillPrimary}
+                    disabled={busy}
+                    onClick={() =>
+                      startPayment(
+                        `/bookings/${encodeURIComponent(code)}/payments`,
+                      )
+                    }
+                  >
+                    {`Thanh toán ${vnd(booking.totalAmount)}`}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={pillLine}
+                  disabled={busy}
+                  onClick={cancel}
+                >
+                  Huỷ giữ chỗ
+                </button>
+              </div>
+            )}
+          </section>
+        )}
+
+        {booking && (
+          <BookingBody
+            booking={booking}
+            now={now}
+            busy={busy}
+            onPayReschedule={(id) =>
+              startPayment(`/reschedules/${id}/payments`)
+            }
+          />
+        )}
+      </main>
+    </div>
+  );
+}

@@ -6,21 +6,33 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static vn.edu.uit.flightbooking.TestCsrf.csrf;
+
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultMatcher;
 
 import vn.edu.uit.flightbooking.IntegrationTest;
+import vn.edu.uit.flightbooking.TestUsers;
+import vn.edu.uit.flightbooking.common.CurrentUser;
+import vn.edu.uit.flightbooking.common.Role;
 
 @IntegrationTest
 class SecurityConfigTest {
 
 	@Autowired
 	MockMvc mvc;
+
+	@Autowired
+	JdbcClient jdbc;
 
 	/** Request đã qua lớp bảo mật: route chưa tồn tại thì 404, nhưng không được là 401/403. */
 	static ResultMatcher passesSecurity() {
@@ -57,7 +69,9 @@ class SecurityConfigTest {
 			.andExpect(status().isForbidden())
 			.andExpect(jsonPath("$.code").value("FORBIDDEN"));
 		mvc.perform(get("/api/admin/settings")).andExpect(status().isForbidden());
-		mvc.perform(get("/api/bookings")).andExpect(passesSecurity());
+		mvc.perform(get("/api/bookings").with(authentication(new UsernamePasswordAuthenticationToken(
+				new CurrentUser(TestUsers.create(jdbc, Role.CUSTOMER, TestUsers.randomEmail()), Role.CUSTOMER), null, List.of(new SimpleGrantedAuthority("ROLE_CUSTOMER"))))))
+			.andExpect(status().isOk());
 	}
 
 	@Test
