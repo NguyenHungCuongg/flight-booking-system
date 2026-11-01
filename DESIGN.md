@@ -259,6 +259,19 @@ Painted 3D-style illustrations of a globe with gold coins establish the brand's 
 
 Max-width 1200px centered container, with hero and dark sections going full-bleed. Hero pattern: centered massive display headline over white space, with a large illustration (globe) breaking the lower edge of the viewport. Section rhythm alternates white → light green band → dark Forest Ink section, creating a natural color cadence. Content arrangement is predominantly centered stacks in the hero, then 2-column text+visual or 3-column feature rows in supporting sections. A 5-column flag grid handles the country directory. Navigation is a single sticky top bar with a segmented switcher. The QR badge floats fixed in the bottom-right corner across all scroll positions.
 
+## Motion
+
+Motion is as restrained as the rest of the system: it confirms an action, shows a state change, or gives the landing one authored moment. It never decorates.
+
+- **Scope:** guest pages (landing, `/flights`, `/chinh-sach/*`, `(auth)`, `/assistant`) and customer pages (`/checkout`, `/bookings/*`, `/account`). `/staff` and `/admin` keep only CSS hover/focus transitions; never import GSAP there.
+- **Tooling:** CSS transitions for hover, focus, open/close and other state changes. GSAP (`gsap` + `@gsap/react`, skills `gsap-*` in `.claude/skills/`) only for sequences and scroll-linked motion: the hero entrance, landing section reveals, ScrollTrigger.
+- **Timing:** 150–200ms for feedback (buttons, inputs, toggles); 250–400ms for popovers, panels and step changes; the landing entrance sequence stays under 1s in total. Ease out on enter (`power2.out`, `cubic-bezier(0.22, 1, 0.36, 1)`), ease in on exit. No bounce or elastic easing.
+- **Properties:** animate `transform` and `opacity`; never `width`, `height`, `top`, `left` or margins.
+- **Reduced motion:** every animation has a `prefers-reduced-motion` path. GSAP code runs inside `gsap.matchMedia()` under `(prefers-reduced-motion: no-preference)`; CSS motion sits in `@media (prefers-reduced-motion: no-preference)`, as `globals.css` does for smooth scroll. Under reduce, drop movement but keep the opacity and colour changes that carry state.
+- **Visible by default:** never hide content in markup or CSS waiting for JS (no initial `opacity: 0`); use `gsap.from()` so a failed script or a Playwright run still sees the page.
+- **Next.js:** GSAP lives in `"use client"` components and runs in `useGSAP` with a `scope` ref, after mount; never call `gsap.utils.random` or read the time while rendering (Cache Components).
+- **Don't:** animate the hold countdown or payment hand-off beyond state feedback, loop decorative animations, add parallax to text, or block interaction until an animation ends.
+
 ## Agent Prompt Guide
 
 Quick Color Reference
