@@ -53,7 +53,7 @@ export default function SiteHeader({
   const nav = NAV[area];
 
   return (
-    <div className="z-10 border-b border-line bg-paper/85 backdrop-blur-md sm:sticky sm:top-0">
+    <div className="z-10 border-b border-line bg-paper sm:sticky sm:top-0">
       <header className="mx-auto flex max-w-page flex-wrap items-center justify-between gap-16 px-16 py-10 sm:px-38">
         <Brand />
         <div className="flex flex-wrap items-center gap-x-12 gap-y-8">
@@ -68,10 +68,10 @@ export default function SiteHeader({
                   key={href}
                   href={href}
                   aria-current={active ? "page" : undefined}
-                  className={`rounded-inner px-12 py-5 transition-colors duration-200 ${
+                  className={`rounded-inner px-12 py-5 transition-colors duration-150 ${
                     active
-                      ? "bg-accent-soft font-semibold text-accent"
-                      : "text-muted hover:bg-tint hover:text-ink"
+                      ? "bg-accent-soft font-bold text-accent"
+                      : "font-semibold text-muted hover:bg-tint hover:text-ink"
                   }`}
                 >
                   {label}
@@ -84,8 +84,11 @@ export default function SiteHeader({
           {user === undefined ? (
             <span className="min-w-120" aria-hidden="true" />
           ) : user === null ? (
-            <div className="flex gap-11">
-              <Link href="/login" className={pillPrimary}>
+            <div className="flex items-center gap-12">
+              <Link
+                href="/login"
+                className="px-12 py-6 text-caption font-bold text-ink transition-colors hover:text-accent"
+              >
                 Đăng nhập
               </Link>
               <Link href="/register" className={pillLine}>

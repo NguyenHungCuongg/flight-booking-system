@@ -80,7 +80,7 @@ const focusOnMount = (el: HTMLInputElement | null) =>
   el?.focus({ preventScroll: true });
 
 const iconCircleBtn =
-  "inline-grid size-40 shrink-0 place-items-center rounded-inner border border-line-strong bg-surface text-ink transition hover:border-ink hover:bg-accent-soft active:scale-95 disabled:cursor-not-allowed disabled:opacity-35";
+  "inline-grid size-40 shrink-0 place-items-center rounded-inner border border-line-strong bg-surface text-ink transition-colors duration-150 hover:border-ink hover:bg-tint disabled:cursor-not-allowed disabled:opacity-35";
 
 export default function SearchDock() {
   const router = useRouter();
@@ -384,7 +384,7 @@ export default function SearchDock() {
       )}
 
       {/* Top controls: Segmented trip switch + Passenger/Cabin picker + International notice */}
-      <div className="relative z-25 flex flex-wrap items-center gap-10">
+      <div className="relative z-25 flex flex-wrap items-center gap-12">
         <div
           className="inline-grid grid-cols-2 rounded-inner border border-line bg-tint p-4"
           role="group"
@@ -394,10 +394,10 @@ export default function SearchDock() {
             type="button"
             aria-pressed={oneway}
             onClick={() => setTrip("oneway")}
-            className={`min-h-36 rounded-inner px-16 py-7 max-sm:min-h-44 text-caption font-bold transition-colors ${
+            className={`min-h-36 rounded-inner px-16 py-7 max-sm:min-h-44 text-caption font-bold transition-colors duration-150 ${
               oneway
-                ? "bg-surface text-ink shadow-xs ring-1 ring-line-strong"
-                : "text-ink-2 hover:text-ink"
+                ? "bg-cta text-cta-fg"
+                : "text-ink hover:text-accent"
             }`}
           >
             Một chiều
@@ -406,10 +406,10 @@ export default function SearchDock() {
             type="button"
             aria-pressed={!oneway}
             onClick={() => setTrip("round")}
-            className={`min-h-36 rounded-inner px-16 py-7 max-sm:min-h-44 text-caption font-bold transition-colors ${
+            className={`min-h-36 rounded-inner px-16 py-7 max-sm:min-h-44 text-caption font-bold transition-colors duration-150 ${
               !oneway
-                ? "bg-surface text-ink shadow-xs ring-1 ring-line-strong"
-                : "text-ink-2 hover:text-ink"
+                ? "bg-cta text-cta-fg"
+                : "text-ink hover:text-accent"
             }`}
           >
             Khứ hồi
@@ -419,7 +419,9 @@ export default function SearchDock() {
         <div className="relative">
           <button
             type="button"
-            className="inline-flex min-h-42 items-center gap-10 rounded-inner border border-line-strong bg-surface px-16 max-sm:min-h-44 text-caption font-bold text-ink transition hover:border-ink hover:bg-accent-soft"
+            className={`inline-flex min-h-42 items-center gap-10 rounded-inner border bg-surface px-16 max-sm:min-h-44 text-caption font-bold text-ink transition-colors duration-150 hover:border-ink hover:bg-tint ${
+              s.panel === "pax" ? "border-accent ring-1 ring-accent" : "border-line-strong"
+            }`}
             id="fld-pax"
             aria-expanded={s.panel === "pax"}
             aria-controls="pax-pop"
@@ -572,7 +574,7 @@ export default function SearchDock() {
           <div className="flex items-center justify-center max-sm:py-4">
             <button
               type="button"
-              className="grid size-38 place-items-center rounded-inner max-sm:size-44 border border-line-strong bg-surface text-ink transition hover:border-ink hover:bg-accent-soft active:scale-95"
+              className="grid size-38 place-items-center rounded-inner max-sm:size-44 border border-line-strong bg-surface text-ink transition-colors duration-150 hover:border-ink hover:bg-tint"
               aria-label="Đảo điểm đi và điểm đến"
               onClick={swap}
               style={{ transform: `rotate(${s.swapTurns * 180}deg)` }}
@@ -711,8 +713,8 @@ function FieldBtn(p: {
       aria-expanded={p.open}
       aria-label={`${p.label} ${p.main} ${p.sub.trim()}${p.error ? `. ${p.error}` : ""}`}
       onClick={p.onClick}
-      className={`grid h-full w-full content-start gap-2 rounded-inner px-16 py-12 text-left transition-colors ${
-        p.open ? "bg-accent-soft/75" : "hover:bg-tint/70"
+      className={`grid h-full w-full content-start gap-2 rounded-inner px-16 py-12 text-left transition-colors duration-150 ${
+        p.open ? "bg-accent-soft text-accent" : "hover:bg-tint"
       } ${p.error ? "ring-2 ring-inset ring-danger" : ""}`}
     >
       <span

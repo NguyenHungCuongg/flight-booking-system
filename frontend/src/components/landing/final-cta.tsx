@@ -35,7 +35,7 @@ export default function FinalCta() {
             <button
               type="button"
               className={`${pillPrimary} min-h-46 px-24 text-body`}
-              onClick={() => focusSearch()}
+              onClick={focusSearch}
             >
               <span>Tìm chuyến bay</span>
               <Icon name="arrow" className="size-20 shrink-0" />

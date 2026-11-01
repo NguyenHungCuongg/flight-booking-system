@@ -32,7 +32,7 @@ export default function Nav() {
   const user = useCurrentUser();
 
   return (
-    <div className="sticky top-0 z-40 border-b border-line bg-paper/85 backdrop-blur-md">
+    <div className="sticky top-0 z-40 border-b border-line bg-paper">
       <header className="mx-auto flex max-w-page flex-wrap items-center justify-between gap-16 px-16 py-12 sm:px-38">
         <a
           href="#top"
@@ -80,8 +80,11 @@ export default function Nav() {
           {user === undefined ? (
             <span className="min-w-120" aria-hidden="true" />
           ) : user === null ? (
-            <div className="flex items-center gap-8">
-              <Link href="/login" className={pillLine}>
+            <div className="flex items-center gap-12">
+              <Link
+                href="/login"
+                className="px-12 py-8 text-caption font-bold text-ink transition-colors hover:text-accent"
+              >
                 Đăng nhập
               </Link>
               <Link href="/register" className={`${pillLine} max-sm:hidden`}>

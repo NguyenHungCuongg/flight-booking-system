@@ -52,29 +52,29 @@ export default function Faq() {
   const [open, setOpen] = useState<Record<number, boolean>>({ 0: true });
 
   return (
-    <div className="divide-y divide-line rounded-card border border-line bg-surface">
+    <div className="divide-y divide-line rounded-inner border border-line bg-surface">
       {ITEMS.map(([q, a], i) => {
         const isOpen = !!open[i];
         return (
-          <div key={q} className="px-20 py-4 sm:px-24">
+          <div key={q} className="px-20 py-2 sm:px-24">
             <h4>
               <button
                 type="button"
                 aria-expanded={isOpen}
                 aria-controls={`faq-a${i}`}
                 onClick={() => setOpen((o) => ({ ...o, [i]: !o[i] }))}
-                className="flex w-full items-center justify-between gap-20 py-16 text-left text-nav font-bold text-ink transition-colors hover:text-accent"
+                className="flex w-full items-center justify-between gap-20 py-16 text-left text-nav font-bold text-ink transition-colors duration-150 hover:text-accent"
               >
                 <span>{q}</span>
                 <span
                   aria-hidden="true"
-                  className={`grid size-36 shrink-0 place-items-center rounded-inner border transition-all duration-200 ${
+                  className={`grid size-32 shrink-0 place-items-center rounded-inner border transition-transform duration-150 ${
                     isOpen
-                      ? "rotate-45 border-cta bg-cta text-cta-fg"
-                      : "border-line-strong bg-paper text-ink"
+                      ? "rotate-45 border-accent bg-accent text-accent-fg"
+                      : "border-line bg-tint text-ink"
                   }`}
                 >
-                  <Icon name="plus" className="size-18 shrink-0" />
+                  <Icon name="plus" className="size-16 shrink-0" />
                 </span>
               </button>
             </h4>

@@ -11,22 +11,22 @@ import {
 import { ApiError } from "@/lib/api";
 import { Icon } from "./landing/icons";
 
-/** Nút chính theo DESIGN.md: khối bo 10px nền Lime Voltage (#9fe870), chữ Forest Ink (#163300) đậm, phẳng không bóng. */
+/** Nút chính theo DESIGN.md: khối bo 10px nền Lime Voltage (#9fe870), chữ Forest Ink (#163300) đậm, phẳng không bóng, không nhảy scale */
 export const pillPrimary =
-  "inline-flex min-h-40 items-center justify-center gap-8 rounded-inner bg-cta px-18 py-10 text-caption leading-none font-semibold whitespace-nowrap text-cta-fg transition-[background-color,transform] duration-200 ease-out hover:bg-cta-hover active:scale-[0.98] disabled:cursor-wait disabled:opacity-60";
-/** Nút phụ: khối bo 10px nền thẻ, viền Pebble đậm lên thành Forest Ink khi rê chuột. */
+  "inline-flex min-h-40 items-center justify-center gap-8 rounded-inner bg-cta px-20 py-10 text-caption leading-none font-bold whitespace-nowrap text-cta-fg transition-colors duration-150 ease-out hover:bg-cta-hover disabled:cursor-wait disabled:opacity-60";
+/** Nút phụ: khối bo 10px nền thẻ/trong suốt, viền hairline 1px rõ ràng, chữ Forest Ink đậm */
 export const pillLine =
-  "inline-flex min-h-40 items-center justify-center gap-8 rounded-inner border border-line-strong bg-surface px-18 py-10 text-caption leading-none font-semibold whitespace-nowrap text-ink transition-[background-color,border-color,transform] duration-200 ease-out hover:border-ink hover:bg-accent-soft active:scale-[0.98] disabled:cursor-wait disabled:opacity-60";
-/** Nút cho thao tác không hoàn tác được (huỷ chuyến bay): viền và chữ Alarm Red (#cb272f), nền đỏ khi rê chuột. */
+  "inline-flex min-h-40 items-center justify-center gap-8 rounded-inner border border-line-strong bg-surface px-20 py-10 text-caption leading-none font-bold whitespace-nowrap text-ink transition-colors duration-150 ease-out hover:border-ink hover:bg-tint disabled:cursor-wait disabled:opacity-60";
+/** Nút cho thao tác không hoàn tác được: viền và chữ Alarm Red (#cb272f), nền đỏ khi rê chuột */
 export const pillDanger =
-  "inline-flex min-h-40 items-center justify-center gap-8 rounded-inner border border-danger bg-surface px-18 py-10 text-caption leading-none font-semibold whitespace-nowrap text-danger transition-[background-color,color,transform] duration-200 ease-out hover:bg-danger hover:text-surface active:scale-[0.98] disabled:cursor-wait disabled:opacity-60";
+  "inline-flex min-h-40 items-center justify-center gap-8 rounded-inner border border-danger bg-surface px-20 py-10 text-caption leading-none font-bold whitespace-nowrap text-danger transition-colors duration-150 ease-out hover:bg-danger hover:text-surface disabled:cursor-wait disabled:opacity-60";
 export const textLink =
-  "font-semibold underline decoration-accent/40 decoration-2 underline-offset-4 transition-colors hover:text-accent hover:decoration-accent";
+  "font-bold underline decoration-accent/40 decoration-2 underline-offset-4 transition-colors hover:text-accent hover:decoration-accent";
 
-/** Ô nhập và ô chọn theo DESIGN.md: bo 10px, viền Pebble 1px; focus viền Forest Ink kèm quầng Linen Mist. */
+/** Ô nhập và ô chọn theo DESIGN.md: bo 10px, viền Pebble 1px; focus viền Forest Ink chuẩn phẳng, cấm glow ring mờ kiểu AI */
 const inputBox = (invalid: boolean) =>
-  `flex min-w-0 rounded-inner border bg-surface transition-[border-color,box-shadow] duration-200 hover:border-ink-2/70 focus-within:border-accent focus-within:shadow-[0_0_0_3px_var(--color-accent-soft)] ${
-    invalid ? "border-danger" : "border-line-strong"
+  `flex min-w-0 rounded-inner border bg-surface transition-colors duration-150 hover:border-ink focus-within:border-accent focus-within:ring-1 focus-within:ring-accent ${
+    invalid ? "border-danger focus-within:border-danger focus-within:ring-danger" : "border-line-strong"
   }`;
 
 const iconClass =
@@ -204,8 +204,8 @@ export function Notice({
   return (
     <div
       role={tone === "error" ? "alert" : "status"}
-      className={`flex items-start gap-10 rounded-inner px-14 py-10 text-caption text-ink ${
-        tone === "error" ? "bg-danger-soft" : "bg-ok-soft"
+      className={`flex items-start gap-10 rounded-inner border px-16 py-12 text-caption text-ink ${
+        tone === "error" ? "border-danger/25 bg-danger-soft" : "border-ok/25 bg-ok-soft"
       }`}
     >
       <Icon

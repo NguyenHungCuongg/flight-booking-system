@@ -76,10 +76,10 @@ export default function AfterSales() {
                     type="button"
                     aria-pressed={active}
                     onClick={() => setTab(k)}
-                    className={`min-h-44 rounded-inner border px-20 py-9 text-caption font-bold transition ${
+                    className={`min-h-40 rounded-inner border px-20 py-8 text-caption font-bold transition-colors duration-150 ${
                       active
-                        ? "border-lime-voltage bg-lime-voltage text-forest-ink"
-                        : "border-linen-mist/35 bg-transparent text-pure-white hover:border-lime-voltage"
+                        ? "border-cta bg-cta text-cta-fg"
+                        : "border-linen-mist/30 bg-transparent text-pure-white hover:border-cta hover:text-cta"
                     }`}
                   >
                     {PANES[k].tab}
@@ -89,10 +89,10 @@ export default function AfterSales() {
             </div>
           </div>
 
-          {/* Right: Formula & Rule Card */}
+          {/* Right: Formula & Rule Card (Thẻ phẳng, sạch, chuẩn thiết kế tông tối) */}
           <div
             aria-live="polite"
-            className="rounded-card border border-lime-voltage/25 bg-spruce/70 p-24 sm:p-32 lg:col-span-6"
+            className="rounded-inner border border-linen-mist/20 bg-spruce p-24 sm:p-32 lg:col-span-6"
           >
             <div key={tab} className="grid gap-18">
               <div className="grid gap-6 border-b border-linen-mist/15 pb-16">

@@ -6,7 +6,7 @@ import { Icon, Jet } from "./icons";
 import { useSearch } from "./search-context";
 
 const navCircleBtn =
-  "inline-grid size-42 place-items-center rounded-inner border border-line-strong bg-surface text-ink transition hover:border-ink hover:bg-accent-soft active:scale-95";
+  "inline-grid size-40 place-items-center rounded-inner border border-line-strong bg-surface text-ink transition-colors duration-150 hover:border-ink hover:bg-tint disabled:opacity-30";
 
 export default function Routes() {
   const { pickRoute } = useSearch();
@@ -73,7 +73,7 @@ export default function Routes() {
                 key={`${r.from}-${r.to}`}
                 type="button"
                 onClick={() => pickRoute(i)}
-                className="card group flex min-w-268 shrink-0 snap-start flex-col justify-between gap-24 p-22 text-left transition duration-200 hover:-translate-y-2 hover:shadow-card-hover sm:min-w-288"
+                className="card group flex min-w-268 shrink-0 snap-start flex-col justify-between gap-24 p-20 text-left transition-colors duration-150 hover:border-ink hover:bg-tint/30 sm:min-w-288"
               >
                 <div className="grid gap-14">
                   <span
@@ -96,7 +96,7 @@ export default function Routes() {
                     >
                       <span className="size-6 rounded-inner bg-line-strong" />
                       <span className="flex-1 border-t border-dashed border-line-strong" />
-                      <Jet className="size-18 shrink-0 transition-transform duration-300 group-hover:translate-x-3" />
+                      <Jet className="size-18 shrink-0 transition-transform duration-200 group-hover:translate-x-2" />
                     </div>
                     <span className="text-heading-lg font-black tracking-tight text-accent">
                       {to.code}
@@ -110,7 +110,7 @@ export default function Routes() {
 
                 <div className="mt-auto flex items-center justify-between border-t border-line pt-14 text-caption font-bold text-accent">
                   <span>Điền vào ô tìm</span>
-                  <span className="inline-grid size-28 place-items-center rounded-full bg-cta text-cta-fg transition-transform duration-200 group-hover:translate-x-2">
+                  <span className="inline-grid size-28 place-items-center rounded-inner bg-cta text-cta-fg transition-transform duration-150 group-hover:translate-x-1">
                     <Icon name="arrow" className="size-16 shrink-0" />
                   </span>
                 </div>

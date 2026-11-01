@@ -24,15 +24,15 @@ export default function SearchBar({
   return (
     <div className="grid gap-16">
       {summary !== null && (
-        <div className="card flex flex-wrap items-center justify-between gap-16 p-16">
-          {summary}
+        <div className="card flex flex-wrap items-center justify-between gap-16 px-20 py-16">
+          <div className="flex-1 min-w-0">{summary}</div>
           <button
             type="button"
             className={pillLine}
             aria-expanded={open}
             onClick={() => setOpen((o) => !o)}
           >
-            Đổi tìm kiếm
+            {open ? "Đóng ô tìm" : "Đổi tìm kiếm"}
           </button>
         </div>
       )}
