@@ -36,6 +36,3 @@ export const ROUTES: { from: string; to: string }[] = [
 
 export const airportByCode = (code: string) =>
   AIRPORTS.find((a) => a.code === code) ?? null;
-
-// Thời hạn giữ chỗ (phút). Giá trị thật là tham số hệ thống của PRD §7, đọc qua SettingsApi ở backend.
-export const HOLD_MINUTES = 15;

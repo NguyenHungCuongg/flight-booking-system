@@ -265,18 +265,18 @@ export default function FlightResults() {
       <main className="mx-auto grid max-w-page gap-28 px-16 pt-16 pb-80 sm:px-38">
         <div className="grid gap-13">
           {returnDate && hasQuery && (
-            <ol className="flex gap-16 text-caption">
+            <ol className="inline-flex items-center gap-4 rounded-inner border border-line bg-tint p-4 text-caption">
               {["Chiều đi", "Chiều về"].map((label, i) => {
                 const active = (i === 1) === step2;
                 return (
                   <li
                     key={label}
                     aria-current={active ? "step" : undefined}
-                    className={
+                    className={`rounded-inner px-16 py-6 font-bold transition-colors duration-150 ${
                       active
-                        ? "rounded-inner bg-accent-soft px-11 py-4 font-semibold text-accent"
-                        : "px-11 py-4 text-muted"
-                    }
+                        ? "bg-cta text-cta-fg"
+                        : "text-muted hover:text-ink"
+                    }`}
                   >
                     {i + 1}. {label}
                   </li>
@@ -284,7 +284,7 @@ export default function FlightResults() {
               })}
             </ol>
           )}
-          <h1 className="text-heading-lg font-bold">{title}</h1>
+          <h1 className="text-heading font-black tracking-tight text-ink">{title}</h1>
         </div>
 
         <SearchBar
@@ -292,9 +292,13 @@ export default function FlightResults() {
           initial={formFromParams(params)}
           summary={
             hasQuery && !badReturn ? (
-              <p className="text-muted">
-                {legFrom} → {legTo}, {dateLabel(legDate)},{" "}
-                {paxLabel(counts.adults, counts.children, counts.infants)},{" "}
+              <p className="text-body font-medium text-ink-2">
+                <strong className="font-bold text-ink">{legFrom} → {legTo}</strong>
+                <span className="mx-8 text-line-strong">|</span>
+                {dateLabel(legDate)}
+                <span className="mx-8 text-line-strong">|</span>
+                {paxLabel(counts.adults, counts.children, counts.infants)}
+                <span className="mx-8 text-line-strong">|</span>
                 {cabinLabel}
               </p>
             ) : null
@@ -318,11 +322,13 @@ export default function FlightResults() {
         {picked && (
           <section
             aria-label="Chiều đi đã chọn"
-            className="grid gap-16 card-hi p-16 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+            className="grid gap-16 rounded-inner border-2 border-accent bg-surface p-18 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
           >
             <div className="grid gap-4">
-              <p className="text-caption text-muted">Chiều đi đã chọn</p>
-              <p className="font-bold">
+              <span className="text-badge font-bold text-accent">
+                Chiều đi đã chọn
+              </span>
+              <p className="text-body font-black text-ink">
                 {first(picked.itinerary).airline.name}{" "}
                 {picked.itinerary.segments
                   .map((s) => s.flightNumber)
@@ -331,8 +337,8 @@ export default function FlightResults() {
                 {hhmm(first(picked.itinerary).departure)} {from} →{" "}
                 {hhmm(last(picked.itinerary).arrival)} {to}, {dateLabel(date)}
               </p>
-              <p className="text-caption text-muted">
-                {picked.fare.name}, {vnd(picked.fare.totalPrice)}
+              <p className="text-caption font-medium text-muted">
+                Gói {picked.fare.name} · {vnd(picked.fare.totalPrice)}
               </p>
             </div>
             <Link href={step1Url} className={pillLine}>

@@ -122,15 +122,38 @@
   --radius-largecards: 28px;
   --radius-decorative: 28px;
 
-  /* Bóng phẳng hiện đại kèm viền hairline 1px chuẩn Wise */
-  --shadow-card: 0 0 0 1px rgb(14 15 12 / 0.1), 0 6px 20px 0 rgb(0 0 0 / 0.05);
-  --shadow-card-hover:
-    0 0 0 1px rgb(22 51 0 / 0.25), 0 10px 26px -4px rgb(22 51 0 / 0.12);
+  /* Thẻ và bề mặt chuẩn Wise: phẳng, viền hairline 1px rõ ràng, không dùng bóng nhòe ảo */
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+  --shadow-card-hover: 0 4px 14px -2px rgb(22 51 0 / 0.08);
 
   /* Bố cục */
   --container-page: 1200px;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Chuyển động vào trang của hero (DESIGN.md §Motion). Dùng qua motion-safe:animate-*, độ trễ đặt bằng [animation-delay:Nms].
+     Fill "backwards": hết animation thì không còn giữ transform, để GSAP điều khiển tiếp (máy bay bay lên khi cuộn). */
+  --animate-rise: rise 600ms var(--ease-out) backwards;
+  --animate-jet-in: jet-in 800ms var(--ease-out) backwards;
+  --animate-draw: draw 600ms var(--ease-out) backwards;
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+  }
+  @keyframes jet-in {
+    from {
+      opacity: 0;
+      transform: translate(-56px, 32px);
+    }
+  }
+  /* Vẽ dần đường bay; path cần pathLength={1} strokeDasharray={1}. */
+  @keyframes draw {
+    from {
+      stroke-dashoffset: 1;
+    }
+  }
 }
 
 /*
@@ -166,12 +189,8 @@
     --color-sky-2: #0e1d09;
     --color-sky-3: #163300;
     --color-sky-4: #054d28;
-    --shadow-card:
-      0 0 0 1px rgb(159 232 112 / 0.12), 0 1px 0 rgb(255 255 255 / 0.04) inset,
-      0 12px 28px -14px rgb(0 0 0 / 0.72);
-    --shadow-card-hover:
-      0 0 0 1px rgb(159 232 112 / 0.28), 0 1px 0 rgb(255 255 255 / 0.06) inset,
-      0 18px 36px -14px rgb(0 0 0 / 0.82);
+    --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+    --shadow-card-hover: 0 4px 14px -2px rgb(0 0 0 / 0.4);
   }
 }
 
@@ -203,38 +222,32 @@ html[data-theme="dark"] {
   --color-sky-2: #0e1d09;
   --color-sky-3: #163300;
   --color-sky-4: #054d28;
-  --shadow-card:
-    0 0 0 1px rgb(159 232 112 / 0.12), 0 1px 0 rgb(255 255 255 / 0.04) inset,
-    0 12px 28px -14px rgb(0 0 0 / 0.72);
-  --shadow-card-hover:
-    0 0 0 1px rgb(159 232 112 / 0.28), 0 1px 0 rgb(255 255 255 / 0.06) inset,
-    0 18px 36px -14px rgb(0 0 0 / 0.82);
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+  --shadow-card-hover: 0 4px 14px -2px rgb(0 0 0 / 0.4);
 }
 
-/* Thẻ nổi trên nền trang: nền surface, bo 10px, viền hairline nằm trong bóng. */
+/* Thẻ chuẩn Wise: phẳng, bo 10px, viền hairline 1px rõ ràng, không bóng mờ ảo (loại bỏ ghost card) */
 @utility card {
   border-radius: var(--radius-card);
   background-color: var(--color-surface);
-  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-line);
 }
 
-/* Thẻ cần chú ý (trạng thái đặt chỗ, chiều đi đã chọn, tổng tiền): như card, thêm viền màu nhấn. */
+/* Thẻ cần chú ý (trạng thái đặt chỗ, chiều đi đã chọn, tổng tiền): như card, viền màu nhấn thương hiệu */
 @utility card-hi {
   border-radius: var(--radius-card);
   background-color: var(--color-surface);
-  box-shadow:
-    0 0 0 1.5px var(--color-accent),
-    0 12px 32px -16px rgb(22 51 0 / 0.28);
+  border: 1.5px solid var(--color-accent);
 }
 
-/* Thẻ vuông: như card nhưng không bo góc. */
+/* Thẻ vuông: như card nhưng không bo góc */
 @utility card-square {
   border-radius: 0;
   background-color: var(--color-surface);
-  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-line);
 }
 
-/* Nền tối Forest Ink để vùng kéo quá đáy trang liền với footer (#163300 theo NEW_DESIGN.md). */
+/* Nền tối Forest Ink để vùng kéo quá đáy trang liền với footer (#163300 theo DESIGN.md). */
 html {
   background: #163300;
   color-scheme: light dark;
@@ -246,15 +259,9 @@ html[data-theme="dark"] {
   color-scheme: dark;
 }
 
-/* Quầng sáng Linen Mist & Lime Voltage dịu nhẹ ở đầu trang. */
+/* Nền canvas phẳng, tự nhiên, loại bỏ các vệt gradient mesh mờ kiểu AI template */
 body {
-  --glow-sky: rgb(226 246 213 / 0.65);
-  --glow-clay: rgb(159 232 112 / 0.18);
-  background:
-    radial-gradient(1100px 460px at 12% -120px, var(--glow-sky), transparent),
-    radial-gradient(900px 420px at 92% -160px, var(--glow-clay), transparent),
-    var(--color-paper);
-  background-repeat: no-repeat;
+  background-color: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
   font-size: var(--text-body);
@@ -262,16 +269,6 @@ body {
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme="light"]) body {
-    --glow-sky: rgb(5 77 40 / 0.38);
-    --glow-clay: rgb(159 232 112 / 0.1);
-  }
-}
-html[data-theme="dark"] body {
-  --glow-sky: rgb(5 77 40 / 0.38);
-  --glow-clay: rgb(159 232 112 / 0.1);
 }
 
 @layer base {

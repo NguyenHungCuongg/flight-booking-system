@@ -37,19 +37,19 @@ export default function Footer() {
             </h3>
             <a
               href="#tim-chuyen"
-              className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage"
+              className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage max-sm:py-10"
             >
               Tìm chuyến bay
             </a>
             <Link
               href="/bookings"
-              className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage"
+              className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage max-sm:py-10"
             >
               Đặt chỗ của tôi
             </Link>
             <a
               href="#cach-dat-ve"
-              className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage"
+              className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage max-sm:py-10"
             >
               Cách đặt vé
             </a>
@@ -61,19 +61,19 @@ export default function Footer() {
             </h3>
             <Link
               href="/login"
-              className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage"
+              className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage max-sm:py-10"
             >
               Đăng nhập
             </Link>
             <Link
               href="/register"
-              className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage"
+              className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage max-sm:py-10"
             >
               Đăng ký
             </Link>
             <Link
               href="/forgot-password"
-              className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage"
+              className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage max-sm:py-10"
             >
               Quên mật khẩu
             </Link>
@@ -85,13 +85,13 @@ export default function Footer() {
             </h3>
             <a
               href="#ho-tro"
-              className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage"
+              className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage max-sm:py-10"
             >
               Câu hỏi thường gặp
             </a>
             <Link
               href="/chinh-sach/hoan-doi-hanh-ly"
-              className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage"
+              className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage max-sm:py-10"
             >
               Đổi và hoàn vé
             </Link>
@@ -105,7 +105,7 @@ export default function Footer() {
               <Link
                 key={p.slug}
                 href={`/chinh-sach/${p.slug}`}
-                className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage"
+                className="text-body text-linen-mist/75 transition-colors hover:text-lime-voltage max-sm:py-10"
               >
                 {p.title}
               </Link>

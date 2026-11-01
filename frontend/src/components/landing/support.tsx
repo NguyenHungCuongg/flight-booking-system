@@ -12,7 +12,7 @@ export default function Support() {
     >
       <div className="mx-auto max-w-page px-16 sm:px-38">
         <div className="grid gap-36 lg:grid-cols-12 lg:items-start lg:gap-48">
-          <div className="grid content-start justify-items-start gap-20 lg:sticky lg:top-96 lg:col-span-5">
+          <div data-reveal className="grid content-start justify-items-start gap-20 lg:sticky lg:top-96 lg:col-span-5">
             <h2
               id="sup-h"
               className="text-[clamp(28px,3.2vw,42px)] leading-[1.05] font-black tracking-[-0.028em] text-ink"
@@ -29,7 +29,7 @@ export default function Support() {
             </Link>
           </div>
 
-          <div className="grid gap-16 lg:col-span-7">
+          <div data-reveal className="grid gap-16 lg:col-span-7">
             <h3 className="text-subheading font-bold text-ink">
               Câu hỏi thường gặp
             </h3>

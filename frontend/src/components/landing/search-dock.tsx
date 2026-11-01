@@ -1,7 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { pillLine, pillPrimary } from "@/components/form";
 import { countryName, useAirports, type Airport } from "@/lib/airports";
 import { CABINS } from "./data";
@@ -49,6 +55,8 @@ function filterAirports(
   let list = airports.filter((a) => a.code !== other);
   if (q) {
     const Q = q.toUpperCase();
+    // Gõ đúng mã của ô bên kia thì không gợi ý sân bay khác chỉ vì tên có chứa chữ đó (HAN → cHANgi).
+    if (Q === other) return [];
     list = list
       .map((a) => {
         const city = norm(a.city);
@@ -72,12 +80,12 @@ const focusOnMount = (el: HTMLInputElement | null) =>
   el?.focus({ preventScroll: true });
 
 const iconCircleBtn =
-  "inline-grid size-40 shrink-0 place-items-center rounded-inner border border-line-strong bg-surface text-ink transition hover:border-ink hover:bg-accent-soft active:scale-95 disabled:cursor-not-allowed disabled:opacity-35";
+  "inline-grid size-40 shrink-0 place-items-center rounded-inner border border-line-strong bg-surface text-ink transition-colors duration-150 hover:border-ink hover:bg-tint disabled:cursor-not-allowed disabled:opacity-35";
 
 export default function SearchDock() {
   const router = useRouter();
   const [pending, startNav] = useTransition();
-  const { form, today: todayIso, update, flash } = useSearch();
+  const { form, today: todayIso, update, flash, settings } = useSearch();
   const { airports, failed } = useAirports();
   const [s, setS] = useState<Local>({
     panel: null,
@@ -123,6 +131,8 @@ export default function SearchDock() {
   const hi = Math.min(s.hi, Math.max(0, list.length - 1));
   const cabin = CABINS.find((c) => c.id === form.cabin) ?? CABINS[0];
   const seated = form.adults + form.children;
+  // Chưa tải được tham số thì chưa chặn; backend vẫn kiểm tra khi báo giá.
+  const maxSeated = settings?.["booking.max_seated_passengers"] ?? Infinity;
   const total = seated + form.infants;
   const clearErr = (...keys: Field[]) =>
     Object.fromEntries(
@@ -144,6 +154,26 @@ export default function SearchDock() {
     patch({ panel: next, popUp, query: "", hi: 0, calMonth });
   };
   const closePanel = () => patch({ panel: null });
+  // Tab ra khỏi ô bật lên thì đóng nó; bấm chuột ra ngoài đã có lớp phủ lo.
+  const closeOnTabOut = (e: React.FocusEvent) => {
+    if (e.relatedTarget && !e.currentTarget.contains(e.relatedTarget))
+      closePanel();
+  };
+  // Viền nháy khi được gọi tới (chọn tuyến gợi ý, CTA cuối trang) chỉ sáng một lúc rồi tắt.
+  const [ringDone, setRingDone] = useState(0);
+  useEffect(() => {
+    const id = setTimeout(() => setRingDone(flash), 1600);
+    return () => clearTimeout(id);
+  }, [flash]);
+  const ringOn = flash !== ringDone;
+  // Ô bật lên đóng lại (Esc, chọn xong, nút Đóng) thì trả focus về nút đã mở nó, thay vì rơi về <body>.
+  const prevPanel = useRef<Panel>(null);
+  useEffect(() => {
+    const prev = prevPanel.current;
+    prevPanel.current = s.panel;
+    if (prev && !s.panel && document.activeElement === document.body)
+      document.getElementById(`fld-${prev}`)?.focus({ preventScroll: true });
+  }, [s.panel]);
   const onPopKey = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       e.stopPropagation();
@@ -236,9 +266,9 @@ export default function SearchDock() {
     let { adults, children, infants } = form;
     let note = "";
     if (kind === "adults")
-      adults = Math.min(9 - children, Math.max(1, adults + delta));
+      adults = Math.min(maxSeated - children, Math.max(1, adults + delta));
     if (kind === "children")
-      children = Math.min(9 - adults, Math.max(0, children + delta));
+      children = Math.min(maxSeated - adults, Math.max(0, children + delta));
     if (kind === "infants")
       infants = Math.min(adults, Math.max(0, infants + delta));
     if (infants > adults) {
@@ -249,9 +279,8 @@ export default function SearchDock() {
     patch({ paxNote: note, paxKey: kind });
   };
   let paxNote = s.paxNote;
-  if (!paxNote && seated >= 9)
-    paxNote =
-      "Tối đa 9 khách chiếm ghế trong một lần đặt. Em bé không chiếm ghế.";
+  if (!paxNote && seated >= maxSeated)
+    paxNote = `Tối đa ${maxSeated} khách chiếm ghế trong một lần đặt. Em bé không chiếm ghế.`;
   else if (!paxNote && form.infants > 0 && form.infants >= form.adults)
     paxNote = "Mỗi người lớn đi kèm tối đa một em bé.";
 
@@ -330,7 +359,8 @@ export default function SearchDock() {
   const cal = isCal ? calendar() : null;
 
   const popPos = (alignRight = false) =>
-    `max-sm:mt-10 sm:absolute sm:z-30 ${
+    // Màn hẹp: ô bật lên thành tấm trượt từ đáy, đủ rộng cho lịch 7 cột.
+    `max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-30 max-sm:max-h-[85dvh] max-sm:overflow-y-auto max-sm:rounded-b-none sm:absolute sm:z-30 ${
       s.popUp ? "sm:bottom-[calc(100%+10px)]" : "sm:top-[calc(100%+10px)]"
     } ${alignRight ? "sm:right-0" : "sm:left-0"}`;
 
@@ -340,13 +370,13 @@ export default function SearchDock() {
       role="search"
       aria-label="Tìm chuyến bay"
       className={`card relative grid gap-14 p-16 sm:p-20 transition-shadow duration-300 ${
-        flash ? "ring-2 ring-accent" : ""
+        ringOn ? "ring-2 ring-accent" : ""
       }`}
     >
       {s.panel && (
         <button
           type="button"
-          className="fixed inset-0 z-20 cursor-default bg-transparent max-sm:hidden"
+          className="fixed inset-0 z-20 cursor-default bg-transparent max-sm:bg-forest-ink/40"
           tabIndex={-1}
           aria-hidden="true"
           onClick={closePanel}
@@ -354,7 +384,7 @@ export default function SearchDock() {
       )}
 
       {/* Top controls: Segmented trip switch + Passenger/Cabin picker + International notice */}
-      <div className="relative z-25 flex flex-wrap items-center gap-10">
+      <div className="relative z-25 flex flex-wrap items-center gap-12">
         <div
           className="inline-grid grid-cols-2 rounded-inner border border-line bg-tint p-4"
           role="group"
@@ -364,10 +394,10 @@ export default function SearchDock() {
             type="button"
             aria-pressed={oneway}
             onClick={() => setTrip("oneway")}
-            className={`min-h-36 rounded-inner px-16 py-7 text-caption font-bold transition-colors ${
+            className={`min-h-36 rounded-inner px-16 py-7 max-sm:min-h-44 text-caption font-bold transition-colors duration-150 ${
               oneway
-                ? "bg-cta text-cta-fg shadow-xs"
-                : "text-ink-2 hover:text-ink"
+                ? "bg-cta text-cta-fg"
+                : "text-ink hover:text-accent"
             }`}
           >
             Một chiều
@@ -376,10 +406,10 @@ export default function SearchDock() {
             type="button"
             aria-pressed={!oneway}
             onClick={() => setTrip("round")}
-            className={`min-h-36 rounded-inner px-16 py-7 text-caption font-bold transition-colors ${
+            className={`min-h-36 rounded-inner px-16 py-7 max-sm:min-h-44 text-caption font-bold transition-colors duration-150 ${
               !oneway
-                ? "bg-cta text-cta-fg shadow-xs"
-                : "text-ink-2 hover:text-ink"
+                ? "bg-cta text-cta-fg"
+                : "text-ink hover:text-accent"
             }`}
           >
             Khứ hồi
@@ -389,7 +419,10 @@ export default function SearchDock() {
         <div className="relative">
           <button
             type="button"
-            className="inline-flex min-h-42 items-center gap-10 rounded-inner border border-line-strong bg-surface px-16 text-caption font-bold text-ink transition hover:border-ink hover:bg-accent-soft"
+            className={`inline-flex min-h-42 items-center gap-10 rounded-inner border bg-surface px-16 max-sm:min-h-44 text-caption font-bold text-ink transition-colors duration-150 hover:border-ink hover:bg-tint ${
+              s.panel === "pax" ? "border-accent ring-1 ring-accent" : "border-line-strong"
+            }`}
+            id="fld-pax"
             aria-expanded={s.panel === "pax"}
             aria-controls="pax-pop"
             onClick={() => open("pax")}
@@ -411,6 +444,7 @@ export default function SearchDock() {
               role="dialog"
               aria-label="Hành khách và hạng ghế"
               onKeyDown={onPopKey}
+              onBlur={closeOnTabOut}
               className={`${popPos(false)} w-full rounded-card border border-line-strong bg-surface p-18 shadow-card-hover sm:w-420`}
             >
               <div className="divide-y divide-line">
@@ -420,7 +454,7 @@ export default function SearchDock() {
                   noun="người lớn"
                   value={form.adults}
                   decDis={form.adults <= 1}
-                  incDis={seated >= 9}
+                  incDis={seated >= maxSeated}
                   onDec={() => pax("adults", -1)}
                   onInc={() => pax("adults", 1)}
                 />
@@ -430,7 +464,7 @@ export default function SearchDock() {
                   noun="trẻ em"
                   value={form.children}
                   decDis={form.children <= 0}
-                  incDis={seated >= 9}
+                  incDis={seated >= maxSeated}
                   onDec={() => pax("children", -1)}
                   onInc={() => pax("children", 1)}
                 />
@@ -504,11 +538,12 @@ export default function SearchDock() {
       </div>
 
       {/* Main search fields grid */}
-      <div className="relative z-25 grid rounded-inner border border-line bg-paper/45 lg:grid-cols-[minmax(0,2.4fr)_minmax(0,1.9fr)_auto]">
+      <div className="relative z-25 grid rounded-inner border border-line lg:grid-cols-[minmax(0,2.4fr)_minmax(0,1.9fr)_auto]">
         {/* Route: From + Swap + To */}
         <div className="relative grid border-b border-line sm:grid-cols-[minmax(0,1fr)_52px_minmax(0,1fr)] lg:border-b-0">
           <div className="relative min-w-0">
             <FieldBtn
+              id="fld-from"
               label="Từ"
               open={s.panel === "from"}
               onClick={() => open("from")}
@@ -529,6 +564,7 @@ export default function SearchDock() {
                 onQuery={(q) => patch({ query: q, hi: 0 })}
                 onKey={onQueryKey}
                 onPopKey={onPopKey}
+                onBlur={closeOnTabOut}
                 onPick={pickAirport}
                 onClose={closePanel}
               />
@@ -538,7 +574,7 @@ export default function SearchDock() {
           <div className="flex items-center justify-center max-sm:py-4">
             <button
               type="button"
-              className="grid size-38 place-items-center rounded-inner border border-line-strong bg-surface text-ink transition hover:border-ink hover:bg-accent-soft active:scale-95"
+              className="grid size-38 place-items-center rounded-inner max-sm:size-44 border border-line-strong bg-surface text-ink transition-colors duration-150 hover:border-ink hover:bg-tint"
               aria-label="Đảo điểm đi và điểm đến"
               onClick={swap}
               style={{ transform: `rotate(${s.swapTurns * 180}deg)` }}
@@ -549,6 +585,7 @@ export default function SearchDock() {
 
           <div className="relative min-w-0 max-sm:border-t max-sm:border-line">
             <FieldBtn
+              id="fld-to"
               label="Đến"
               open={s.panel === "to"}
               onClick={() => open("to")}
@@ -569,6 +606,7 @@ export default function SearchDock() {
                 onQuery={(q) => patch({ query: q, hi: 0 })}
                 onKey={onQueryKey}
                 onPopKey={onPopKey}
+                onBlur={closeOnTabOut}
                 onPick={pickAirport}
                 onClose={closePanel}
               />
@@ -580,6 +618,7 @@ export default function SearchDock() {
         <div className="grid grid-cols-2 border-b border-line lg:border-b-0 lg:border-l">
           <div className="relative min-w-0">
             <FieldBtn
+              id="fld-dep"
               label="Ngày đi"
               open={s.panel === "dep"}
               onClick={() => open("dep")}
@@ -597,6 +636,7 @@ export default function SearchDock() {
                 onShift={shiftMonth}
                 onPick={pickDate}
                 onKey={onPopKey}
+                onBlur={closeOnTabOut}
                 onClose={closePanel}
               />
             )}
@@ -604,6 +644,7 @@ export default function SearchDock() {
 
           <div className="relative min-w-0 border-l border-line">
             <FieldBtn
+              id="fld-ret"
               label="Ngày về"
               open={s.panel === "ret"}
               onClick={openRet}
@@ -623,6 +664,7 @@ export default function SearchDock() {
                 onShift={shiftMonth}
                 onPick={pickDate}
                 onKey={onPopKey}
+                onBlur={closeOnTabOut}
                 onClose={closePanel}
               />
             )}
@@ -655,6 +697,7 @@ export default function SearchDock() {
 }
 
 function FieldBtn(p: {
+  id: string;
   label: string;
   open: boolean;
   onClick: () => void;
@@ -665,11 +708,13 @@ function FieldBtn(p: {
 }) {
   return (
     <button
+      id={p.id}
       type="button"
       aria-expanded={p.open}
+      aria-label={`${p.label} ${p.main} ${p.sub.trim()}${p.error ? `. ${p.error}` : ""}`}
       onClick={p.onClick}
-      className={`grid h-full w-full content-start gap-2 rounded-inner px-16 py-12 text-left transition-colors ${
-        p.open ? "bg-accent-soft/75" : "hover:bg-tint/70"
+      className={`grid h-full w-full content-start gap-2 rounded-inner px-16 py-12 text-left transition-colors duration-150 ${
+        p.open ? "bg-accent-soft text-accent" : "hover:bg-tint"
       } ${p.error ? "ring-2 ring-inset ring-danger" : ""}`}
     >
       <span
@@ -753,6 +798,7 @@ function AirportPop(p: {
   onQuery: (q: string) => void;
   onKey: (e: React.KeyboardEvent) => void;
   onPopKey: (e: React.KeyboardEvent) => void;
+  onBlur: (e: React.FocusEvent) => void;
   onPick: (code: string) => void;
   onClose: () => void;
 }) {
@@ -761,6 +807,7 @@ function AirportPop(p: {
       role="dialog"
       aria-label={p.aria}
       onKeyDown={p.onPopKey}
+      onBlur={p.onBlur}
       className={`${p.posClass} w-full rounded-card border border-line-strong bg-surface p-18 shadow-card-hover sm:w-400`}
     >
       <div className="mb-12 flex items-center justify-between gap-12">
@@ -787,6 +834,11 @@ function AirportPop(p: {
           placeholder="Thành phố, sân bay hoặc mã"
           autoComplete="off"
           spellCheck={false}
+          role="combobox"
+          aria-expanded="true"
+          aria-autocomplete="list"
+          aria-controls="ap-list"
+          aria-activedescendant={p.list.length ? `ap-opt-${p.hi}` : undefined}
           aria-describedby="ap-count"
           onChange={(e) => p.onQuery(e.target.value)}
           onKeyDown={p.onKey}
@@ -797,11 +849,20 @@ function AirportPop(p: {
           ? `${p.list.length} sân bay phù hợp`
           : "Không có sân bay phù hợp"}
       </p>
-      <div className="mt-10 grid max-h-320 overflow-y-auto overscroll-contain">
+      <div
+        id="ap-list"
+        role="listbox"
+        aria-label={p.aria}
+        className="mt-10 grid max-h-320 overflow-y-auto overscroll-contain"
+      >
         {p.list.map((a, i) => (
           <button
             key={a.code}
+            id={`ap-opt-${i}`}
             type="button"
+            role="option"
+            aria-selected={i === p.hi}
+            tabIndex={-1}
             onClick={() => p.onPick(a.code)}
             className={`grid min-h-56 w-full grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-12 rounded-inner px-10 py-8 text-left transition-colors ${
               i === p.hi
@@ -821,10 +882,10 @@ function AirportPop(p: {
             </span>
           </button>
         ))}
-        {p.list.length === 0 && (
-          <p className="px-6 py-14 text-caption text-muted">{p.empty}</p>
-        )}
       </div>
+      {p.list.length === 0 && (
+        <p className="px-6 py-14 text-caption text-muted">{p.empty}</p>
+      )}
     </div>
   );
 }
@@ -850,13 +911,37 @@ function CalendarPop(p: {
   onShift: (n: number) => void;
   onPick: (day: string) => void;
   onKey: (e: React.KeyboardEvent) => void;
+  onBlur: (e: React.FocusEvent) => void;
   onClose: () => void;
 }) {
+  // Lịch là một điểm Tab: ngày đang chọn (hoặc ngày chọn được đầu tiên), phím mũi tên đi giữa các ngày.
+  const tabDay = (
+    p.cal.cells.find((c) => c?.sel && !c.disabled) ??
+    p.cal.cells.find((c) => c && !c.disabled)
+  )?.day;
+  const focused = useRef(false);
+  const focusFirst = (el: HTMLButtonElement | null) => {
+    if (el && !focused.current) {
+      focused.current = true;
+      el.focus({ preventScroll: true });
+    }
+  };
+  const onGridKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[
+      e.key
+    ];
+    if (!step) return;
+    e.preventDefault();
+    const days = [...e.currentTarget.querySelectorAll("button")];
+    const next = days[days.indexOf(e.target as HTMLButtonElement) + step];
+    if (next && !next.disabled) next.focus();
+  };
   return (
     <div
       role="dialog"
       aria-label={p.aria}
       onKeyDown={p.onKey}
+      onBlur={p.onBlur}
       className={`${p.posClass} w-full rounded-card border border-line-strong bg-surface p-18 shadow-card-hover sm:w-356`}
     >
       <div className="flex items-center justify-between gap-10">
@@ -893,12 +978,14 @@ function CalendarPop(p: {
           </span>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-y-2">
+      <div className="grid grid-cols-7 gap-y-2" onKeyDown={onGridKey}>
         {p.cal.cells.map((c, i) =>
           c ? (
             <button
               key={c.day}
+              ref={c.day === tabDay ? focusFirst : undefined}
               type="button"
+              tabIndex={c.day === tabDay ? 0 : -1}
               disabled={c.disabled}
               aria-pressed={c.sel}
               aria-label={c.label}

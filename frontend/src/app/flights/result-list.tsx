@@ -20,7 +20,7 @@ import {
 } from "./itineraries";
 
 const box =
-  "size-16 shrink-0 accent-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  "size-16 shrink-0 rounded-sm accent-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent cursor-pointer";
 
 function toggle<T>(list: T[], value: T) {
   return list.includes(value)
@@ -30,8 +30,8 @@ function toggle<T>(list: T[], value: T) {
 
 function Group({ legend, children }: { legend: string; children: ReactNode }) {
   return (
-    <fieldset className="grid gap-11 border-t border-line pt-16 first:border-t-0 first:pt-0">
-      <legend className="float-left mb-11 text-caption font-semibold text-ink-2">
+    <fieldset className="grid gap-10 border-t border-line pt-16 first:border-t-0 first:pt-0">
+      <legend className="float-left mb-10 text-caption font-bold text-ink">
         {legend}
       </legend>
       {children}
@@ -51,16 +51,16 @@ function Check({
   onChange: () => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-11 text-caption">
+    <label className="flex cursor-pointer items-center gap-10 text-caption text-ink-2 hover:text-ink transition-colors">
       <input
         type="checkbox"
-        className={`${box} mt-2`}
+        className={box}
         checked={checked}
         onChange={onChange}
       />
-      <span className="grid">
-        {label}
-        {hint && <span className="text-muted">{hint}</span>}
+      <span className="flex-1 select-none">
+        <span className="font-medium">{label}</span>
+        {hint && <span className="ml-6 text-badge text-muted">({hint})</span>}
       </span>
     </label>
   );
@@ -204,13 +204,13 @@ export default function ResultList({
 
       <section aria-label="Kết quả" className="grid gap-16">
         <div className="flex flex-wrap items-center justify-between gap-16">
-          <p className="text-caption text-muted" aria-live="polite">
-            {shown.length} trên {itineraries.length} hành trình
+          <p className="text-caption font-medium text-muted" aria-live="polite">
+            Hiển thị <strong className="font-bold text-ink">{shown.length}</strong> trên {itineraries.length} hành trình
           </p>
-          <label className="flex items-center gap-11 text-caption font-bold">
-            Sắp xếp
+          <label className="flex items-center gap-10 text-caption font-bold text-ink">
+            Sắp xếp theo:
             <select
-              className="cursor-pointer rounded-inner border border-line-strong bg-surface px-13 py-8 font-normal text-ink"
+              className="cursor-pointer rounded-inner border border-line-strong bg-surface px-14 py-8 font-semibold text-ink transition-colors hover:border-ink focus-visible:border-accent"
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
             >

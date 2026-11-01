@@ -4,10 +4,13 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   useSyncExternalStore,
 } from "react";
+import { apiFetch } from "@/lib/api";
+import type { PublicSettings } from "@/lib/policies";
 import { ROUTES, type CabinId } from "./data";
 
 export type Trip = "oneway" | "round";
@@ -64,8 +67,11 @@ interface SearchCtx {
   ) => void;
   /** Tăng mỗi lần cần nháy viền ô tìm. */
   flash: number;
-  focusSearch: () => void;
+  /** Cuộn tới ô tìm, nháy viền và đặt focus vào ô `field` (mặc định ô Từ). */
+  focusSearch: (field?: string) => void;
   pickRoute: (i: number) => void;
+  /** Tham số Admin đổi được (GET /api/settings/public), undefined khi đang tải hoặc backend lỗi. */
+  settings: PublicSettings | undefined;
 }
 
 const Ctx = createContext<SearchCtx | null>(null);
@@ -105,6 +111,25 @@ export function SearchProvider({
     ...initial,
   });
   const [flash, setFlash] = useState(0);
+  const [settings, setSettings] = useState<PublicSettings>();
+  useEffect(() => {
+    let live = true;
+    let timer: ReturnType<typeof setTimeout>;
+    // Lỗi mạng thoáng qua thì thử lại vài lần, để các con số không kẹt ở "…".
+    const load = (tries: number) =>
+      apiFetch<PublicSettings>("/settings/public").then(
+        (s) => live && setSettings(s),
+        () => {
+          if (live && tries > 1)
+            timer = setTimeout(() => load(tries - 1), 3000);
+        },
+      );
+    load(3);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, []);
 
   // Ngày đi mặc định: 14 ngày sau hôm nay, cho tới khi người dùng chọn.
   const form = useMemo(
@@ -120,12 +145,13 @@ export function SearchProvider({
     [],
   );
 
-  const focusSearch = useCallback(() => {
+  const focusSearch = useCallback((field = "fld-from") => {
     setFlash((n) => n + 1);
     document.getElementById("tim-chuyen")?.scrollIntoView({
       behavior: reducedMotion() ? "auto" : "smooth",
       block: "center",
     });
+    document.getElementById(field)?.focus({ preventScroll: true });
   }, []);
 
   const pickRoute = useCallback(
@@ -137,14 +163,14 @@ export function SearchProvider({
         fromPar: f.fromPar + 1,
         toPar: f.toPar + 1,
       }));
-      focusSearch();
+      focusSearch("fld-dep");
     },
     [update, focusSearch],
   );
 
   const value = useMemo(
-    () => ({ form, today, update, flash, focusSearch, pickRoute }),
-    [form, today, update, flash, focusSearch, pickRoute],
+    () => ({ form, today, update, flash, focusSearch, pickRoute, settings }),
+    [form, today, update, flash, focusSearch, pickRoute, settings],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -4,6 +4,7 @@ import Airlines from "./airlines";
 import FinalCta from "./final-cta";
 import Footer from "./footer";
 import Hero from "./hero";
+import LandingMotion from "./landing-motion";
 import Nav from "./nav";
 import Routes from "./routes";
 import { SearchProvider } from "./search-context";
@@ -14,7 +15,7 @@ import Support from "./support";
 export default function Landing() {
   return (
     <SearchProvider>
-      <div id="top" className="min-h-dvh">
+      <div id="top" className="min-h-dvh text-pretty">
         <a
           href="#tim-chuyen"
           className={`sr-only focus:not-sr-only focus:fixed focus:top-14 focus:left-16 focus:z-50 ${pillPrimary}`}
@@ -22,7 +23,7 @@ export default function Landing() {
           Bỏ qua tới ô tìm chuyến bay
         </a>
         <Nav />
-        <main>
+        <LandingMotion>
           <Hero />
           <Routes />
           <Airlines />
@@ -30,7 +31,7 @@ export default function Landing() {
           <AfterSales />
           <Support />
           <FinalCta />
-        </main>
+        </LandingMotion>
         <Footer />
       </div>
     </SearchProvider>
