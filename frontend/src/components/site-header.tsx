@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCurrentUser } from "@/lib/use-current-user";
 import { Brand } from "./auth-shell";
-import { pillPrimary, pillLine } from "./form";
+import { pillLine } from "./form";
 import { ThemeToggle } from "./theme-toggle";
 import UserMenu from "./user-menu";
 
