@@ -51,7 +51,7 @@ export default function AfterSales() {
         />
         <div className="grid gap-32 lg:grid-cols-12 lg:items-center lg:gap-48">
           {/* Left: Headline + Segmented Switch */}
-          <div className="grid content-start gap-20 lg:col-span-6">
+          <div data-reveal className="grid content-start gap-20 lg:col-span-6">
             <h2
               id="after-h"
               className="text-[clamp(28px,3.2vw,44px)] leading-[1.04] font-black tracking-[-0.028em] text-lime-voltage"
@@ -92,6 +92,7 @@ export default function AfterSales() {
           {/* Right: Formula & Rule Card (Thẻ phẳng, sạch, chuẩn thiết kế tông tối) */}
           <div
             aria-live="polite"
+            data-reveal
             className="rounded-inner border border-linen-mist/20 bg-spruce p-24 sm:p-32 lg:col-span-6"
           >
             <div key={tab} className="grid gap-18">

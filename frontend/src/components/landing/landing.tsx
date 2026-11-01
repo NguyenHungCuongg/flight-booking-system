@@ -4,6 +4,7 @@ import Airlines from "./airlines";
 import FinalCta from "./final-cta";
 import Footer from "./footer";
 import Hero from "./hero";
+import LandingMotion from "./landing-motion";
 import Nav from "./nav";
 import Routes from "./routes";
 import { SearchProvider } from "./search-context";
@@ -22,7 +23,7 @@ export default function Landing() {
           Bỏ qua tới ô tìm chuyến bay
         </a>
         <Nav />
-        <main>
+        <LandingMotion>
           <Hero />
           <Routes />
           <Airlines />
@@ -30,7 +31,7 @@ export default function Landing() {
           <AfterSales />
           <Support />
           <FinalCta />
-        </main>
+        </LandingMotion>
         <Footer />
       </div>
     </SearchProvider>

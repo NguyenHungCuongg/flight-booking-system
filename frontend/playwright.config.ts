@@ -15,7 +15,8 @@ export default defineConfig({
   workers: 4,
   retries: process.env.CI ? 1 : 0,
   reporter: "list",
-  use: { baseURL, trace: "retain-on-failure" },
+  // Tắt animation (DESIGN.md §Motion) để thao tác không phải chờ hiệu ứng.
+  use: { baseURL, trace: "retain-on-failure", reducedMotion: "reduce" },
   projects: [
     {
       name: "chromium",

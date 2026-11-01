@@ -11,6 +11,8 @@
     "gen:api": "openapi-typescript http://localhost:8080/v3/api-docs --properties-required-by-default -o src/lib/api-types.ts"
   },
   "dependencies": {
+    "@gsap/react": "2.1.2",
+    "gsap": "3.15.0",
     "marked": "18.1.2",
     "next": "16.4.3",
     "react": "19.3.0",

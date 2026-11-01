@@ -22,20 +22,21 @@ export default function FinalCta() {
         <div className="grid justify-items-center gap-24 rounded-[28px] px-24 py-48 text-center sm:px-48 sm:py-68">
           <h2
             id="final-h"
+            data-reveal
             className="max-w-[20ch] text-[clamp(30px,4.2vw,52px)] leading-[1.04] font-black tracking-[-0.03em] text-ink"
           >
             <span className="block">Săn vé dễ dàng,</span>
             <span className="text-accent">ngập tràn trải nghiệm.</span>
           </h2>
-          <p className="max-w-[46ch] text-body text-ink-2">
+          <p data-reveal className="max-w-[46ch] text-body text-ink-2">
             Chọn hành trình phù hợp, giữ chỗ ngay trong vài bước và thanh toán
             an toàn qua VNPay.
           </p>
-          <div className="mt-4 flex flex-wrap justify-center gap-12">
+          <div data-reveal className="mt-4 flex flex-wrap justify-center gap-12">
             <button
               type="button"
               className={`${pillPrimary} min-h-46 px-24 text-body`}
-              onClick={focusSearch}
+              onClick={() => focusSearch()}
             >
               <span>Tìm chuyến bay</span>
               <Icon name="arrow" className="size-20 shrink-0" />

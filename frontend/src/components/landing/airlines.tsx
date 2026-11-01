@@ -34,7 +34,7 @@ export default function Airlines() {
       <div className="mx-auto max-w-page px-16 sm:px-38">
         <div className="grid gap-36 lg:grid-cols-12 lg:items-center lg:gap-48">
           {/* Left: Authentic Fare Transparency Specimen (loại bỏ lồng thẻ card-in-card) */}
-          <div className="rounded-inner border border-line bg-surface p-22 sm:p-28 lg:col-span-5">
+          <div data-reveal className="rounded-inner border border-line bg-surface p-22 sm:p-28 lg:col-span-5">
             <div className="grid gap-16">
               <div className="flex items-center justify-between gap-12 border-b border-line pb-14">
                 <span className="text-caption font-bold text-ink">
@@ -103,7 +103,7 @@ export default function Airlines() {
 
           {/* Right: Feature Breakdown */}
           <div className="grid gap-32 lg:col-span-7">
-            <div className="grid gap-12">
+            <div data-reveal className="grid gap-12">
               <h2
                 id="air-h"
                 className="text-[clamp(28px,3.2vw,42px)] leading-[1.05] font-black tracking-[-0.028em] text-ink"
@@ -121,6 +121,7 @@ export default function Airlines() {
               {FEATURES.map(([title, desc]) => (
                 <div
                   key={title}
+                  data-reveal
                   className="grid content-start gap-10 border-t border-line pt-20"
                 >
                   <h3 className="text-subheading font-bold text-ink">

@@ -130,6 +130,30 @@
   --container-page: 1200px;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Chuyển động vào trang của hero (DESIGN.md §Motion). Dùng qua motion-safe:animate-*, độ trễ đặt bằng [animation-delay:Nms].
+     Fill "backwards": hết animation thì không còn giữ transform, để GSAP điều khiển tiếp (máy bay bay lên khi cuộn). */
+  --animate-rise: rise 600ms var(--ease-out) backwards;
+  --animate-jet-in: jet-in 800ms var(--ease-out) backwards;
+  --animate-draw: draw 600ms var(--ease-out) backwards;
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+  }
+  @keyframes jet-in {
+    from {
+      opacity: 0;
+      transform: translate(-56px, 32px);
+    }
+  }
+  /* Vẽ dần đường bay; path cần pathLength={1} strokeDasharray={1}. */
+  @keyframes draw {
+    from {
+      stroke-dashoffset: 1;
+    }
+  }
 }
 
 /*

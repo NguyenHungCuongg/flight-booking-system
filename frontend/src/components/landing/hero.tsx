@@ -27,14 +27,16 @@ export default function Hero() {
               className="text-[clamp(40px,6.2vw,76px)] leading-[0.95] font-black tracking-[-0.035em] text-ink"
             >
               <span className="sr-only">SkyLine. </span>
-              <span className="block">Tìm một giây.</span>
-              <span className="mt-4 inline-block bg-cta px-18 py-4 text-cta-fg">
+              <span className="block motion-safe:animate-rise">
+                Tìm một giây.
+              </span>
+              <span className="mt-4 inline-block bg-cta px-18 py-4 text-cta-fg motion-safe:animate-rise [animation-delay:80ms]">
                 Bay vạn dặm.
               </span>
             </h1>
           </div>
 
-          <div className="grid gap-16 lg:col-span-5">
+          <div className="grid gap-16 motion-safe:animate-rise [animation-delay:160ms] lg:col-span-5">
             <p className="max-w-[44ch] text-subheading leading-relaxed font-medium text-ink-2">
               So sánh chuyến bay thẳng và nối chuyến của nhiều hãng trong một
               lần tìm. Giữ chỗ trước, kiểm tra kỹ thông tin rồi mới thanh toán
@@ -129,12 +131,18 @@ export default function Hero() {
             {/* Quỹ đạo sáng màu xanh Lime Voltage vươn vòng qua mũi máy bay như ảnh mẫu */}
             <path
               d="M 305 174 C 465 148, 635 108, 785 92"
+              pathLength={1}
+              strokeDasharray={1}
+              className="motion-safe:animate-draw [animation-delay:350ms]"
               stroke="var(--color-cta)"
               strokeWidth="3"
               strokeLinecap="round"
             />
             <path
               d="M 845 78 C 918 84, 898 124, 735 158"
+              pathLength={1}
+              strokeDasharray={1}
+              className="motion-safe:animate-draw [animation-delay:400ms]"
               stroke="var(--color-cta)"
               strokeWidth="2"
               strokeLinecap="round"
@@ -154,7 +162,7 @@ export default function Hero() {
           {/* Thẻ tọa độ tuyến bay bên trái — bo tròn 2 cạnh (stadium pill) */}
           <div
             aria-hidden="true"
-            className="absolute top-18 left-0 z-20 hidden min-w-236 flex-col gap-4 rounded-full border border-line bg-surface/95 px-26 py-12 backdrop-blur-xs lg:flex xl:left-12"
+            className="absolute top-18 left-0 z-20 hidden motion-safe:animate-rise [animation-delay:400ms] min-w-236 flex-col gap-4 rounded-full border border-line bg-surface/95 px-26 py-12 backdrop-blur-xs lg:flex xl:left-12"
           >
             <div className="flex items-center justify-between gap-12">
               <span className="inline-flex items-center gap-5 rounded-full bg-cta px-10 py-2 text-badge font-bold text-cta-fg">
@@ -187,13 +195,14 @@ export default function Hero() {
             priority
             sizes="(min-width: 1200px) 1080px, 96vw"
             alt="Máy bay chở khách 3D thân trắng đang vươn cao trên bầu trời"
-            className="relative z-10 w-full max-w-1060 object-contain max-sm:max-h-72 lg:max-h-[28dvh] drop-shadow-[0_24px_36px_rgba(22,51,0,0.18)]"
+            data-jet
+            className="relative z-10 motion-safe:animate-jet-in [animation-delay:120ms] w-full max-w-1060 object-contain max-sm:max-h-72 lg:max-h-[28dvh] drop-shadow-[0_24px_36px_rgba(22,51,0,0.18)]"
           />
 
           {/* Thẻ thông số hành trình bên phải — bo tròn 2 cạnh (stadium pill) */}
           <div
             aria-hidden="true"
-            className="absolute right-0 bottom-6 z-20 hidden min-w-256 flex-col gap-4 rounded-full border border-line bg-surface/95 px-28 py-12 backdrop-blur-xs lg:flex xl:right-8"
+            className="absolute right-0 bottom-6 z-20 hidden motion-safe:animate-rise [animation-delay:450ms] min-w-256 flex-col gap-4 rounded-full border border-line bg-surface/95 px-28 py-12 backdrop-blur-xs lg:flex xl:right-8"
           >
             <div className="flex items-center justify-between gap-10">
               <span className="inline-flex items-center gap-6 text-badge font-bold text-ink">
@@ -224,7 +233,7 @@ export default function Hero() {
         </div>
 
         {/* Bottom Stage: Search Dock */}
-        <div className="relative z-20">
+        <div className="relative z-20 motion-safe:animate-rise [animation-delay:240ms]">
           <SearchDock />
         </div>
       </div>

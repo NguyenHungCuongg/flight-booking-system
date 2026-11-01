@@ -26,7 +26,7 @@ export default function Routes() {
   return (
     <section aria-labelledby="routes-h" className="py-56 sm:py-80">
       <div className="mx-auto max-w-page px-16 sm:px-38">
-        <div className="flex flex-wrap items-end justify-between gap-20">
+        <div data-reveal className="flex flex-wrap items-end justify-between gap-20">
           <div className="grid gap-10">
             <h2
               id="routes-h"
@@ -62,6 +62,7 @@ export default function Routes() {
 
         <div
           ref={track}
+          data-reveal
           className="mt-24 flex snap-x snap-mandatory gap-16 overflow-x-auto pt-8 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {ROUTES.map((r, i) => {

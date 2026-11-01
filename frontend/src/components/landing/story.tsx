@@ -92,7 +92,7 @@ export default function Story() {
         <div className="grid gap-36 lg:grid-cols-12 lg:items-start lg:gap-48">
           {/* Left: Interactive 5-step timeline */}
           <div className="grid gap-32 lg:col-span-7">
-            <div className="grid gap-12">
+            <div data-reveal className="grid gap-12">
               <h2
                 id="story-h"
                 className="text-[clamp(28px,3.2vw,42px)] leading-[1.05] font-black tracking-[-0.028em] text-ink"
@@ -106,7 +106,7 @@ export default function Story() {
               </p>
             </div>
 
-            <ol className="grid">
+            <ol data-reveal className="grid">
               {STEPS.map(([title, desc], i) => {
                 const isActive = i === step;
                 const isDone = i < step;
@@ -178,6 +178,7 @@ export default function Story() {
           <div className="lg:sticky lg:top-96 lg:col-span-5">
             <div
               id="bk-card"
+              data-reveal
               className="rounded-inner border border-line bg-surface p-22 sm:p-28"
             >
               <div className="flex items-start justify-between gap-16">
