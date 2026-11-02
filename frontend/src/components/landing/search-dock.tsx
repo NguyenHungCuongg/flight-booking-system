@@ -384,7 +384,11 @@ export default function SearchDock() {
       )}
 
       {/* Top controls: Segmented trip switch + Passenger/Cabin picker + International notice */}
-      <div className="relative z-25 flex flex-wrap items-center gap-12">
+      <div
+        className={`relative flex flex-wrap items-center gap-12 ${
+          s.panel === "pax" ? "z-30" : "z-10"
+        }`}
+      >
         <div
           className="inline-grid grid-cols-2 rounded-inner border border-line bg-tint p-4"
           role="group"
@@ -416,7 +420,7 @@ export default function SearchDock() {
           </button>
         </div>
 
-        <div className="relative">
+        <div className={`relative ${s.panel === "pax" ? "z-30" : ""}`}>
           <button
             type="button"
             className={`inline-flex min-h-42 items-center gap-10 rounded-inner border bg-surface px-16 max-sm:min-h-44 text-caption font-bold text-ink transition-colors duration-150 hover:border-ink hover:bg-tint ${
@@ -538,7 +542,11 @@ export default function SearchDock() {
       </div>
 
       {/* Main search fields grid */}
-      <div className="relative z-25 grid rounded-inner border border-line lg:grid-cols-[minmax(0,2.4fr)_minmax(0,1.9fr)_auto]">
+      <div
+        className={`relative grid rounded-inner border border-line lg:grid-cols-[minmax(0,2.4fr)_minmax(0,1.9fr)_auto] ${
+          s.panel && s.panel !== "pax" ? "z-30" : "z-10"
+        }`}
+      >
         {/* Route: From + Swap + To */}
         <div className="relative grid border-b border-line sm:grid-cols-[minmax(0,1fr)_52px_minmax(0,1fr)] lg:border-b-0">
           <div className="relative min-w-0">
