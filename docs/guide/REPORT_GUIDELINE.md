@@ -47,6 +47,20 @@ _Người dùng sẽ cung cấp thông tin từng phần. Hãy sinh ra nội dun
 
 ### TRANG BÌA
 
+_Hình thức trình bày theo file "Hinh thuc trinh bay luan van.doc" (bản chép: `docs/guide/REPORT_FORMAT.md`). File này chỉ áp dụng khi dàn trang trên Google Docs, không áp dụng cho các file Markdown trong `report/`._
+
+Phần đầu trang bìa:
+
+- TRƯỜNG ĐẠI HỌC CÔNG NGHỆ THÔNG TIN
+
+- KHOA CÔNG NGHỆ PHẦN MỀM
+
+- BÁO CÁO ĐỒ ÁN MÔN HỌC
+
+- NHẬP MÔN CÔNG NGHỆ PHẦN MỀM
+
+Trang bìa ghi đầy đủ các thông tin sau:
+
 - **Tên đề tài:** \[Chờ người dùng cung cấp\]
 
 - **Mã lớp:** \[Chờ người dùng cung cấp\]
@@ -72,7 +86,7 @@ _2.1. Danh sách yêu cầu phần mềm:_
 
 - Yêu cầu hệ thống
 
-_2.2. Mô hình hóa các yêu cầu phần mềm (Sử dụng Sơ đồ luồng dữ liệu):_
+_2.2. Mô hình hóa các yêu cầu phần mềm (Sơ đồ luồng dữ liệu cho từng yêu cầu):_
 
 - Biểu mẫu và quy định kèm theo.
 
@@ -95,4 +109,95 @@ _3.2. Mô tả các thành phần trong hệ thống_
 
 **4. Thiết kế dữ liệu** _4.1. Thuật toán thiết kế dữ liệu:_
 
-- Bước
+- Bước 1: Xét yêu cầu phần mềm thứ nhất
+  - Thiết kế dữ liệu với tính đúng đắn
+  - Thiết kế dữ liệu với tính tiến hóa
+
+- Bước 2: Xét yêu cầu phần mềm thứ hai
+  - Thiết kế dữ liệu với tính đúng đắn
+  - Thiết kế dữ liệu với tính tiến hóa
+
+- …
+
+_4.2. Sơ đồ logic hoàn chỉnh_
+
+- _\[Sinh mã Mermaid cho Sơ đồ logic\]_
+
+_4.3. Danh sách các bảng dữ liệu (table) trong sơ đồ_
+
+| STT | Tên bảng dữ liệu | Diễn giải |
+| --- | ---------------- | --------- |
+| 1   |                  |           |
+| 2   |                  |           |
+
+_4.4. Mô tả từng bảng dữ liệu_
+
+- Bảng A:
+
+| STT | Thuộc tính | Kiểu dữ liệu | Ràng buộc | Diễn giải |
+| --- | ---------- | ------------ | --------- | --------- |
+| 1   |            |              |           |           |
+| 2   |            |              |           |           |
+
+**5. Thiết kế giao diện** _5.1. Sơ đồ liên kết các màn hình_
+
+- _\[Sinh mã Mermaid cho Sơ đồ liên kết màn hình\]_
+
+_5.2. Danh sách các màn hình_
+
+| STT | Màn hình | Loại màn hình | Chức năng |
+| --- | -------- | ------------- | --------- |
+| 1   |          |               |           |
+| 2   |          |               |           |
+
+_5.3. Mô tả các màn hình_
+
+- Màn hình A:
+  - Giao diện: `[👉 CHÚ Ý: Người dùng chèn ảnh chụp màn hình <Tên màn hình> tại đây]`
+  - Mô tả các đối tượng trên màn hình:
+
+| STT | Tên | Kiểu | Ràng buộc | Chức năng |
+| --- | --- | ---- | --------- | --------- |
+| 1   |     |      |           |           |
+| 2   |     |      |           |           |
+
+- Danh sách biến cố và xử lý tương ứng trên màn hình:
+
+| STT | Biến cố | Xử lý |
+| --- | ------- | ----- |
+| 1   |         |       |
+| 2   |         |       |
+
+**6. Cài đặt và thử nghiệm**
+
+| STT | Chức năng | Mức độ hoàn thành (%) | Ghi chú |
+| --- | --------- | --------------------- | ------- |
+| 1   |           |                       |         |
+| 2   |           |                       |         |
+
+### KẾT LUẬN
+
+- Đánh giá ưu điểm và khuyết điểm của phần mềm.
+
+- Trình bày hướng phát triển để hoàn thiện phần mềm.
+
+### TÀI LIỆU THAM KHẢO
+
+### BẢNG PHÂN CÔNG CÔNG VIỆC (PCCV)
+
+_Mô tả như ví dụ sau. Đối với các bài tập thì xác nhận việc tham gia của các thành viên. Đối với đồ án thì ghi rõ tỉ lệ đóng góp của các thành viên (tổng cộng = 100%). Toàn bộ số liệu trong bảng chờ người dùng cung cấp._
+
+| Công việc                                                                                    | MSSV 1 | MSSV 2 | MSSV 3 | MSSV 4 |
+| -------------------------------------------------------------------------------------------- | ------ | ------ | ------ | ------ |
+| Bài tập Xác định yêu cầu                                                                     | x      | x      | x      | x      |
+| Bài tập Phân tích qui định                                                                   | x      | x      | x      | x      |
+| 1. Giới thiệu tổng quan về đề tài, mô tả qui trình thực hiện các công việc chính của đề tài. | x      | x      | x      | x      |
+| 2. Xác định và mô hình hóa yêu cầu phần mềm                                                  | x      | x      | x      | x      |
+| 3. Thiết kế hệ thống                                                                         | x      | x      | x      | x      |
+| 4. Thiết kế dữ liệu                                                                          | x      | x      |        | x      |
+| 5. Thiết kế giao diện                                                                        | x      |        | x      | x      |
+| 6. Cài đặt                                                                                   | x      | x      | x      |        |
+| 7. Kiểm thử                                                                                  | x      |        |        | x      |
+| Mức độ đóng góp cho kết quả của đồ án                                                        | 30     | 25     | 20     | 25     |
+
+_Thời gian thực hiện: 10 tuần._

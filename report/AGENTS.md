@@ -2,7 +2,15 @@
 
 Thư mục `report/` chứa báo cáo đồ án môn **Nhập môn Công nghệ Phần mềm** cho hệ thống Flight Booking System. Phạm vi hiện tại: trang bìa và chương 1–4.
 
+**Phạm vi hệ thống trong báo cáo:** chỉ gồm frontend (`frontend/`), backend (`backend/`) và cơ sở dữ liệu. Trợ lý đặt vé AI (booking agent) là phần riêng của tác giả, nằm ngoài báo cáo: báo cáo không nhắc tới nó dưới bất kỳ hình thức nào, kể cả ghi chú loại trừ hay ghi chú `CẦN BỔ SUNG`, và mọi sơ đồ, bảng, danh sách thành phần đều không có nó. Khi đọc nguồn, bỏ qua các phần sau:
+
+- thư mục `agent/`, nhánh `feature/flight-agent`, `docs/ref/agentic-ai/`;
+- các file có chữ `agent` trong `docs/superpowers/specs/` và `docs/superpowers/plans/`;
+- các đoạn về booking agent trong `CLAUDE.md` gốc, rewrite `/agent/*` và biến `AGENT_URL` trong `frontend/`.
+
 **Đọc trước khi viết bất kỳ nội dung nào:** [`docs/guide/REPORT_GUIDELINE.md`](../docs/guide/REPORT_GUIDELINE.md). Phần 1 của file đó là quy tắc bắt buộc (giữ nguyên thuật ngữ tiếng Anh, văn phong kỹ thuật, zero hallucination, Mermaid, placeholder ảnh, giữ đúng cột bảng). Phần 2 là dàn ý. File này chỉ bổ sung những gì guideline chưa nói.
+
+**Không áp dụng [`docs/guide/REPORT_FORMAT.md`](../docs/guide/REPORT_FORMAT.md) cho các file trong `report/`.** File đó là quy định hình thức (font, lề, đánh số tiểu mục, công thức, danh mục viết tắt, tài liệu tham khảo) dùng khi agent dàn trang báo cáo trên Google Docs. Khi viết hoặc review Markdown ở đây, chỉ dùng guideline và file này.
 
 ## 1. Cấu trúc file
 
@@ -68,15 +76,15 @@ Mỗi tham số hệ thống thay đổi được cũng có một DFD "thay đ�
 
 ### Chương 4. Thiết kế dữ liệu
 
-Dàn ý chương 4 trong guideline chưa đầy đủ ("4.1. Thuật toán thiết kế dữ liệu: Bước"). Dùng thuật toán trong slide chương 6 làm khung:
+Dàn ý 4.1–4.4 nằm trong guideline. Nội dung từng bước ở 4.1 theo thuật toán trong slide chương 6:
 
 - **Bước 1..n**: lần lượt xét từng yêu cầu nghiệp vụ của chương 2, theo thứ tự đã liệt kê ở 2.1. Với mỗi yêu cầu:
   - _Tính đúng đắn_: biểu mẫu liên quan (BMx), sơ đồ luồng dữ liệu (Sx), các thuộc tính mới, thiết kế dữ liệu (bố trí thuộc tính mới vào bảng đã có hoặc tạo bảng mới), các thuộc tính trừu tượng, sơ đồ logic.
   - _Tính tiến hóa_: quy định liên quan (Qx), sơ đồ luồng dữ liệu về việc thay đổi quy định (Sy), các thuộc tính mới, các tham số mới, thiết kế dữ liệu, các thuộc tính trừu tượng, sơ đồ logic.
 - Sau các bước: thiết kế với yêu cầu hiệu quả (thuộc tính tính toán, tách bảng) nếu schema thật có các trường hợp đó.
-- Sơ đồ logic ở mỗi bước chỉ thêm bảng/cột mới so với bước trước, sơ đồ cuối cùng khớp toàn bộ `BACKEND_SCHEMA.md`.
+- Sơ đồ logic ở mỗi bước chỉ thêm bảng/cột mới so với bước trước. Sơ đồ logic hoàn chỉnh (4.2) khớp toàn bộ `BACKEND_SCHEMA.md`.
+- 4.3 liệt kê mọi bảng trong DDL. 4.4 có một bảng mô tả cho mỗi bảng dữ liệu: `Kiểu dữ liệu` và `Ràng buộc` (PK, FK, NOT NULL, UNIQUE, CHECK, DEFAULT) chép từ DDL, `Diễn giải` lấy từ comment trong DDL, PRD hoặc entity trong `backend/`.
 - Dùng tên bảng và cột thật trong DDL (`snake_case`), không đổi sang quy ước viết hoa của slide. Bảng `system_settings` đóng vai trò bảng `THAMSO` của slide.
-- Muốn thêm bảng mô tả chi tiết (cột, kiểu, ràng buộc) mà guideline chưa có mẫu thì hỏi người dùng về số cột và tên cột trước.
 
 ## 4. Sơ đồ Mermaid
 
