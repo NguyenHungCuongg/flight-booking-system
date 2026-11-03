@@ -8,6 +8,13 @@ Thư mục `report/` chứa báo cáo đồ án môn **Nhập môn Công nghệ 
 - các file có chữ `agent` trong `docs/superpowers/specs/` và `docs/superpowers/plans/`;
 - các đoạn về booking agent trong `CLAUDE.md` gốc, rewrite `/agent/*` và biến `AGENT_URL` trong `frontend/`.
 
+**Người đọc báo cáo** là giảng viên chấm: chưa biết gì về đồ án, không có codebase và không có tài liệu nội bộ (`docs/PRD.md`, `docs/TDD.md`, `docs/APP_FLOW.md`, `docs/BACKEND_SCHEMA.md`, các plan) để đối chiếu. Mỗi câu phải hiểu được chỉ từ nội dung báo cáo:
+
+- Không đưa mã của tài liệu nội bộ vào báo cáo: `FR-xx`, `BR-xx`, `NFR-xx`, `UF-xx`, `Q-xx`, mã test `Tx`, kịch bản demo `D1`–`D11`. Báo cáo chỉ dùng mã của môn học (`YCNV-xx`, `BMx`, `QĐx.y`); ánh xạ sang mã nội bộ ghi ở `TRUY-VET.md` (mục 1). Mã lỗi API (`RESOURCE_NOT_FOUND`...) chỉ được dùng khi kèm nghĩa ngay cạnh.
+- Mã màn hình `C-xx`/`S-xx`/`A-xx` kèm tên màn hình ở lần đầu xuất hiện trong mỗi chương, ví dụ `C-09` (Chi tiết booking).
+- Mã báo cáo tự đặt (`YCNV-xx`, `BMx`, `QĐx`...) và từ viết tắt (OTA, IPN, CSRF...) được giải thích trước hoặc ngay tại lần dùng đầu tiên.
+- Không bảo người đọc tra tài liệu nội bộ ("xem PRD §5", "theo TDD §6"). Thông tin cần thì chép vào báo cáo.
+
 **Đọc trước khi viết bất kỳ nội dung nào:** [`docs/guide/REPORT_GUIDELINE.md`](../docs/guide/REPORT_GUIDELINE.md). Phần 1 của file đó là quy tắc bắt buộc (giữ nguyên thuật ngữ tiếng Anh, văn phong kỹ thuật, zero hallucination, Mermaid, placeholder ảnh, giữ đúng cột bảng). Phần 2 là dàn ý. File này chỉ bổ sung những gì guideline chưa nói.
 
 **Không áp dụng [`docs/guide/REPORT_FORMAT.md`](../docs/guide/REPORT_FORMAT.md) cho các file trong `report/`.** File đó là quy định hình thức (font, lề, đánh số tiểu mục, công thức, danh mục viết tắt, tài liệu tham khảo) dùng khi agent dàn trang báo cáo trên Google Docs. Khi viết hoặc review Markdown ở đây, chỉ dùng guideline và file này.
@@ -16,15 +23,16 @@ Thư mục `report/` chứa báo cáo đồ án môn **Nhập môn Công nghệ 
 
 Mỗi chương là một file Markdown riêng, đặt trực tiếp trong `report/`:
 
-| File                      | Nội dung                                        |
-| ------------------------- | ----------------------------------------------- |
-| `00-trang-bia.md`         | Trang bìa                                       |
-| `01-gioi-thieu.md`        | Chương 1. Giới thiệu tổng quan về đề tài        |
-| `02-yeu-cau.md`           | Chương 2. Xác định và mô hình hóa yêu cầu       |
-| `03-thiet-ke-he-thong.md` | Chương 3. Thiết kế hệ thống                     |
-| `04-thiet-ke-du-lieu.md`  | Chương 4. Thiết kế dữ liệu                      |
-| `SCREENSHOTS.md`          | Danh sách ảnh chụp màn hình người dùng cần chụp |
-| `images/`                 | Ảnh chụp màn hình do người dùng thêm vào        |
+| File                      | Nội dung                                                                            |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| `00-trang-bia.md`         | Trang bìa                                                                           |
+| `01-gioi-thieu.md`        | Chương 1. Giới thiệu tổng quan về đề tài                                            |
+| `02-yeu-cau.md`           | Chương 2. Xác định và mô hình hóa yêu cầu                                           |
+| `03-thiet-ke-he-thong.md` | Chương 3. Thiết kế hệ thống                                                         |
+| `04-thiet-ke-du-lieu.md`  | Chương 4. Thiết kế dữ liệu                                                          |
+| `SCREENSHOTS.md`          | Danh sách ảnh chụp màn hình người dùng cần chụp                                     |
+| `images/`                 | Ảnh chụp màn hình do người dùng thêm vào                                            |
+| `TRUY-VET.md`             | Ánh xạ `YCNV`/`QĐ` sang `FR`/`BR`/`NFR` của PRD; dùng nội bộ, không đưa vào báo cáo |
 
 - Mỗi file bắt đầu bằng một heading `#` là tên chương. Mục con đánh số theo dàn ý: `## 2.1`, `### 2.1.1`.
 - Hình và bảng đánh số theo chương: `Hình 2.1`, `Bảng 2.1`, ghi chú thích ngay dưới hình, ngay trên bảng.
@@ -32,7 +40,7 @@ Mỗi chương là một file Markdown riêng, đặt trực tiếp trong `repor
 
 ## 2. Nguồn dữ liệu
 
-Mọi nội dung về hệ thống phải lấy từ các nguồn dưới đây. Khi nêu yêu cầu hoặc quy định, giữ mã gốc (`FR-xx`, `BR-xx`, `UF-xx`, `C-xx`/`S-xx`/`A-xx`, `Q-xx`) để truy vết.
+Mọi nội dung về hệ thống phải lấy từ các nguồn dưới đây. Khi nêu yêu cầu hoặc quy định, viết nội dung bằng lời và dùng mã của môn học, không chép mã `FR-xx`/`BR-xx`/`NFR-xx` của nguồn (quy tắc "Người đọc báo cáo" ở đầu file). Mỗi khi thêm hoặc sửa một quy định, cập nhật ánh xạ của nó trong `TRUY-VET.md`; khi viết chương 3–4 hoặc đối chiếu với code, tra file đó để biết `QĐx.y` ứng với `BR-xx` nào.
 
 | Chương | Nguồn trong repo                                                                                                           | Slide môn học (`docs/ref/software/`)                                                                                                                 |
 | ------ | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -112,12 +120,12 @@ flowchart LR
 
 ## 5. Ảnh chụp màn hình và thông tin còn thiếu
 
-**Ảnh chụp màn hình.** Tại chỗ cần ảnh, đặt đúng 2 dòng sau (dòng đầu theo cú pháp của guideline, dòng sau là chỗ ảnh đã đặt sẵn tên file):
+**Ảnh chụp màn hình.** Ảnh giao diện chỉ đặt ở mục 5.3 "Mô tả các màn hình" của chương 5 (Thiết kế giao diện). Chương 1–4 không chèn ảnh màn hình, để các chương không trùng nhau: biểu mẫu ở chương 2 là phiếu nghiệp vụ, trình bày bằng bảng các trường dữ liệu, không phải màn hình đã cài đặt. Tại chỗ cần ảnh, đặt đúng 2 dòng sau (dòng đầu theo cú pháp của guideline, dòng sau là chỗ ảnh đã đặt sẵn tên file):
 
 ```markdown
 [👉 CHÚ Ý: Người dùng chèn ảnh chụp màn hình C-07 Đặt vé — bước nhập hành khách tại đây]
 
-<!-- ![Hình 2.3: Màn hình C-07 Đặt vé](images/ch2-c07-dat-ve-hanh-khach.png) -->
+<!-- ![Hình 5.3: Màn hình C-07 Đặt vé](images/ch5-c07-dat-ve-hanh-khach.png) -->
 ```
 
 Tên file theo mẫu `ch<số chương>-<mã màn hình>-<mô tả-ngắn>.png`. Đồng thời thêm một dòng vào bảng trong `SCREENSHOTS.md` để người dùng biết cần chụp gì, ở đâu, với dữ liệu nào. Người dùng chụp xong sẽ lưu ảnh vào `images/`, xóa dòng placeholder và bỏ comment dòng ảnh.
@@ -137,6 +145,7 @@ Một chương chỉ được coi là xong khi:
 - Mọi mục trong dàn ý của guideline (và khung chương 4 ở mục 3) đều có nội dung hoặc ghi chú `CẦN BỔ SUNG`.
 - Mọi yêu cầu nghiệp vụ liệt kê ở 2.1 đều có mục DFD ở 2.2 (chương 2) và có bước tương ứng (chương 4).
 - Mọi bảng giữ đúng số cột và tên cột của guideline.
+- Không còn mã nội bộ, mã màn hình hay từ viết tắt nào mà người đọc ở đầu file không hiểu được.
 - Mọi placeholder ảnh đều có dòng tương ứng trong `SCREENSHOTS.md`.
 
 Cuối lượt làm việc, báo lại cho người dùng danh sách các ghi chú `CẦN BỔ SUNG` và các ảnh cần chụp mới phát sinh trong chương đó.
