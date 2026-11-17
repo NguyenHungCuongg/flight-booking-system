@@ -262,3 +262,27 @@ def test_chat_belongs_to_its_session():
     assert chats.get(chat.id, "s1") is chat
     assert chats.get(chat.id, "s2") is None
     assert chats.get("nope", "s1") is None
+
+
+def test_runtime_guardrail_strips_markdown_fixes_unread_citations_and_blocks_false_hold_claims():
+    fake = FakeBackend()
+    chat = Chats().create("s1")
+    out = turn(chat, scripted(
+        call("set_constraints", **ROUTE),
+        call("search_flights"),
+        AIMessage(content="Mình **đã giữ chỗ thành công** chuyến `VN122` theo /chinh-sach/hoan-doi-hanh-ly#muc-bia!")
+    ), "Đặt vé", fake.backend(), TODAY)
+    assert "**" not in out["reply"] and "`" not in out["reply"]
+    assert "/chinh-sach/hoan-doi-hanh-ly#muc-bia" not in out["reply"]
+    assert "/chinh-sach/dieu-khoan" in out["reply"]
+    assert "Hệ thống chưa giữ chỗ" in out["reply"]
+    assert "hoan-doi-hanh-ly#muc-bia" in chat.harness.bad_citations
+
+
+def test_old_tool_messages_are_compacted_on_next_turn():
+    from flight_agent.react import compact_history
+    from langchain_core.messages import ToolMessage
+    big = ToolMessage(content="x" * 1000, tool_call_id="call-1", name="search_flights")
+    compacted = compact_history([big])
+    assert compacted[0].tool_call_id == "call-1" and len(compacted[0].content) < 100
+

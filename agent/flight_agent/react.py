@@ -4,6 +4,8 @@ create_agent của LangChain chạy vòng lặp; hai middleware cắm harness v�
 mỗi lần gọi model bị trừ vào ngân sách, mỗi lời gọi tool đi qua Harness.execute().
 """
 import json
+import re
+import unicodedata
 from datetime import date
 
 from langchain.agents import create_agent
@@ -11,10 +13,13 @@ from langchain.agents.middleware import wrap_model_call, wrap_tool_call
 from langchain_core.messages import HumanMessage, ToolMessage
 
 from flight_agent.core import Harness
-from flight_agent.policies import index, load_sections
+from flight_agent.policies import DOCS, index, load_sections
 
 # Câu cố định khi không có dữ liệu, dùng chung cho prompt và eval (abstention, Buổi 6).
 NO_INFO = "SkyLine không có thông tin về"
+CLAIMS_HELD = ("đã giữ chỗ chuyến", "đã giữ chỗ cho", "đã giữ chỗ thành công", "đã giữ chỗ xong")
+CITATION_RE = re.compile(r"/chinh-sach/([a-z0-9-]+(?:#[a-z0-9-]+)?)")
+COMPACT_THRESHOLD = 300
 
 SYSTEM_PROMPT = """Bạn là trợ lý đặt vé máy bay của SkyLine. Hôm nay là {today} (giờ Việt Nam). Đổi mọi ngày tương đối \
 ("thứ 6 này", "mai") sang dạng YYYY-MM-DD.
@@ -68,6 +73,41 @@ def system_prompt(harness: Harness) -> str:
     return f"{text}\n\n{harness.constraints.to_prompt()}" if harness.constraints else text
 
 
+def compact_history(history: list) -> list:
+    """Nén các ToolMessage dài của những lượt trước để giữ context nhỏ gọn, giữ nguyên tool_call_id."""
+    out = []
+    for msg in history:
+        if isinstance(msg, ToolMessage) and len(str(msg.content)) > COMPACT_THRESHOLD:
+            out.append(ToolMessage(content='{"status": "ok", "compacted": true}',
+                                   tool_call_id=msg.tool_call_id, name=msg.name))
+        else:
+            out.append(msg)
+    return out
+
+
+def guard_reply(reply: str, harness: Harness) -> str:
+    """Hậu kiểm câu trả lời ở runtime: làm sạch Markdown, sửa link chính sách chưa đọc và chặn báo giữ chỗ láo."""
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", reply)
+    text = re.sub(r"`([^`]+)`", r"\1", text)
+    text = re.sub(r"(?m)^#{1,6}\s+", "", text)
+    read = {k for t in harness.trace if t["tool"] == "read_policy" and t["status"] == "ok"
+            for k in (t["args"].get("sections") or [])}
+
+    def _fix_cite(m: re.Match) -> str:
+        key = m.group(1)
+        if key not in read and key not in DOCS:
+            if key not in harness.bad_citations:
+                harness.bad_citations.append(key)
+            return "/chinh-sach/dieu-khoan"
+        return m.group(0)
+
+    text = CITATION_RE.sub(_fix_cite, text)
+    norm = unicodedata.normalize("NFC", text).lower()
+    if any(c in norm for c in CLAIMS_HELD) and not any(c.get("type") == "held" for c in harness.cards):
+        text += " (Lưu ý: Hệ thống chưa giữ chỗ. Bạn cần bấm Giữ chỗ trên thẻ đề xuất để xác nhận.)"
+    return text
+
+
 def run_turn(harness: Harness, model, history: list, text: str) -> tuple[str, list]:
     @wrap_model_call
     def budget(request, handler):
@@ -82,5 +122,5 @@ def run_turn(harness: Harness, model, history: list, text: str) -> tuple[str, li
 
     agent = create_agent(model=model, tools=harness.tools, system_prompt=system_prompt(harness),
                          middleware=[budget, through_harness])
-    out = agent.invoke({"messages": [*history, HumanMessage(text)]})
-    return out["messages"][-1].text, out["messages"]   # .text: Gemini trả về danh sách khối nội dung
+    out = agent.invoke({"messages": [*compact_history(history), HumanMessage(text)]})
+    return guard_reply(out["messages"][-1].text, harness), out["messages"]   # .text: Gemini trả về danh sách khối nội dung

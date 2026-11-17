@@ -616,3 +616,12 @@ def test_handoff_links_to_prefilled_flights_url():
     assert "/flights?from=SGN&to=DAD&date=2026-10-30&adults=2&children=0&infants=0&cabin=ECONOMY" in q
 
 
+def test_four_consecutive_failed_tool_calls_stop_as_stall():
+    h, _ = ready()
+    for bad_date in ("2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04"):
+        h.execute("set_constraints", {**ROUTE, "date": bad_date})
+    assert h.stop_reason == "stall"
+    assert "4 bước" in h.handoff()["question"]
+
+
+

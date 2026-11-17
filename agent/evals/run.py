@@ -70,8 +70,9 @@ def grade(case: Case, harness: Harness, reply: str) -> list[str]:
     # link tới cả văn bản (không có #) phải là văn bản có thật
     read = {k for t in harness.trace if t["tool"] == "read_policy" and t["status"] == "ok"
             for k in t["args"]["sections"]}
+    cites = list(dict.fromkeys([*harness.bad_citations, *CITATION.findall(reply)]))
     failures += [f"cites: {k} chưa đọc" if "#" in k else f"cites: {k} không có văn bản này"
-                 for k in dict.fromkeys(CITATION.findall(reply)) if k not in read and k not in DOCS]
+                 for k in cites if k not in read and k not in DOCS]
     return failures
 
 

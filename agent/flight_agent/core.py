@@ -23,6 +23,7 @@ KEYS = ("depart_before", "depart_after", "max_price")
 BUDGET = 10          # tối đa số lần gọi model mỗi lượt chat
 LOOP_WINDOW = 6      # xét 6 lời gọi tool gần nhất ...
 LOOP_REPEAT = 3      # ... cùng (tool, args) 3 lần = lặp
+STALL_LIMIT = 4      # 4 lời gọi tool liên tiếp đều lỗi = bế tắc (stall)
 RECENT_BOOKINGS = 3  # số booking gần nhất mà list_recent_passengers đọc
 MY_BOOKINGS = 10     # số booking gần nhất mà list_my_bookings đọc
 STATES = {"PENDING_PAYMENT": "chờ thanh toán", "ISSUED": "đã xuất vé", "EXPIRED": "hết hạn giữ chỗ",
@@ -249,6 +250,8 @@ class Harness:
     cards: list[dict] = field(default_factory=list)
     stop_reason: str | None = None
     model_calls: int = 0
+    failed_steps: int = 0
+    bad_citations: list[str] = field(default_factory=list)
     recent: deque = field(default_factory=lambda: deque(maxlen=LOOP_WINDOW))
     held_code: str | None = None                         # booking đọc lại không khớp (hold_mismatch)
     on_step: Callable[[dict], None] | None = None        # báo từng dòng trace cho trang (stream SSE)
@@ -258,6 +261,7 @@ class Harness:
     def begin_turn(self, backend: Backend, today: str, on_step: Callable[[dict], None] | None = None) -> None:
         self.backend, self.today = backend, today
         self.trace, self.cards, self.stop_reason, self.model_calls = [], [], None, 0
+        self.failed_steps, self.bad_citations = 0, []
         self.recent, self.held_code, self.on_step = deque(maxlen=LOOP_WINDOW), None, on_step
 
     @property
@@ -720,6 +724,12 @@ class Harness:
             except BackendError as e:
                 result = self.backend_error(e)
         self.trace.append({"tool": tool, "args": args, "status": result["status"]})
+        if result["status"] in ("ok", "pending_approval"):
+            self.failed_steps = 0
+        else:
+            self.failed_steps += 1
+            if self.failed_steps >= STALL_LIMIT:
+                self.stop("stall")
         if self.on_step:
             self.on_step(self.trace[-1])
         return result
@@ -784,6 +794,7 @@ class Harness:
             "no_match": no_match,
             "budget": f"Trợ lý đã dùng hết {BUDGET} lần gọi mô hình cho lượt này. {retry}",
             "loop": f"Trợ lý lặp lại {last} mà không tiến triển. {retry}",
+            "stall": f"Trợ lý gặp lỗi liên tiếp qua {STALL_LIMIT} bước mà chưa xử lý được yêu cầu. {retry}",
             "infra": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?",
             "unauthenticated": "Phiên đăng nhập đã hết hạn. Bạn đăng nhập lại rồi thử tiếp nhé?",
             "forbidden": "Trợ lý chỉ dùng cho tài khoản khách hàng. Bạn đăng nhập bằng tài khoản khách hàng nhé?",
