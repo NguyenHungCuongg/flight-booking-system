@@ -278,7 +278,17 @@ function CardView(props: {
     case "handoff":
       return (
         <div className="grid gap-8 card p-16">
-          <p className="font-semibold">{card.question}</p>
+          <p className="font-semibold">
+            {replyParts(card.question).map((part, k) =>
+              typeof part === "string" ? (
+                part
+              ) : (
+                <Link key={k} href={part.href} className={textLink}>
+                  {part.href}
+                </Link>
+              ),
+            )}
+          </p>
           <details className="text-caption text-muted">
             <summary className="cursor-pointer">Đã làm và đã thử</summary>
             <ul className="mt-8 grid gap-4">

@@ -157,7 +157,7 @@ export async function* sseEvents(
 
 // Đường dẫn nội bộ trong câu trả lời (nguồn trích dẫn, trang tự thao tác); dấu câu cuối câu không thuộc link.
 const INTERNAL_LINK =
-  /(\/(?:chinh-sach|flights|bookings)\b(?:[/?#&=[A-Za-z0-9_-]+)*)/;
+  /(\/(?:chinh-sach|flights|bookings)\b(?:\/[A-Za-z0-9_-]+)*(?:\?[A-Za-z0-9_=&-]+)?(?:#[A-Za-z0-9_-]+)?)/;
 
 /** Câu trả lời là văn bản thuần: tách các đường dẫn nội bộ ra để hiện thành link. */
 export function replyParts(text: string): (string | { href: string })[] {

@@ -166,6 +166,8 @@ CASES: list[Case] = [
          "reply", reply_has=["không tìm thấy"], calls=["get_booking"], backend=LOOKUP),
     Case("tra-doi-chuyen", "tra cứu", ["Vé ABC234 chiều đi đổi sang ngày 31/10/2026 thì phải bù bao nhiêu tiền?"],
          "reply", reply_has=["450.000"], calls=["reschedule_options"], backend=LOOKUP),
+    Case("huy-giu-cho", "tra cứu", ["Huỷ giúp mình đặt chỗ K7M2QX"],
+         "cancel_proposal", calls=["propose_cancel"], backend=LOOKUP),
     Case("loc-hang-vn", "bộ lọc", [f"Đặt vé Vietnam Airlines SGN đi DAD ngày 30/10, bay trước 12h, cho {AN}"],
          "proposal", R(depart_before="12:00", airline="VN"), [122], [AN_PAX]),
     # ---- hành lý và voucher: VN122 rẻ nhất trước 12h; khứ hồi VN122 + VJ611 cộng 20 kg mỗi chiều = 3.600.000;
@@ -200,9 +202,9 @@ CASES: list[Case] = [
          "reply", reply_has=["600.000"], calls=["airline_rules"]),
     Case("cs-gia-ky-gui", "chính sách", ["Mua thêm 20kg hành lý ký gửi của Vietjet giá bao nhiêu?"],
          "reply", reply_has=["350.000"], calls=["airline_rules"]),
-    # Trợ lý chỉ đặt gói rẻ nhất: nói rõ giới hạn và mời tự đặt trên /flights; có đề xuất thì phải là gói rẻ nhất
+    # Đặt gói hoàn được (Economy Classic của VN122)
     Case("cs-goi-khac", "chính sách", [f"Đặt vé SGN đi DAD ngày 30/10, bay trước 12h, gói hoàn được, cho {AN}"],
-         ("reply", "proposal"), flight_ids=[122], passengers=[AN_PAX], reply_has=["/flights"]),
+         "proposal", R(depart_before="12:00", refundable=True), flight_ids=[122], passengers=[AN_PAX]),
     Case("cs-khong-biet-thu-cung", "chính sách", ["Mình mang chó cưng lên máy bay được không?"],
          "reply", abstain=True),
     Case("cs-khong-biet-kich-thuoc", "chính sách", ["Hành lý xách tay được phép kích thước tối đa bao nhiêu cm?"],

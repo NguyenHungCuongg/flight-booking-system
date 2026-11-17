@@ -57,8 +57,7 @@ mục lục bên dưới. Gói giá, hành lý kèm gói, phí hoàn đổi và 
 ví dụ gói giá trong văn bản hoàn đổi chỉ minh hoạ, không dùng làm số của hãng. Mỗi ý trả lời nêu nguồn: source của \
 mục đã đọc (ví dụ /chinh-sach/hoan-doi-hanh-ly#dieu-kien-chung), hoặc "gói X của hãng Y". Điều khách hỏi mà kết \
 quả tool không nói tới thì viết đúng nguyên văn câu "{no_info} <điều khách hỏi>." (không chèn chữ nào vào giữa, kể \
-cả "chi tiết") rồi mời khách xem /chinh-sach/dieu-khoan hoặc hỏi hãng bay; không được đoán. Trợ lý chỉ đặt gói rẻ \
-nhất của mỗi chuyến: khách muốn gói khác thì nói rõ giới hạn này và luôn ghi đường dẫn /flights để khách tự đặt.
+cả "chi tiết") rồi mời khách xem /chinh-sach/dieu-khoan hoặc hỏi hãng bay; không được đoán.
 - Gặp denied, invalid_param hay backend_error thì đọc hint hoặc detail rồi sửa lời gọi, hoặc hỏi lại khách.
 - Trả lời ngắn gọn bằng tiếng Việt, viết văn bản thuần, không dùng Markdown (trang web không hiển thị Markdown)."""
 
@@ -75,10 +74,11 @@ def system_prompt(harness: Harness) -> str:
 
 
 def compact_history(history: list) -> list:
-    """Nén các ToolMessage dài của những lượt trước để giữ context nhỏ gọn, giữ nguyên tool_call_id."""
+    """Nén các ToolMessage dài của những lượt cũ (trước HumanMessage gần nhất), giữ nguyên lượt liền trước và tool_call_id."""
+    last_human = max((i for i, m in enumerate(history) if isinstance(m, HumanMessage)), default=len(history))
     out = []
-    for msg in history:
-        if isinstance(msg, ToolMessage) and len(str(msg.content)) > COMPACT_THRESHOLD:
+    for i, msg in enumerate(history):
+        if i < last_human and isinstance(msg, ToolMessage) and len(str(msg.content)) > COMPACT_THRESHOLD:
             out.append(ToolMessage(content='{"status": "ok", "compacted": true}',
                                    tool_call_id=msg.tool_call_id, name=msg.name))
         else:
@@ -114,17 +114,18 @@ def run_turn(harness: Harness, model, history: list, text: str) -> tuple[str, li
     def budget(request, handler):
         harness.before_model()
         res = handler(request)
-        msgs = getattr(res, "messages", None)
-        last_msg = msgs[-1] if msgs else res
-        usage = getattr(last_msg, "usage_metadata", None) or {}
-        harness.tokens_used += int(usage.get("total_tokens", 0))
+        msgs = getattr(res, "result", None) or getattr(res, "messages", None)
+        for m in (msgs if isinstance(msgs, list) else [res]):
+            usage = getattr(m, "usage_metadata", None) or {}
+            harness.tokens_used += int(usage.get("total_tokens", 0))
         return res
 
     @wrap_tool_call
     def through_harness(request, handler):
         call = request.tool_call
         result = harness.execute(call["name"], call["args"])
-        return ToolMessage(content=json.dumps(result, ensure_ascii=False), tool_call_id=call["id"])
+        return ToolMessage(content=json.dumps(result, ensure_ascii=False),
+                           tool_call_id=call["id"], name=call["name"])
 
     agent = create_agent(model=model, tools=harness.tools, system_prompt=system_prompt(harness),
                          middleware=[budget, through_harness])

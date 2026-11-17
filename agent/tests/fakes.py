@@ -64,9 +64,12 @@ def itinerary(flight_id: int, number: str, time: str, price: int, fare_id: int =
 CLASSIC_FARE = {"fareFamilyId": 2, "name": "Economy Classic", "cabinClass": "ECONOMY", "carryOnKg": 10,
                 "checkedBaggageKg": 23, "refundable": True, "refundFee": 600_000, "changeable": True,
                 "changeFee": 300_000, "adultPrice": 2_150_000, "totalPrice": 2_150_000, "seatsLeft": 9}
+BUSINESS_FARE = {"fareFamilyId": 4, "name": "Business Classic", "cabinClass": "BUSINESS", "carryOnKg": 18,
+                 "checkedBaggageKg": 32, "refundable": True, "refundFee": 600_000, "changeable": True,
+                 "changeFee": 0, "adultPrice": 3_500_000, "totalPrice": 3_500_000, "seatsLeft": 6}
 
 FLIGHTS = [itinerary(610, "VJ610", "14:20", 1_150_000),
-           itinerary(122, "VN122", "08:10", 1_850_000, extra_fares=[CLASSIC_FARE]),
+           itinerary(122, "VN122", "08:10", 1_850_000, extra_fares=[CLASSIC_FARE, BUSINESS_FARE]),
            itinerary(104, "QH104", "06:00", 1_920_000), itinerary(604, "VJ604", "08:30", 2_480_000)]
 BACK = dict(origin="DAD", destination="SGN", day="2026-11-02")
 RETURNS = [itinerary(611, "VJ611", "20:00", 1_050_000, **BACK), itinerary(123, "VN123", "17:00", 1_750_000, **BACK),
@@ -229,12 +232,14 @@ class FakeBackend:
             n = {k: int(request.url.params.get(k, d)) for k, d in (("adults", 1), ("children", 0), ("infants", 0))}
             types = ["ADULT"] * n["adults"] + ["CHILD"] * n["children"] + ["INFANT"] * n["infants"]
             q = request.url.params
+            cabin = q.get("cabin", "ECONOMY")
             key = lambda i: (i["segments"][0]["departure"]["airport"], i["segments"][-1]["arrival"]["airport"],
                              i["segments"][0]["departure"]["time"][:10])
             on_route = [i for i in self.pool if key(i) == (q["from"], q["to"], q["date"])]
             priced = [{**i, "fareOptions": [{**f, "totalPrice": fare_total(f["adultPrice"], types)}
-                                            for f in i["fareOptions"]]} for i in on_route]
-            return httpx.Response(200, json={"itineraries": priced})
+                                            for f in i["fareOptions"] if f.get("cabinClass", "ECONOMY") == cabin]}
+                      for i in on_route]
+            return httpx.Response(200, json={"itineraries": [i for i in priced if i["fareOptions"]]})
         if route in (("POST", "/api/bookings/quote"), ("POST", "/api/bookings")):
             code = json.loads(request.content).get("voucherCode")
             if code and code not in VOUCHERS:
@@ -288,6 +293,8 @@ class FakeBackend:
         body = self.holds[-1]
         by_id = {s["flightId"]: s for i in self.pool for s in i["segments"]}
         journeys = [{"direction": j["direction"], "fareFamilyName": self._fare(j)["name"],
+                     "airlineCode": by_id[j["flightIds"][0]]["airline"]["code"],
+                     "refundable": self._fare(j)["refundable"], "changeable": self._fare(j)["changeable"],
                      "segments": [{"flightId": f, "flightNumber": by_id[f]["flightNumber"],
                                    "departureAirport": by_id[f]["departure"]["airport"],
                                    "departureTime": by_id[f]["departure"]["time"],

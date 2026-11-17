@@ -86,4 +86,6 @@ def test_broken_checks_airline_nonstop_depart_after_and_fare_flags():
                     airline="VJ", stops=1, refundable=False, changeable=False) == [
         "depart_after", "airline", "nonstop", "refundable", "changeable"
     ]
+    assert "airline" in c.broken("SGN", "DAD", "2026-10-30T08:10:00+07:00", 1_850_000)
+
 

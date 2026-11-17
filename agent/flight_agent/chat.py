@@ -37,6 +37,7 @@ class Chat:
     history: list = field(default_factory=list)
     # Các lượt trang đã hiển thị (tin của khách, kết quả mỗi lượt) để dựng lại khung chat khi F5.
     shown: list = field(default_factory=list)
+    updated_at: float = field(default_factory=time.time)
     lock: threading.RLock = field(default_factory=threading.RLock)
 
 
@@ -53,8 +54,9 @@ class Chats:
 
     def create(self, session: str) -> Chat:
         chat = Chat(uuid4().hex, session)
-        self._chats[chat.id] = chat
-        self.save(chat)
+        with self._db_lock:
+            self._chats[chat.id] = chat
+            self.save(chat)
         return chat
 
     def save(self, chat: Chat) -> None:
@@ -70,7 +72,14 @@ class Chats:
             "known_names": {k: list(v) for k, v in h.known_names.items()},
         }, ensure_ascii=False)
         now = time.time()
+        chat.updated_at = now
         with self._db_lock, self._conn:
+            for cid in [k for k, c in self._chats.items() if now - c.updated_at > CHAT_TTL_SECONDS]:
+                self._chats.pop(cid, None)
+            if len(self._chats) > MAX_CHATS:
+                oldest = sorted(self._chats.values(), key=lambda c: c.updated_at)[:len(self._chats) - MAX_CHATS]
+                for c in oldest:
+                    self._chats.pop(c.id, None)
             self._conn.execute("DELETE FROM chats WHERE updated_at < ?", (now - CHAT_TTL_SECONDS,))
             self._conn.execute(
                 "INSERT OR REPLACE INTO chats(id, session, updated_at, payload) VALUES (?, ?, ?, ?)",
@@ -83,30 +92,35 @@ class Chats:
 
     def get(self, chat_id: str, session: str) -> Chat | None:
         now = time.time()
-        chat = self._chats.get(chat_id)
-        if chat is None:
-            with self._db_lock:
+        with self._db_lock:
+            chat = self._chats.get(chat_id)
+            if chat is not None and now - chat.updated_at > CHAT_TTL_SECONDS:
+                self._chats.pop(chat_id, None)
+                with self._conn:
+                    self._conn.execute("DELETE FROM chats WHERE id = ?", (chat_id,))
+                return None
+            if chat is None:
                 row = self._conn.execute(
                     "SELECT session, updated_at, payload FROM chats WHERE id = ?", (chat_id,)
                 ).fetchone()
-            if not row or row[0] != session or row[1] < now - CHAT_TTL_SECONDS:
+                if not row or row[0] != session or row[1] < now - CHAT_TTL_SECONDS:
+                    return None
+                data = json.loads(row[2])
+                h = Harness(
+                    constraints=Constraints(**data["constraints"]) if data.get("constraints") else None,
+                    found=data.get("found") or [],
+                    proposal=Proposal(**data["proposal"]) if data.get("proposal") else None,
+                    known_names={k: (v[0], v[1]) for k, v in (data.get("known_names") or {}).items()},
+                )
+                chat = Chat(chat_id, session, harness=h,
+                            history=list(messages_from_dict(data.get("history") or [])),
+                            shown=data.get("shown") or [], updated_at=row[1])
+                self._chats[chat_id] = chat
+            if chat.session != session:
                 return None
-            data = json.loads(row[2])
-            h = Harness(
-                constraints=Constraints(**data["constraints"]) if data.get("constraints") else None,
-                found=data.get("found") or [],
-                proposal=Proposal(**data["proposal"]) if data.get("proposal") else None,
-                known_names={k: (v[0], v[1]) for k, v in (data.get("known_names") or {}).items()},
-            )
-            chat = Chat(chat_id, session, harness=h,
-                        history=list(messages_from_dict(data.get("history") or [])),
-                        shown=data.get("shown") or [])
-            self._chats[chat_id] = chat
-        if chat.session != session:
-            return None
-        if chat.harness.proposal and chat.harness.proposal.is_expired(now):
-            chat.harness.proposal = None
-        return chat
+            if chat.harness.proposal and chat.harness.proposal.is_expired(now):
+                chat.harness.proposal = None
+            return chat
 
 
 trace_log = logging.getLogger("flight_agent.trace")
@@ -190,14 +204,16 @@ def approve(chat: Chat, model, proposal_id: str, backend: Backend, today: str,
                     out = _handoff(chat)
                     if store is not None:
                         store.save(chat)
+                    log_turn(chat.id, "approve_cancel", h, int((time.monotonic() - t0) * 1000))
                     return out
                 done = False
             if not done:
-                h.held_code = code
-                h.stop("hold_mismatch")
+                h.cancel_code = code
+                h.stop("cancel_failed")
                 out = _handoff(chat)
                 if store is not None:
                     store.save(chat)
+                log_turn(chat.id, "approve_cancel", h, int((time.monotonic() - t0) * 1000))
                 return out
             reply = f"Đã huỷ giữ chỗ {code}."
             chat.history = [*chat.history, AIMessage(reply)]
@@ -214,6 +230,7 @@ def approve(chat: Chat, model, proposal_id: str, backend: Backend, today: str,
                 out = _handoff(chat)
                 if store is not None:
                     store.save(chat)
+                log_turn(chat.id, "approve", h, int((time.monotonic() - t0) * 1000))
                 return out
             return turn(chat, model, f"[Hệ thống] Giữ chỗ thất bại: {e.code}: {e.detail}. "
                                      "Đề xuất chuyến khác nếu còn chuyến thoả ràng buộc.", backend, today, store=store)
@@ -229,6 +246,7 @@ def approve(chat: Chat, model, proposal_id: str, backend: Backend, today: str,
             out = _handoff(chat)
             if store is not None:
                 store.save(chat)
+            log_turn(chat.id, "approve", h, int((time.monotonic() - t0) * 1000))
             return out
         expires = detail["holdExpiresAt"]
         reply = f"Đã giữ chỗ {code}, hết hạn lúc {expires[11:16]} ngày {expires[8:10]}/{expires[5:7]}/{expires[:4]}."

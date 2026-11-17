@@ -39,22 +39,22 @@ def grade(case: Case, harness: Harness, reply: str) -> list[str]:
     """Các lý do trượt; rỗng = đạt."""
     failures = []
     p = harness.proposal
-    end = harness.stop_reason or ("proposal" if p else "reply")
+    end = harness.stop_reason or (("cancel_proposal" if p.action == "cancel" else "proposal") if p else "reply")
     if end not in ((case.end,) if isinstance(case.end, str) else case.end):
         failures.append(f"end: mong {case.end}, được {end}")
     if case.constraints is not None and harness.constraints != Constraints(**case.constraints):
         failures.append(f"constraints: được {harness.constraints}")
-    if p and case.flight_ids is not None and p.body["journeys"][0]["flightIds"] != case.flight_ids:
-        failures.append(f"flight_ids: được {p.body['journeys'][0]['flightIds']}")
-    if p and case.return_flight_ids is not None:
-        got = p.body["journeys"][1]["flightIds"] if len(p.body["journeys"]) > 1 else None
-        if got != case.return_flight_ids:
-            failures.append(f"return_flight_ids: được {got}")
-    if p and case.passengers is not None:
-        got = [(x["lastName"], x["firstName"], x["gender"], x["dateOfBirth"]) for x in p.body["passengers"]]
-        if sorted(got) != sorted(case.passengers):      # như is_done: không theo thứ tự
-            failures.append(f"passengers: được {got}")
-    if p:
+    if p and p.action == "hold":
+        if case.flight_ids is not None and p.body["journeys"][0]["flightIds"] != case.flight_ids:
+            failures.append(f"flight_ids: được {p.body['journeys'][0]['flightIds']}")
+        if case.return_flight_ids is not None:
+            got = p.body["journeys"][1]["flightIds"] if len(p.body["journeys"]) > 1 else None
+            if got != case.return_flight_ids:
+                failures.append(f"return_flight_ids: được {got}")
+        if case.passengers is not None:
+            got = [(x["lastName"], x["firstName"], x["gender"], x["dateOfBirth"]) for x in p.body["passengers"]]
+            if sorted(got) != sorted(case.passengers):      # như is_done: không theo thứ tự
+                failures.append(f"passengers: được {got}")
         got = sorted({(j["baggage"] or {}).get("weightKg", 0) for j in p.card["journeys"]})
         if got != [case.baggage_kg]:
             failures.append(f"baggage_kg: được {got}")

@@ -124,7 +124,7 @@ class Constraints:
                   ("max_price", self.max_price is None or price <= self.max_price),
                   ("return_date", back is None if self.return_date is None else back is not None
                    and (back[0], back[1], back[2][:10]) == (self.destination, self.origin, self.return_date)),
-                  ("airline", self.airline is None or airline is None or airline == self.airline),
+                  ("airline", self.airline is None or airline == self.airline),
                   ("nonstop", not self.nonstop or stops == 0),
                   ("refundable", not self.refundable or refundable),
                   ("changeable", not self.changeable or changeable)]
@@ -265,6 +265,7 @@ class Harness:
     bad_citations: list[str] = field(default_factory=list)
     recent: deque = field(default_factory=lambda: deque(maxlen=LOOP_WINDOW))
     held_code: str | None = None                         # booking đọc lại không khớp (hold_mismatch)
+    cancel_code: str | None = None                       # booking huỷ không thành công (cancel_failed)
     on_step: Callable[[dict], None] | None = None        # báo từng dòng trace cho trang (stream SSE)
     # LangGraph chạy các tool call của cùng một AIMessage song song: mỗi lúc chỉ một tool được chạy.
     tool_lock: threading.Lock = field(default_factory=threading.Lock)
@@ -273,7 +274,7 @@ class Harness:
         self.backend, self.today = backend, today
         self.trace, self.cards, self.stop_reason, self.model_calls = [], [], None, 0
         self.failed_steps, self.started_at, self.tokens_used, self.bad_citations = 0, time.monotonic(), 0, []
-        self.recent, self.held_code, self.on_step = deque(maxlen=LOOP_WINDOW), None, on_step
+        self.recent, self.held_code, self.cancel_code, self.on_step = deque(maxlen=LOOP_WINDOW), None, None, on_step
 
     @property
     def tools(self) -> list:
@@ -296,7 +297,7 @@ class Harness:
         PREMIUM_ECONOMY, BUSINESS, FIRST. airline: mã IATA 2 ký tự hãng bay (VN, VJ, QH). nonstop: True nếu chỉ bay
         thẳng. refundable, changeable: True nếu cần gói hoàn/đổi được."""
         partial = origin is None or destination is None or date is None
-        prev = self.constraints if partial else None
+        prev = self.constraints
         if prev is None and partial:
             return {"status": "invalid_param",
                     "hint": "Cần đủ sân bay đi (origin), sân bay đến (destination) và ngày đi (date)."}
@@ -338,7 +339,9 @@ class Harness:
             return {"status": "denied", "hint": "Trợ lý chưa hỗ trợ hành trình quốc tế."}
         if (day := _day(date)) is None or day.isoformat() < self.today:
             return {"status": "invalid_param", "hint": f"date phải là ngày YYYY-MM-DD từ hôm nay ({self.today})."}
-        ret = None if _clear(return_date) else (return_date if return_date is not None else (prev.return_date if prev else None))
+        ret = None if _clear(return_date) else (
+            return_date if return_date is not None else (prev.return_date if prev and partial else None)
+        )
         if ret is not None and ((back := _day(ret)) is None or back < day):
             return {"status": "invalid_param",
                     "hint": f"return_date phải là ngày YYYY-MM-DD, không trước ngày đi {date}."}
@@ -821,6 +824,13 @@ class Harness:
             return False
         out = journeys[0]["segments"]
         back = journeys[1]["segments"] if len(journeys) == 2 else None
+        j0, j1 = journeys[0], (journeys[1] if len(journeys) == 2 else None)
+        air0 = j0.get("airlineCode") or (self.constraints.airline if self.constraints else None)
+        air1 = (j1.get("airlineCode") or air0) if j1 else air0
+        airline = air0 if air1 == air0 else f"{air0}+{air1}"
+        stops = max(len(out) - 1, (len(back) - 1) if back else 0)
+        refundable = bool(j0.get("refundable", True)) and (bool(j1.get("refundable", True)) if j1 else True)
+        changeable = bool(j0.get("changeable", True)) and (bool(j1.get("changeable", True)) if j1 else True)
         return (detail.get("status") == "PENDING_PAYMENT"
                 and _people(detail.get("passengers") or []) == _people(proposal.body["passengers"])
                 and detail.get("totalAmount") == proposal.total
@@ -829,13 +839,19 @@ class Harness:
                 and self.constraints.is_ok(out[0]["departureAirport"], out[-1]["arrivalAirport"],
                                            out[0]["departureTime"], detail["totalAmount"],
                                            back and (back[0]["departureAirport"], back[-1]["arrivalAirport"],
-                                                     back[0]["departureTime"])))
+                                                     back[0]["departureTime"]),
+                                           airline=airline, stops=stops,
+                                           refundable=refundable, changeable=changeable))
 
     # ---- 4. BÀN GIAO: đủ để khách nắm tình hình trong 30 giây
     def handoff(self) -> dict:
         done = [self.constraints.to_prompt()] if self.constraints else []
-        done.append(f"Đã tạo booking {self.held_code} nhưng đọc lại không khớp." if self.held_code
-                    else "Chưa giữ chỗ, chưa trừ tiền.")
+        if self.cancel_code:
+            done.append(f"Chưa huỷ được đặt chỗ {self.cancel_code}.")
+        elif self.held_code:
+            done.append(f"Đã tạo booking {self.held_code} nhưng đọc lại không khớp.")
+        else:
+            done.append("Chưa giữ chỗ, chưa trừ tiền.")
         last = self.trace[-1]["tool"] if self.trace else "-"
         c = self.constraints
         url = flights_url(c)
@@ -863,6 +879,8 @@ class Harness:
                              f"Bạn đặt chuyến này trên {url} nhé?",
             "hold_mismatch": f"Booking {self.held_code} đọc lại không khớp với thẻ đã duyệt. "
                              f"Bạn kiểm tra ở /bookings/{self.held_code} nhé?",
+            "cancel_failed": f"Không huỷ được đặt chỗ {self.cancel_code}. "
+                             f"Bạn kiểm tra và tự huỷ ở /bookings/{self.cancel_code} nhé?",
         }
         return {"type": "handoff", "doneSoFar": done,
                 "tried": [f"{t['tool']}({json.dumps(t['args'], ensure_ascii=False)}) → {t['status']}"

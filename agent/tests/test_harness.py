@@ -575,6 +575,9 @@ def test_set_constraints_merges_partial_updates_and_clears_with_none_keyword():
     assert h.constraints.depart_before == "12:00" and h.constraints.depart_after == "07:30"
     assert h.constraints.max_price is None and h.constraints.adults == 2
     assert h.constraints.airline == "VN" and h.constraints.nonstop is True
+    # Repeating origin/destination while changing date preserves existing passenger count and filters
+    h.execute("set_constraints", {"origin": "SGN", "destination": "DAD", "date": "2026-10-31"})
+    assert h.constraints.date == "2026-10-31" and h.constraints.adults == 2 and h.constraints.airline == "VN"
 
 
 def test_search_and_hold_support_refundable_fare_family_and_cabin():
@@ -586,6 +589,14 @@ def test_search_and_hold_support_refundable_fare_family_and_cabin():
     assert r["matching"][0]["fare"] == "Economy Classic" and r["matching"][0]["fare_family_id"] == 2
     hold = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=2, passengers=[PAX]))
     assert hold["status"] == "pending_approval" and h.proposal.total == 2_150_000
+
+    # Cabin filter (BUSINESS)
+    h_biz, _ = ready()
+    h_biz.execute("set_constraints", {"origin": "SGN", "destination": "DAD", "date": "2026-10-30", "cabin": "BUSINESS"})
+    r_biz = h_biz.execute("search_flights", {})
+    assert [m["flights"] for m in r_biz["matching"]] == ["VN122"]
+    assert r_biz["matching"][0]["fare"] == "Business Classic"
+
 
 
 def test_filtering_happens_before_matching_top_five_cutoff():
