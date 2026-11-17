@@ -198,6 +198,15 @@ def _journeys(item: dict) -> list[dict]:
     return [item["outbound"], item["return"]] if "outbound" in item else [item]
 
 
+def flights_url(c: Constraints | None) -> str:
+    """Đường dẫn /flights kèm sẵn tham số tìm chuyến hiện tại để khách không phải nhập lại."""
+    if c is None:
+        return "/flights"
+    q = (f"from={c.origin}&to={c.destination}&date={c.date}&adults={c.adults}"
+         f"&children={c.children}&infants={c.infants}&cabin={c.cabin}")
+    return f"/flights?{q}&returnDate={c.return_date}" if c.return_date else f"/flights?{q}"
+
+
 # =====================================================================
 # HARNESS
 # =====================================================================
@@ -425,14 +434,15 @@ class Harness:
 
     def propose_hold(self, flight_ids: list[int], fare_family_id: int, passengers: list[PassengerArg],
                      return_flight_ids: list[int] | None = None, return_fare_family_id: int | None = None,
-                     baggage_kg: int | None = None, voucher_code: str | None = None) -> dict:
+                     baggage_kg: int | None = None, return_baggage_kg: int | None = None,
+                     voucher_code: str | None = None) -> dict:
         """Báo giá và đưa thẻ duyệt giữ chỗ cho khách. flight_ids, fare_family_id: lấy đúng từ một hành trình trong
         matching. Khứ hồi: return_flight_ids, return_fare_family_id lấy từ return của cùng mục trong matching.
         passengers: mỗi hành khách một mục, đủ số người lớn, trẻ em, em bé trong ràng buộc; full_name: họ tên đầy đủ,
         gender: MALE hoặc FEMALE, date_of_birth: YYYY-MM-DD. Loại khách do hệ thống tính từ ngày sinh.
-        baggage_kg: số kg hành lý ký gửi mua thêm cho mỗi người lớn và trẻ em trên mỗi chiều, chọn từ
-        baggage_options; bỏ trống nếu khách không mua. voucher_code: mã giảm giá khách đưa; bỏ trống nếu khách không
-        có mã, không tự bịa mã.
+        baggage_kg: số kg hành lý ký gửi mua thêm cho mỗi người lớn và trẻ em (mặc định áp cho cả hai chiều nếu khứ hồi);
+        return_baggage_kg: số kg riêng cho chiều về nếu khách mua khác chiều đi (0 nếu chiều về không mua).
+        voucher_code: mã giảm giá khách đưa; bỏ trống nếu khách không có mã, không tự bịa mã.
         Chỉ trả pending_approval: khách tự bấm Giữ chỗ trên thẻ."""
         c = self.constraints
         # Model có thể gửi sai dạng (chuỗi JSON, object đơn): trả invalid_param để model tự sửa, không làm hỏng lượt chat.
@@ -464,24 +474,37 @@ class Harness:
                             "hoặc hỏi lại ngày sinh."}
         me = self.backend.get("/api/me")
         it = self._found(flight_ids, fare_family_id, return_flight_ids, return_fare_family_id)
+        if c.return_date is None and return_baggage_kg is not None:
+            return {"status": "invalid_param", "hint": "Một chiều: không truyền return_baggage_kg."}
         # Bảng giá hành lý của hãng chặng đầu mỗi chiều: backend so mức hành lý với hãng của itinerary.
         prices = {d: self._baggage(j["airline"]) for d, j in zip(DIRECTIONS, _journeys(it))}
         on_sale = sorted(set.intersection(*({o["weightKg"] for o in p} for p in prices.values())))
         try:
             kg = int(baggage_kg or 0)       # None và 0 là không mua
+            kg_ret = kg if return_baggage_kg is None else int(return_baggage_kg or 0)
         except (TypeError, ValueError):
-            kg = -1
-        if kg < 0 or (kg and kg not in on_sale):
-            return {"status": "invalid_param",
-                    "hint": f"baggage_kg phải là một trong các mức {', '.join(map(str, on_sale))} kg, hoặc bỏ trống."
-                    if on_sale else "Hành trình này không có mức hành lý ký gửi nào bán cho mọi chiều: bỏ trống "
-                                    "baggage_kg."}
+            kg = kg_ret = -1
+        if return_baggage_kg is None:
+            if kg < 0 or (kg and kg not in on_sale):
+                return {"status": "invalid_param",
+                        "hint": f"baggage_kg phải là một trong các mức {', '.join(map(str, on_sale))} kg, hoặc bỏ trống."
+                        if on_sale else "Hành trình này không có mức hành lý ký gửi nào bán cho mọi chiều: bỏ trống "
+                                        "baggage_kg."}
+            kg_by_dir = {d: kg for d in prices}
+        else:
+            kg_by_dir = {"OUTBOUND": kg, "RETURN": kg_ret}
+            for d, k_val in kg_by_dir.items():
+                sold_d = sorted({o["weightKg"] for o in prices[d]})
+                if k_val < 0 or (k_val and k_val not in sold_d):
+                    return {"status": "invalid_param",
+                            "hint": f"Hành lý chiều {d} phải thuộc {', '.join(map(str, sold_d))} kg, hoặc 0."}
+        any_bag = any(kg_by_dir.values())
         body = {"journeys": [{"direction": d, "flightIds": j["flight_ids"], "fareFamilyId": j["fare_family_id"]}
                              for d, j in zip(DIRECTIONS, _journeys(it))],
                 "passengers": built,
                 # BR-22: em bé không mua hành lý
                 "baggage": [{"passengerIndex": i, "direction": d, "baggageOptionId": o["id"]}
-                            for d, p in prices.items() for o in p if kg and o["weightKg"] == kg
+                            for d, p in prices.items() for o in p if kg_by_dir[d] and o["weightKg"] == kg_by_dir[d]
                             for i, x in enumerate(built) if x["type"] != "INFANT"],
                 "contact": {"name": me["fullName"], "email": me["email"], "phone": me["phone"]},
                 # như VoucherApi.check: booking đọc lại trả mã đã chuẩn hoá, is_done so khớp chính xác
@@ -489,7 +512,7 @@ class Harness:
         quote = self.backend.post("/api/bookings/quote", body)
         total = quote["totalAmount"]
         if self.constraints.max_price is not None and total > self.constraints.max_price:
-            drop = " Hỏi khách bỏ hành lý hay nới giá tối đa." if kg else ""
+            drop = " Hỏi khách bỏ hành lý hay nới giá tối đa." if any_bag else ""
             return {"status": "denied",
                     "hint": f"Báo giá {_vnd(total)} đ vượt giá tối đa.{drop} {self.constraints.to_prompt()}"}
         pid = uuid4().hex
@@ -497,14 +520,15 @@ class Harness:
         code = body["voucherCode"]
         card = {"type": "proposal", "proposalId": pid,
                 "journeys": [{"direction": d, "segments": j["segments"], "fare": j["fare"], "fares": q["passengerFares"],
-                              "baggage": {"weightKg": kg, "count": count, "total": q["baggageTotal"]} if kg else None}
+                              "baggage": {"weightKg": kg_by_dir[d], "count": count, "total": q["baggageTotal"]}
+                              if kg_by_dir[d] else None}
                              for d, j, q in zip(DIRECTIONS, _journeys(it), quote["journeys"])],
                 "passengers": built, "contact": body["contact"],
                 "discount": {"code": code, "amount": quote["discountTotal"]} if code else None, "totalAmount": total}
         self.proposal = Proposal(pid, body, total, card)
         self.cards.append(card)
         result = {"status": "pending_approval", "total": total}
-        if not kg and on_sale:      # chỉ mời mức mua được: mọi chiều đều bán
+        if not any_bag and on_sale:      # chỉ mời mức mua được: mọi chiều đều bán
             result["baggage_options"] = {d: [f"{o['weightKg']} kg: {_money(o['price'])}" for o in p
                                              if o["weightKg"] in on_sale] for d, p in prices.items()}
         return result
@@ -743,8 +767,9 @@ class Harness:
         done.append(f"Đã tạo booking {self.held_code} nhưng đọc lại không khớp." if self.held_code
                     else "Chưa giữ chỗ, chưa trừ tiền.")
         last = self.trace[-1]["tool"] if self.trace else "-"
-        retry = "Bạn muốn thử lại hay tự đặt trên /flights?"
         c = self.constraints
+        url = flights_url(c)
+        retry = f"Bạn muốn thử lại hay tự đặt trên {url}?"
         if near := self._nearest():
             n = near[0]
             legs = ", về ".join(f"{j['flights']} lúc {_when(j['depart'])}" for j in _journeys(n))
@@ -763,7 +788,7 @@ class Harness:
             "unauthenticated": "Phiên đăng nhập đã hết hạn. Bạn đăng nhập lại rồi thử tiếp nhé?",
             "forbidden": "Trợ lý chỉ dùng cho tài khoản khách hàng. Bạn đăng nhập bằng tài khoản khách hàng nhé?",
             "international": "Hành trình quốc tế cần khai hộ chiếu, trợ lý chưa hỗ trợ. "
-                             "Bạn đặt chuyến này trên /flights nhé?",
+                             f"Bạn đặt chuyến này trên {url} nhé?",
             "hold_mismatch": f"Booking {self.held_code} đọc lại không khớp với thẻ đã duyệt. "
                              f"Bạn kiểm tra ở /bookings/{self.held_code} nhé?",
         }

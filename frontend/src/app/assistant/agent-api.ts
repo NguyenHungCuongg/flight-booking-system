@@ -105,14 +105,22 @@ export async function agentStream(
   path: string,
   body: unknown,
   onStep: (step: Step) => void,
+  signal?: AbortSignal,
 ): Promise<Turn> {
-  const res = await agentResponse("POST", path, await postHeaders(body), body);
+  const res = await agentResponse(
+    "POST",
+    path,
+    await postHeaders(body),
+    body,
+    signal,
+  );
   try {
     for await (const event of sseEvents(res.body!)) {
       if (event.type === "turn") return event.turn;
       onStep({ tool: event.tool, args: event.args, status: event.status });
     }
-  } catch {
+  } catch (e) {
+    if (signal?.aborted) throw e;
     // mất kết nối giữa chừng: báo như stream đóng sớm
   }
   throw new AgentError(0, DOWN);
@@ -141,7 +149,7 @@ export async function* sseEvents(
 
 // Đường dẫn nội bộ trong câu trả lời (nguồn trích dẫn, trang tự thao tác); dấu câu cuối câu không thuộc link.
 const INTERNAL_LINK =
-  /(\/(?:chinh-sach|flights|bookings)\b(?:[/#][A-Za-z0-9-]+)*)/;
+  /(\/(?:chinh-sach|flights|bookings)\b(?:[/?#&=[A-Za-z0-9_-]+)*)/;
 
 /** Câu trả lời là văn bản thuần: tách các đường dẫn nội bộ ra để hiện thành link. */
 export function replyParts(text: string): (string | { href: string })[] {
@@ -173,6 +181,7 @@ async function agentResponse(
   path: string,
   headers: Headers,
   body?: unknown,
+  signal?: AbortSignal,
 ): Promise<Response> {
   let res: Response;
   try {
@@ -181,8 +190,10 @@ async function agentResponse(
       headers,
       credentials: "same-origin",
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal,
     });
-  } catch {
+  } catch (e) {
+    if (signal?.aborted) throw e;
     throw new AgentError(0, DOWN);
   }
   if (res.ok) return res;

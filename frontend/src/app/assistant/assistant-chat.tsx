@@ -256,6 +256,7 @@ function CardView(props: {
 /** Trang /assistant: chat với trợ lý. Thẻ duyệt chỉ giữ chỗ khi khách bấm "Giữ chỗ"; thanh toán vẫn ở C-09. */
 export default function AssistantChat() {
   const chatId = useRef<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -266,6 +267,22 @@ export default function AssistantChat() {
   const [closed, setClosed] = useState<ReadonlySet<string>>(new Set());
 
   const latest = proposalIds(entries).at(-1);
+
+  function stopStream() {
+    abortRef.current?.abort();
+    abortRef.current = null;
+  }
+
+  function resetChat() {
+    stopStream();
+    sessionStorage.removeItem(CHAT_KEY);
+    chatId.current = null;
+    setEntries([]);
+    setSteps([]);
+    setClosed(new Set());
+    setError(null);
+    setBusy(false);
+  }
 
   // Đọc sessionStorage sau khi hydrate. Thẻ duyệt không phải đề xuất còn hiệu lực thì dựng lại không có nút.
   useEffect(() => {
@@ -305,10 +322,12 @@ export default function AssistantChat() {
       const turn = await work();
       if (turn) setEntries((list) => [...list, { from: "agent", turn }]);
     } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
       setError(
         e instanceof AgentError ? e.message : "Đã có lỗi xảy ra. Hãy thử lại.",
       );
     } finally {
+      abortRef.current = null;
       // Cùng nhịp với setEntries: các bước tạm không hiện cùng trace của lượt.
       setSteps([]);
       setBusy(false);
@@ -322,6 +341,8 @@ export default function AssistantChat() {
     setText("");
     setEntries((list) => [...list, { from: "user", text: message }]);
     const onStep = (s: Step) => setSteps((list) => [...list, s]);
+    const controller = new AbortController();
+    abortRef.current = controller;
     void run(async () => {
       const id = chatId.current ?? (await newChat());
       try {
@@ -329,6 +350,7 @@ export default function AssistantChat() {
           `/chats/${id}/messages`,
           { text: message },
           onStep,
+          controller.signal,
         );
       } catch (e) {
         // Service khởi động lại thì chat cũ mất: tạo chat mới và gửi lại một lần.
@@ -338,6 +360,7 @@ export default function AssistantChat() {
           `/chats/${fresh}/messages`,
           { text: message },
           onStep,
+          controller.signal,
         );
       }
     });
@@ -371,7 +394,18 @@ export default function AssistantChat() {
     <div className="min-h-dvh">
       <SiteHeader />
       <main className="mx-auto grid max-w-page gap-28 px-16 pt-16 pb-80 sm:px-38">
-        <h1 className="text-heading-lg font-bold">Trợ lý đặt vé</h1>
+        <div className="flex flex-wrap items-center justify-between gap-12">
+          <h1 className="text-heading-lg font-bold">Trợ lý đặt vé</h1>
+          {entries.length > 0 && (
+            <button
+              type="button"
+              className={pillLine}
+              onClick={resetChat}
+            >
+              Cuộc trò chuyện mới
+            </button>
+          )}
+        </div>
         {entries.length === 0 && (
           <p className="text-muted">
             Gõ yêu cầu bằng lời, ví dụ “Đặt giúp mình 1 vé SGN đi Đà Nẵng thứ 6
@@ -454,13 +488,23 @@ export default function AssistantChat() {
             placeholder="Nhắn cho trợ lý…"
             className="min-h-40 min-w-0 flex-1 rounded-inner border border-line-strong bg-surface px-14 py-8 transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_var(--color-accent-soft)] focus:outline-none"
           />
-          <button
-            type="submit"
-            className={pillPrimary}
-            disabled={busy || !text.trim()}
-          >
-            Gửi
-          </button>
+          {busy && abortRef.current ? (
+            <button
+              type="button"
+              className={pillLine}
+              onClick={stopStream}
+            >
+              Dừng
+            </button>
+          ) : (
+            <button
+              type="submit"
+              className={pillPrimary}
+              disabled={busy || !text.trim()}
+            >
+              Gửi
+            </button>
+          )}
         </form>
       </main>
     </div>

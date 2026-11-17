@@ -596,3 +596,23 @@ def test_filtering_happens_before_matching_top_five_cutoff():
     r = h.execute("search_flights", {})
     assert [m["flights"] for m in r["matching"]] == ["VN122"]
 
+
+def test_round_trip_supports_different_baggage_per_direction():
+    h, _ = round_trip()
+    r = h.execute("propose_hold", {**ROUND, "passengers": [PAX], "baggage_kg": 0, "return_baggage_kg": 20})
+    assert (r["status"], r["total"]) == ("pending_approval", 2_900_000 + 350_000)
+    assert h.proposal.body["baggage"] == [{"passengerIndex": 0, "direction": "RETURN", "baggageOptionId": 12}]
+    assert [j["baggage"] for j in h.cards[-1]["journeys"]] == [
+        None,
+        {"weightKg": 20, "count": 1, "total": 350_000},
+    ]
+
+
+def test_handoff_links_to_prefilled_flights_url():
+    h, _ = ready()
+    h.execute("set_constraints", {**ROUTE, "adults": 2})
+    h.stop("budget")
+    q = h.handoff()["question"]
+    assert "/flights?from=SGN&to=DAD&date=2026-10-30&adults=2&children=0&infants=0&cabin=ECONOMY" in q
+
+
