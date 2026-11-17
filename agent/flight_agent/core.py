@@ -8,6 +8,7 @@ dừng lượt chat, và dùng CODE để quyết định việc đã xong hay c
 import json
 import re
 import threading
+import time
 import unicodedata
 from collections import deque
 from collections.abc import Callable
@@ -21,6 +22,8 @@ from flight_agent.policies import fill, load_sections
 
 KEYS = ("depart_before", "depart_after", "max_price")
 BUDGET = 10          # tối đa số lần gọi model mỗi lượt chat
+TURN_TIMEOUT_SECONDS = 90.0  # trần thời gian tổng cho một lượt chat
+TOKEN_BUDGET = 40_000        # trần token tổng cho một lượt chat
 LOOP_WINDOW = 6      # xét 6 lời gọi tool gần nhất ...
 LOOP_REPEAT = 3      # ... cùng (tool, args) 3 lần = lặp
 STALL_LIMIT = 4      # 4 lời gọi tool liên tiếp đều lỗi = bế tắc (stall)
@@ -251,6 +254,8 @@ class Harness:
     stop_reason: str | None = None
     model_calls: int = 0
     failed_steps: int = 0
+    started_at: float = 0.0
+    tokens_used: int = 0
     bad_citations: list[str] = field(default_factory=list)
     recent: deque = field(default_factory=lambda: deque(maxlen=LOOP_WINDOW))
     held_code: str | None = None                         # booking đọc lại không khớp (hold_mismatch)
@@ -261,7 +266,7 @@ class Harness:
     def begin_turn(self, backend: Backend, today: str, on_step: Callable[[dict], None] | None = None) -> None:
         self.backend, self.today = backend, today
         self.trace, self.cards, self.stop_reason, self.model_calls = [], [], None, 0
-        self.failed_steps, self.bad_citations = 0, []
+        self.failed_steps, self.started_at, self.tokens_used, self.bad_citations = 0, time.monotonic(), 0, []
         self.recent, self.held_code, self.on_step = deque(maxlen=LOOP_WINDOW), None, on_step
 
     @property
@@ -670,7 +675,10 @@ class Harness:
     def before_model(self) -> None:
         if self.stop_reason:
             raise StopRun
-        if self.model_calls >= BUDGET:
+        if self.started_at and (time.monotonic() - self.started_at) > TURN_TIMEOUT_SECONDS:
+            self.stop("timeout")
+            raise StopRun
+        if self.model_calls >= BUDGET or self.tokens_used >= TOKEN_BUDGET:
             self.stop("budget")
             raise StopRun
         self.model_calls += 1
@@ -793,6 +801,7 @@ class Harness:
         questions = {
             "no_match": no_match,
             "budget": f"Trợ lý đã dùng hết {BUDGET} lần gọi mô hình cho lượt này. {retry}",
+            "timeout": f"Lượt xử lý đã quá thời gian chờ ({int(TURN_TIMEOUT_SECONDS)} giây). {retry}",
             "loop": f"Trợ lý lặp lại {last} mà không tiến triển. {retry}",
             "stall": f"Trợ lý gặp lỗi liên tiếp qua {STALL_LIMIT} bước mà chưa xử lý được yêu cầu. {retry}",
             "infra": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?",

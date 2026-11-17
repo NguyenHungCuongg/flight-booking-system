@@ -112,7 +112,12 @@ def run_turn(harness: Harness, model, history: list, text: str) -> tuple[str, li
     @wrap_model_call
     def budget(request, handler):
         harness.before_model()
-        return handler(request)
+        res = handler(request)
+        msgs = getattr(res, "messages", None)
+        last_msg = msgs[-1] if msgs else res
+        usage = getattr(last_msg, "usage_metadata", None) or {}
+        harness.tokens_used += int(usage.get("total_tokens", 0))
+        return res
 
     @wrap_tool_call
     def through_harness(request, handler):

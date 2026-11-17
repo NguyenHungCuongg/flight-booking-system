@@ -176,3 +176,15 @@ def test_llm_outage_mid_stream_ends_with_a_handoff():
     ev = events(c.post(f"/agent/chats/{chat}/messages", json={"text": "Đặt vé"}, headers=h))
     assert [e["type"] for e in ev] == ["step", "turn"]
     assert ev[-1]["turn"]["cards"][-1]["type"] == "handoff"
+
+
+def test_rate_limit_blocks_excessive_messages_per_session():
+    app = create_app(model=scripted(*hold_flow() * 3), backend_url="http://be",
+                     transport=FakeBackend().transport, today=lambda: "2026-10-26", rate_limit=2)
+    c = TestClient(app)
+    chat = c.post("/agent/chats", headers={"Cookie": COOKIE}).json()["chatId"]
+    assert c.post(f"/agent/chats/{chat}/messages", json={"text": "1"}, headers={"Cookie": COOKIE}).status_code == 200
+    assert c.post(f"/agent/chats/{chat}/messages", json={"text": "2"}, headers={"Cookie": COOKIE}).status_code == 200
+    r = c.post(f"/agent/chats/{chat}/messages", json={"text": "3"}, headers={"Cookie": COOKIE})
+    assert r.status_code == 429 and "quá nhanh" in r.json()["detail"]
+

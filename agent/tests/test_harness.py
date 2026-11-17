@@ -624,4 +624,21 @@ def test_four_consecutive_failed_tool_calls_stop_as_stall():
     assert "4 bước" in h.handoff()["question"]
 
 
+def test_turn_stops_on_wall_clock_timeout_or_token_budget():
+    import pytest
+    from flight_agent.core import StopRun
+    h, _ = ready()
+    h.started_at -= 100.0
+    with pytest.raises(StopRun):
+        h.before_model()
+    assert h.stop_reason == "timeout"
+
+    h2, _ = ready()
+    h2.tokens_used = 40_000
+    with pytest.raises(StopRun):
+        h2.before_model()
+    assert h2.stop_reason == "budget"
+
+
+
 

@@ -286,3 +286,14 @@ def test_old_tool_messages_are_compacted_on_next_turn():
     compacted = compact_history([big])
     assert compacted[0].tool_call_id == "call-1" and len(compacted[0].content) < 100
 
+
+def test_structured_trace_log_omits_pii_arguments():
+    from flight_agent.chat import log_turn
+    fake = FakeBackend()
+    chat, _, _ = proposed(fake)
+    entry = log_turn(chat.id, "turn", chat.harness, 42)
+    assert entry["chat_id"] == chat.id and entry["action"] == "turn" and entry["latency_ms"] == 42
+    assert entry["steps"][-1] == {"tool": "propose_hold", "status": "pending_approval"}
+    assert "Nguyễn Hùng Cường" not in str(entry) and "2004-03-12" not in str(entry)
+
+

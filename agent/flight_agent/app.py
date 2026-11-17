@@ -6,6 +6,8 @@ import logging
 import os
 import queue
 import threading
+import time
+from collections import deque
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 
@@ -32,12 +34,25 @@ class Message(BaseModel):
 
 
 def create_app(model=None, backend_url: str | None = None, transport: httpx.BaseTransport | None = None,
-               today: Callable[[], str] = vn_today) -> FastAPI:
+               today: Callable[[], str] = vn_today, rate_limit: int = 15,
+               rate_window: float = 60.0) -> FastAPI:
     load_dotenv()
     model = model or make_model()
     backend_url = backend_url or os.environ.get("BACKEND_URL", "http://localhost:8080")
     chats = Chats()
+    rate_buckets: dict[str, deque[float]] = {}
+    rate_lock = threading.Lock()
     app = FastAPI(title="SkyLine agent")
+
+    def check_rate_limit(session: str) -> None:
+        now = time.monotonic()
+        with rate_lock:
+            bucket = rate_buckets.setdefault(session, deque())
+            while bucket and now - bucket[0] > rate_window:
+                bucket.popleft()
+            if len(bucket) >= rate_limit:
+                raise HTTPException(429, "Bạn gửi tin nhắn quá nhanh. Vui lòng chờ ít giây rồi thử lại.")
+            bucket.append(now)
 
     def backend(request: Request) -> Backend:
         # Cookie và X-XSRF-TOKEN chuyển tiếp nguyên từ request của trình duyệt (spec §5.2, §5.3).
@@ -72,6 +87,7 @@ def create_app(model=None, backend_url: str | None = None, transport: httpx.Base
     @app.post("/agent/chats/{chat_id}/messages")
     def send(chat_id: str, message: Message, request: Request):
         chat = chat_of(request, chat_id)            # 404 trả JSON trước khi stream
+        check_rate_limit(request.cookies.get("JSESSIONID", ""))
         back, day, events = backend(request), today(), queue.Queue()
 
         # Lượt chạy trong luồng riêng: RLock phải nhả trên đúng luồng đã lấy nó, còn generator bên dưới

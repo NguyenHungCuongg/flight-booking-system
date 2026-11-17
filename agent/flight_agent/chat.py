@@ -2,7 +2,10 @@
 
 turn() chạy model; approve() thì không: khi khách bấm "Giữ chỗ", code gửi đúng body đã duyệt.
 """
+import json
+import logging
 import threading
+import time
 from dataclasses import dataclass, field
 from uuid import uuid4
 
@@ -46,6 +49,24 @@ class Chats:
         return chat if chat and chat.session == session else None
 
 
+trace_log = logging.getLogger("flight_agent.trace")
+
+
+def log_turn(chat_id: str, action: str, harness: Harness, latency_ms: int) -> dict:
+    """Ghi một dòng JSON trace cấu trúc sau mỗi lượt, không chứa tham số PII của hành khách."""
+    entry = {
+        "chat_id": chat_id,
+        "action": action,
+        "steps": [{"tool": t["tool"], "status": t["status"]} for t in harness.trace],
+        "stop_reason": harness.stop_reason,
+        "model_calls": harness.model_calls,
+        "tokens": harness.tokens_used,
+        "latency_ms": latency_ms,
+    }
+    trace_log.info(json.dumps(entry, ensure_ascii=False))
+    return entry
+
+
 def _result(chat: Chat, reply: str) -> dict:
     return {"reply": reply, "trace": chat.harness.trace, "cards": chat.harness.cards}
 
@@ -60,6 +81,7 @@ def _handoff(chat: Chat, *before) -> dict:
 
 def turn(chat: Chat, model, text: str, backend: Backend, today: str, on_step=None) -> dict:
     with chat.lock:
+        t0 = time.monotonic()
         h = chat.harness
         h.begin_turn(backend, today, on_step)
         before = h.proposal
@@ -74,8 +96,11 @@ def turn(chat: Chat, model, text: str, backend: Backend, today: str, on_step=Non
             raise
         if h.stop_reason:
             # Lần invoke bị huỷ có thể còn tool call chưa có kết quả: chỉ giữ tin nhắn của khách.
-            return _handoff(chat, HumanMessage(text))
-        return _result(chat, reply)
+            out = _handoff(chat, HumanMessage(text))
+        else:
+            out = _result(chat, reply)
+        log_turn(chat.id, "turn", h, int((time.monotonic() - t0) * 1000))
+        return out
 
 
 def approve(chat: Chat, model, proposal_id: str, backend: Backend, today: str) -> dict:
