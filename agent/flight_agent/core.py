@@ -24,6 +24,7 @@ KEYS = ("depart_before", "depart_after", "max_price")
 BUDGET = 10          # tối đa số lần gọi model mỗi lượt chat
 TURN_TIMEOUT_SECONDS = 90.0  # trần thời gian tổng cho một lượt chat
 TOKEN_BUDGET = 40_000        # trần token tổng cho một lượt chat
+PROPOSAL_TTL_SECONDS = 900.0 # thời hạn hiệu lực của thẻ đề xuất (15 phút)
 LOOP_WINDOW = 6      # xét 6 lời gọi tool gần nhất ...
 LOOP_REPEAT = 3      # ... cùng (tool, args) 3 lần = lặp
 STALL_LIMIT = 4      # 4 lời gọi tool liên tiếp đều lỗi = bế tắc (stall)
@@ -233,6 +234,10 @@ class Proposal:
     total: int      # totalAmount của báo giá / đặt chỗ
     card: dict
     action: str = "hold"    # "hold" hoặc "cancel"
+    created_at: float = field(default_factory=time.time)
+
+    def is_expired(self, now: float | None = None) -> bool:
+        return (now if now is not None else time.time()) - self.created_at > PROPOSAL_TTL_SECONDS
 
 
 @dataclass

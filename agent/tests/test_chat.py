@@ -311,4 +311,44 @@ def test_approving_cancel_proposal_cancels_and_verifies_status():
     assert fake.bookings["K7M2QX"]["status"] == "CANCELLED"
 
 
+def test_chat_and_live_proposal_survive_service_restart_via_sqlite(tmp_path):
+    db = tmp_path / "chats.sqlite3"
+    fake = FakeBackend()
+    store1 = Chats(db)
+    chat1 = store1.create("s1")
+    chat1.shown.append({"from": "user", "text": "Đặt vé"})
+    out = turn(
+        chat1,
+        scripted(
+            call("set_constraints", **ROUTE),
+            call("search_flights"),
+            call("propose_hold", flight_ids=[122], fare_family_id=1, passengers=[PAX]),
+            AIMessage(content="Bấm Giữ chỗ nhé."),
+        ),
+        "Đặt vé",
+        fake.backend(),
+        TODAY,
+        store=store1,
+    )
+    chat1.shown.append({"from": "agent", "turn": out})
+    store1.save(chat1)
+    pid = out["cards"][-1]["proposalId"]
+
+    store2 = Chats(db)
+    chat2 = store2.get(chat1.id, "s1")
+    assert chat2 is not None and len(chat2.shown) == 2
+    assert chat2.harness.proposal is not None and chat2.harness.proposal.id == pid
+    res = approve(chat2, scripted(), pid, fake.backend(), TODAY, store=store2)
+    assert res["cards"][0]["type"] == "held"
+
+
+def test_expired_proposal_cannot_be_approved():
+    fake = FakeBackend()
+    chat, model, out = proposed(fake)
+    chat.harness.proposal.created_at -= 1000.0
+    with pytest.raises(LookupError):
+        approve(chat, model, out["cards"][-1]["proposalId"], fake.backend(), TODAY)
+
+
+
 

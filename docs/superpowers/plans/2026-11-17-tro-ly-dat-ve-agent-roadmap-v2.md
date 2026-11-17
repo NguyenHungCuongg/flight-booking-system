@@ -23,7 +23,7 @@ Làm theo thứ tự 3 đợt ưu tiên. Mỗi Task dưới đây có thể th�
 | **Bước 10** (Task 3) | Đợt 2 (Độ bền) | Runtime Output Guardrail + Tool-output Compaction + Stall Detection (`is_stalling`) | `verification`, `context`, `termination` (Buổi 1, 3, 6, 7, 8–9) | Bước 8 | Chặn câu báo "đã giữ chỗ" láo và link `/chinh-sach/` bịa ngay tại runtime; nén `ToolMessage` cũ trong `chat.history`; dừng sớm với `stall` sau 4 lỗi tool liên tiếp | ☑ |
 | **Bước 11** (Task 4) | Đợt 2 (Độ bền) | Wall-clock Timeout & Token Budget mỗi lượt + Rate Limit theo phiên + Structured Trace Log | `termination`, `permission`, `logging` (Buổi 1, 3) | Bước 10 | Ngắt lượt khi quá 90s hoặc 40.000 token; trả HTTP 429 khi vượt 15 tin nhắn/phút; ghi log JSON cấu trúc không chứa PII sau mỗi lượt | ☑ |
 | **Bước 12** (Task 5) | Đợt 3 (Tiện ích) | Tra cứu phương án đổi chuyến (`reschedule_options`) & Huỷ giữ chỗ qua thẻ duyệt HITL (`propose_cancel`) | `tools`, `human approval`, `verification` (Buổi 1, 3, 8–9) | Bước 9 | Trả lời đúng chuyến thay thế và tiền bù từ `GET .../reschedule-options`; huỷ đơn `PENDING_PAYMENT` qua thẻ duyệt và đọc lại xác nhận `CANCELLED` | ☑ |
-| **Bước 13** (Task 6) | Đợt 3 (Tiện ích) | Lưu bền vững `Chats` xuống SQLite (`sqlite3`) + TTL cho Chat & Proposal | `state` (Buổi 1, 7, 8–9) | Bước 12 | Khởi động lại service vẫn đọc lại được cuộc trò chuyện và bấm duyệt được `Proposal` chưa quá hạn 15 phút; tự dọn chat quá hạn | ☐ |
+| **Bước 13** (Task 6) | Đợt 3 (Tiện ích) | Lưu bền vững `Chats` xuống SQLite (`sqlite3`) + TTL cho Chat & Proposal | `state` (Buổi 1, 7, 8–9) | Bước 12 | Khởi động lại service vẫn đọc lại được cuộc trò chuyện và bấm duyệt được `Proposal` chưa quá hạn 15 phút; tự dọn chat quá hạn | ☑ |
 
 ---
 

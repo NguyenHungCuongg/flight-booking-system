@@ -35,11 +35,11 @@ class Message(BaseModel):
 
 def create_app(model=None, backend_url: str | None = None, transport: httpx.BaseTransport | None = None,
                today: Callable[[], str] = vn_today, rate_limit: int = 15,
-               rate_window: float = 60.0) -> FastAPI:
+               rate_window: float = 60.0, db_path: str | None = None) -> FastAPI:
     load_dotenv()
     model = model or make_model()
     backend_url = backend_url or os.environ.get("BACKEND_URL", "http://localhost:8080")
-    chats = Chats()
+    chats = Chats(db_path or os.environ.get("AGENT_DB_PATH", ":memory:"))
     rate_buckets: dict[str, deque[float]] = {}
     rate_lock = threading.Lock()
     app = FastAPI(title="SkyLine agent")
@@ -96,9 +96,11 @@ def create_app(model=None, backend_url: str | None = None, transport: httpx.Base
             try:
                 with chat.lock:
                     chat.shown.append({"from": "user", "text": message.text})
+                    chats.save(chat)
                     out = turn(chat, model, message.text, back, day,
-                               on_step=lambda t: events.put({"type": "step", **t}))
+                               on_step=lambda t: events.put({"type": "step", **t}), store=chats)
                     chat.shown.append({"from": "agent", "turn": out})
+                    chats.save(chat)
                 events.put({"type": "turn", "turn": out})
             except Exception:
                 log.exception("Lượt chat hỏng")     # stream đóng không có "turn", trang báo lỗi
@@ -122,16 +124,18 @@ def create_app(model=None, backend_url: str | None = None, transport: httpx.Base
         with chat.lock:
             if chat.harness.proposal and chat.harness.proposal.id == proposal_id:
                 chat.harness.proposal = None
+                chats.save(chat)
 
     @app.post("/agent/chats/{chat_id}/proposals/{proposal_id}/approve")
     def approve_proposal(chat_id: str, proposal_id: str, request: Request):
         chat = chat_of(request, chat_id)
         with chat.lock:
             try:
-                out = approve(chat, model, proposal_id, backend(request), today())
+                out = approve(chat, model, proposal_id, backend(request), today(), store=chats)
             except LookupError:
                 raise HTTPException(404, "Thẻ này đã hết hiệu lực.")
             chat.shown.append({"from": "agent", "turn": out})
+            chats.save(chat)
             return out
 
     return app
