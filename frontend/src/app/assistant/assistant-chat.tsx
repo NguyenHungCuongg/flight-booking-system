@@ -90,6 +90,16 @@ function ConstraintsCard({
             ? `Tối đa ${vnd(card.maxPrice)}`
             : "Giá: không giới hạn"}
         </li>
+        {card.departAfter && (
+          <li className={chip}>{`Từ ${card.departAfter}`}</li>
+        )}
+        {card.cabin && card.cabin !== "ECONOMY" && (
+          <li className={chip}>{`Hạng ${card.cabin}`}</li>
+        )}
+        {card.airline && <li className={chip}>{`Hãng ${card.airline}`}</li>}
+        {card.nonstop && <li className={chip}>Bay thẳng</li>}
+        {card.refundable && <li className={chip}>Hoàn được</li>}
+        {card.changeable && <li className={chip}>Đổi được</li>}
       </ul>
     </div>
   );

@@ -13,14 +13,20 @@ export type Segment = {
 export type PassengerType = "ADULT" | "CHILD" | "INFANT";
 
 export type Card =
-  | {
+    | {
       type: "constraints";
       origin: string;
       destination: string;
       date: string;
       returnDate: string | null;
       departBefore: string | null;
+      departAfter?: string | null;
       maxPrice: number | null;
+      cabin?: string;
+      airline?: string | null;
+      nonstop?: boolean;
+      refundable?: boolean;
+      changeable?: boolean;
       adults: number;
       children: number;
       infants: number;

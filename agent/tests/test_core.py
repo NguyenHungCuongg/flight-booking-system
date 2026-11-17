@@ -75,3 +75,15 @@ def test_passenger_type_uses_whole_years_on_the_flight_day():
     assert passenger_type(Date(2014, 10, 31), day) == "CHILD"
     assert passenger_type(Date(2024, 10, 30), day) == "CHILD"      # tròn 2 đúng hôm bay
     assert passenger_type(Date(2024, 10, 31), day) == "INFANT"
+
+
+def test_broken_checks_airline_nonstop_depart_after_and_fare_flags():
+    c = Constraints("SGN", "DAD", "2026-10-30", depart_after="08:00", airline="VN",
+                    nonstop=True, refundable=True, changeable=True)
+    assert c.broken("SGN", "DAD", "2026-10-30T08:10:00+07:00", 1_850_000,
+                    airline="VN", stops=0, refundable=True, changeable=True) == []
+    assert c.broken("SGN", "DAD", "2026-10-30T07:30:00+07:00", 1_850_000,
+                    airline="VJ", stops=1, refundable=False, changeable=False) == [
+        "depart_after", "airline", "nonstop", "refundable", "changeable"
+    ]
+

@@ -563,3 +563,36 @@ def test_search_shows_the_fare_conditions_of_each_journey():
     h.execute("set_constraints", ROUTE)
     r = h.execute("search_flights", {})
     assert r["matching"][0]["conditions"] == "xách tay 7 kg, không có ký gửi, không hoàn vé, đổi vé phí 300.000 đ mỗi khách"
+
+
+def test_set_constraints_merges_partial_updates_and_clears_with_none_keyword():
+    h, _ = ready()
+    assert h.execute("set_constraints", {"airline": "VN"})["status"] == "invalid_param"
+    h.execute("set_constraints", {**ROUTE, "adults": 2})
+    r = h.execute("set_constraints", {"airline": "vn", "nonstop": True, "depart_after": "7:30", "max_price": "NONE"})
+    assert r["status"] == "ok"
+    assert (h.constraints.origin, h.constraints.destination, h.constraints.date) == ("SGN", "DAD", "2026-10-30")
+    assert h.constraints.depart_before == "12:00" and h.constraints.depart_after == "07:30"
+    assert h.constraints.max_price is None and h.constraints.adults == 2
+    assert h.constraints.airline == "VN" and h.constraints.nonstop is True
+
+
+def test_search_and_hold_support_refundable_fare_family_and_cabin():
+    h, _ = ready()
+    h.execute("set_constraints", {"origin": "SGN", "destination": "DAD", "date": "2026-10-30",
+                                  "refundable": True, "max_price": 2_500_000})
+    r = h.execute("search_flights", {})
+    assert r["status"] == "ok" and r["matching"][0]["flights"] == "VN122"
+    assert r["matching"][0]["fare"] == "Economy Classic" and r["matching"][0]["fare_family_id"] == 2
+    hold = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=2, passengers=[PAX]))
+    assert hold["status"] == "pending_approval" and h.proposal.total == 2_150_000
+
+
+def test_filtering_happens_before_matching_top_five_cutoff():
+    from tests.fakes import FLIGHTS, itinerary
+    cheap_vj = [itinerary(700 + i, f"VJ70{i}", f"0{i + 1}:00", 900_000 + i * 10_000) for i in range(6)]
+    h, _ = ready(FakeBackend(flights=cheap_vj + FLIGHTS))
+    h.execute("set_constraints", {**ROUTE, "airline": "VN"})
+    r = h.execute("search_flights", {})
+    assert [m["flights"] for m in r["matching"]] == ["VN122"]
+

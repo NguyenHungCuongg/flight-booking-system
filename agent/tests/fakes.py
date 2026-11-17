@@ -42,7 +42,7 @@ CITY = {"SGN": "TP. Hồ Chí Minh", "DAD": "Đà Nẵng"}
 
 
 def itinerary(flight_id: int, number: str, time: str, price: int, fare_id: int = 1, origin: str = "SGN",
-              destination: str = "DAD", day: str = "2026-10-30") -> dict:
+              destination: str = "DAD", day: str = "2026-10-30", extra_fares: list[dict] = ()) -> dict:
     """Một hành trình bay thẳng, đúng dạng Itinerary của GET /api/flights/search."""
     depart = datetime.fromisoformat(f"{day}T{time}:00+07:00")
     point = lambda airport, city, at: {"airport": airport, "city": city, "time": at.isoformat(),
@@ -56,11 +56,17 @@ def itinerary(flight_id: int, number: str, time: str, price: int, fare_id: int =
                       "durationMinutes": 80, "aircraftModel": "A321", "layoverMinutesAfter": None}],
         "fareOptions": [{"fareFamilyId": fare_id, "name": "Phổ thông", "cabinClass": "ECONOMY", "carryOnKg": 7,
                          "checkedBaggageKg": 0, "refundable": False, "refundFee": 0, "changeable": True,
-                         "changeFee": 300_000, "adultPrice": price, "totalPrice": price, "seatsLeft": 9}],
+                         "changeFee": 300_000, "adultPrice": price, "totalPrice": price, "seatsLeft": 9},
+                        *extra_fares],
     }
 
 
-FLIGHTS = [itinerary(610, "VJ610", "14:20", 1_150_000), itinerary(122, "VN122", "08:10", 1_850_000),
+CLASSIC_FARE = {"fareFamilyId": 2, "name": "Economy Classic", "cabinClass": "ECONOMY", "carryOnKg": 10,
+                "checkedBaggageKg": 23, "refundable": True, "refundFee": 600_000, "changeable": True,
+                "changeFee": 300_000, "adultPrice": 2_150_000, "totalPrice": 2_150_000, "seatsLeft": 9}
+
+FLIGHTS = [itinerary(610, "VJ610", "14:20", 1_150_000),
+           itinerary(122, "VN122", "08:10", 1_850_000, extra_fares=[CLASSIC_FARE]),
            itinerary(104, "QH104", "06:00", 1_920_000), itinerary(604, "VJ604", "08:30", 2_480_000)]
 BACK = dict(origin="DAD", destination="SGN", day="2026-11-02")
 RETURNS = [itinerary(611, "VJ611", "20:00", 1_050_000, **BACK), itinerary(123, "VN123", "17:00", 1_750_000, **BACK),
