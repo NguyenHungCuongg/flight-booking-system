@@ -26,7 +26,9 @@ function proposalIds(entries: Entry[]) {
   return entries.flatMap((e) =>
     e.from === "agent"
       ? e.turn.cards.flatMap((c) =>
-          c.type === "proposal" ? [c.proposalId] : [],
+          c.type === "proposal" || c.type === "cancel_proposal"
+            ? [c.proposalId]
+            : [],
         )
       : [],
   );
@@ -231,6 +233,48 @@ function CardView(props: {
           </Link>
         </div>
       );
+    case "cancel_proposal":
+      return (
+        <div className="grid gap-12 card-hi p-16">
+          <p className="text-caption font-semibold text-muted">
+            Duyệt huỷ giữ chỗ
+          </p>
+          <p className="font-semibold">{`Đặt chỗ ${card.code} (${vnd(card.totalAmount)})`}</p>
+          {card.routes.length > 0 && (
+            <ul className="grid gap-4 text-caption">
+              {card.routes.map((r, i) => (
+                <li key={i}>{r}</li>
+              ))}
+            </ul>
+          )}
+          {props.open && (
+            <div className="flex flex-wrap gap-8">
+              <button
+                type="button"
+                className={pillPrimary}
+                disabled={props.busy}
+                onClick={props.onHold}
+              >
+                Huỷ giữ chỗ
+              </button>
+              <button
+                type="button"
+                className={pillLine}
+                disabled={props.busy}
+                onClick={props.onEdit}
+              >
+                Đóng
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    case "cancelled":
+      return (
+        <div className="grid gap-12 card p-16">
+          <p className="font-semibold">{`Đã huỷ giữ chỗ ${card.code}.`}</p>
+        </div>
+      );
     case "handoff":
       return (
         <div className="grid gap-8 card p-16">
@@ -428,7 +472,10 @@ export default function AssistantChat() {
                 {/* Thẻ "Đã giữ chỗ" và thẻ bàn giao đã nói đúng câu trả lời, không lặp lại. */}
                 {entry.turn.reply &&
                   !entry.turn.cards.some(
-                    (c) => c.type === "held" || c.type === "handoff",
+                    (c) =>
+                      c.type === "held" ||
+                      c.type === "cancelled" ||
+                      c.type === "handoff",
                   ) && (
                     <p className="whitespace-pre-line">
                       {replyParts(entry.turn.reply).map((part, k) =>
@@ -450,16 +497,21 @@ export default function AssistantChat() {
                     key={j}
                     card={card}
                     open={
-                      card.type === "proposal" &&
+                      (card.type === "proposal" ||
+                        card.type === "cancel_proposal") &&
                       card.proposalId === latest &&
                       !closed.has(card.proposalId)
                     }
                     busy={busy}
                     onHold={() =>
-                      card.type === "proposal" && hold(card.proposalId)
+                      (card.type === "proposal" ||
+                        card.type === "cancel_proposal") &&
+                      hold(card.proposalId)
                     }
                     onEdit={() =>
-                      card.type === "proposal" && edit(card.proposalId)
+                      (card.type === "proposal" ||
+                        card.type === "cancel_proposal") &&
+                      edit(card.proposalId)
                     }
                   />
                 ))}

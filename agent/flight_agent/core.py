@@ -229,9 +229,10 @@ class PassengerArg(TypedDict):
 @dataclass
 class Proposal:
     id: str
-    body: dict      # BookingRequest dạng JSON, gửi nguyên khi khách duyệt
-    total: int      # totalAmount của báo giá
+    body: dict      # BookingRequest dạng JSON, gửi nguyên khi khách duyệt (hoặc {"code": code} khi huỷ)
+    total: int      # totalAmount của báo giá / đặt chỗ
     card: dict
+    action: str = "hold"    # "hold" hoặc "cancel"
 
 
 @dataclass
@@ -272,7 +273,8 @@ class Harness:
     @property
     def tools(self) -> list:
         return [self.set_constraints, self.search_flights, self.list_recent_passengers, self.propose_hold,
-                self.list_my_bookings, self.get_booking, self.refund_quote, self.read_policy, self.airline_rules]
+                self.list_my_bookings, self.get_booking, self.refund_quote, self.reschedule_options,
+                self.propose_cancel, self.read_policy, self.airline_rules]
 
     # ---- các tool của model
     def set_constraints(self, origin: str | None = None, destination: str | None = None, date: str | None = None,
@@ -592,6 +594,51 @@ class Harness:
         q = self.backend.get(f"/api/bookings/{code}/journeys/{direction}/refund-quote")
         return {"status": "ok", "journey_value": _money(q["journeyValue"]), "fee": _money(q["fee"]),
                 "refund_amount": _money(q["refundAmount"]), "page": f"/bookings/{code}/refund/{direction.lower()}"}
+
+    def reschedule_options(self, code: str, direction: str, date: str) -> dict:
+        """Các chuyến thay thế và số tiền phải trả thêm (amount_due, đã gồm phí đổi và chênh lệch giá vé) khi đổi một
+        chiều của booking sang ngày mới YYYY-MM-DD. direction: OUTBOUND hoặc RETURN. Trợ lý không tự đổi chuyến: khách
+        tự làm ở page."""
+        if (code := _booking_code(code)) is None:
+            return BAD_CODE
+        direction = str(direction).strip().upper()
+        if direction not in ("OUTBOUND", "RETURN"):
+            return {"status": "invalid_param", "hint": "direction phải là OUTBOUND (chiều đi) hoặc RETURN (chiều về)."}
+        if (day := _day(date)) is None or day.isoformat() < self.today:
+            return {"status": "invalid_param", "hint": f"date phải là ngày YYYY-MM-DD từ hôm nay ({self.today})."}
+        data = self.backend.get(f"/api/bookings/{code}/journeys/{direction}/reschedule-options", {"date": date})
+        options = []
+        for o in (data.get("options") or [])[:MATCHING]:
+            segs = o["itinerary"]["segments"]
+            q = o["quote"]
+            options.append({
+                "flights": "+".join(s["flightNumber"] for s in segs),
+                "depart": _when(segs[0]["departure"]["time"]),
+                "arrive": _when(segs[-1]["arrival"]["time"]),
+                "change_fee": _money(q["changeFeeTotal"]),
+                "amount_due": _money(q["amountDue"]),
+            })
+        return {"status": "ok", "options": options, "page": f"/bookings/{code}/reschedule/{direction.lower()}"}
+
+    def propose_cancel(self, code: str) -> dict:
+        """Tạo thẻ duyệt để khách xác nhận huỷ một đặt chỗ đang chờ thanh toán (PENDING_PAYMENT). Chỉ trả
+        pending_approval: khách tự bấm Huỷ giữ chỗ trên thẻ."""
+        if (code := _booking_code(code)) is None:
+            return BAD_CODE
+        b = self.backend.get(f"/api/bookings/{code}")
+        if b["status"] != "PENDING_PAYMENT":
+            state = STATES.get(b["status"], b["status"])
+            return {"status": "denied",
+                    "hint": f"Chỉ huỷ được đặt chỗ đang chờ thanh toán (trạng thái hiện tại: {state})."}
+        pid = uuid4().hex
+        routes = [f"{j['segments'][0]['departureAirport']} → {j['segments'][-1]['arrivalAirport']} "
+                  f"{_when(j['segments'][0]['departureTime'])}"
+                  for j in (b.get("journeys") or []) if j.get("segments")]
+        card = {"type": "cancel_proposal", "proposalId": pid, "code": code, "routes": routes,
+                "totalAmount": b["totalAmount"]}
+        self.proposal = Proposal(pid, {"code": code}, b["totalAmount"], card, action="cancel")
+        self.cards.append(card)
+        return {"status": "pending_approval", "code": code}
 
     # ---- chính sách: chỉ GET, không cần ràng buộc chuyến bay
     def read_policy(self, sections: list[str]) -> dict:

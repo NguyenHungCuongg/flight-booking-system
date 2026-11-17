@@ -105,12 +105,33 @@ def turn(chat: Chat, model, text: str, backend: Backend, today: str, on_step=Non
 
 def approve(chat: Chat, model, proposal_id: str, backend: Backend, today: str) -> dict:
     with chat.lock:
+        t0 = time.monotonic()
         h = chat.harness
         h.begin_turn(backend, today)
         proposal = h.proposal
         if proposal is None or proposal.id != proposal_id:
             raise LookupError(proposal_id)
         h.proposal = None           # trước khi gọi backend: mỗi đề xuất chỉ duyệt được một lần
+        if proposal.action == "cancel":
+            code = proposal.body["code"]
+            try:
+                backend.post(f"/api/bookings/{code}/cancel")
+                detail = backend.get(f"/api/bookings/{code}")
+                done = detail.get("status") == "CANCELLED"
+            except BackendError as e:
+                if e.status in (401, 403):
+                    h.backend_error(e)
+                    return _handoff(chat)
+                done = False
+            if not done:
+                h.held_code = code
+                h.stop("hold_mismatch")
+                return _handoff(chat)
+            reply = f"Đã huỷ giữ chỗ {code}."
+            chat.history = [*chat.history, AIMessage(reply)]
+            h.cards.append({"type": "cancelled", "code": code})
+            log_turn(chat.id, "approve_cancel", h, int((time.monotonic() - t0) * 1000))
+            return _result(chat, reply)
         try:
             created = backend.post("/api/bookings", proposal.body)
         except BackendError as e:
@@ -133,4 +154,5 @@ def approve(chat: Chat, model, proposal_id: str, backend: Backend, today: str) -
         reply = f"Đã giữ chỗ {code}, hết hạn lúc {expires[11:16]} ngày {expires[8:10]}/{expires[5:7]}/{expires[:4]}."
         chat.history = [*chat.history, AIMessage(reply)]
         h.cards.append({"type": "held", "code": code, "holdExpiresAt": expires, "totalAmount": detail["totalAmount"]})
+        log_turn(chat.id, "approve", h, int((time.monotonic() - t0) * 1000))
         return _result(chat, reply)

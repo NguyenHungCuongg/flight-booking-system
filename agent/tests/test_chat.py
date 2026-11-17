@@ -297,3 +297,18 @@ def test_structured_trace_log_omits_pii_arguments():
     assert "Nguyễn Hùng Cường" not in str(entry) and "2004-03-12" not in str(entry)
 
 
+def test_approving_cancel_proposal_cancels_and_verifies_status():
+    from tests.fakes import booking
+    held = booking("K7M2QX", "PENDING_PAYMENT", hold_expires="2026-10-26T15:40:00+07:00")
+    fake = FakeBackend(bookings=[held])
+    chat = Chats().create("s1")
+    out = turn(chat, scripted(call("propose_cancel", code="K7M2QX"),
+                              AIMessage(content="Bấm Huỷ giữ chỗ để xác nhận nhé.")),
+               "Huỷ đơn K7M2QX", fake.backend(), TODAY)
+    pid = out["cards"][-1]["proposalId"]
+    res = approve(chat, scripted(), pid, fake.backend(), TODAY)
+    assert res["cards"] == [{"type": "cancelled", "code": "K7M2QX"}]
+    assert fake.bookings["K7M2QX"]["status"] == "CANCELLED"
+
+
+

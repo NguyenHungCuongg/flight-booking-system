@@ -58,6 +58,14 @@ export type Card =
       totalAmount: number;
     }
   | { type: "held"; code: string; holdExpiresAt: string; totalAmount: number }
+  | {
+      type: "cancel_proposal";
+      proposalId: string;
+      code: string;
+      routes: string[];
+      totalAmount: number;
+    }
+  | { type: "cancelled"; code: string }
   | { type: "handoff"; doneSoFar: string[]; tried: string[]; question: string };
 
 export type Turn = {

@@ -640,5 +640,27 @@ def test_turn_stops_on_wall_clock_timeout_or_token_budget():
     assert h2.stop_reason == "budget"
 
 
+def test_reschedule_options_formats_flights_and_amount_due():
+    from tests.fakes import FLIGHTS
+    h, _ = ready(FakeBackend(**LOOKUP, reschedules={
+        ("ABC234", "OUTBOUND", "2026-10-31"): [
+            {"itinerary": FLIGHTS[1], "quote": {"oldFareTotal": 1_850_000, "newFareTotal": 2_000_000,
+                                                "changeFeeTotal": 300_000, "amountDue": 450_000}}
+        ]
+    }))
+    r = h.execute("reschedule_options", {"code": "ABC234", "direction": "OUTBOUND", "date": "2026-10-31"})
+    assert r["status"] == "ok" and r["options"][0]["amount_due"] == "450.000 đ"
+    assert r["page"] == "/bookings/ABC234/reschedule/outbound"
+
+
+def test_propose_cancel_only_allows_pending_payment_bookings():
+    h, _ = ready(FakeBackend(**LOOKUP))
+    assert h.execute("propose_cancel", {"code": "ABC234"})["status"] == "denied"
+    r = h.execute("propose_cancel", {"code": "K7M2QX"})
+    assert r["status"] == "pending_approval" and h.proposal.action == "cancel"
+    assert h.cards[-1]["type"] == "cancel_proposal"
+
+
+
 
 

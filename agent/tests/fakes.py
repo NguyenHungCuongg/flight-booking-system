@@ -155,14 +155,15 @@ def problem(status, code, errors=(), detail=None):
 
 class FakeBackend:
     def __init__(self, flights=FLIGHTS, returns=RETURNS, me_status=200, quote_error=None, hold_error=None, detail_patch=None,
-                 hold_delay=0.0, search_delay=0.0, past=(), bookings=(), refunds=None, passengers_patch=None,
-                 journeys_patch=None, settings_status=200):
+                 hold_delay=0.0, search_delay=0.0, past=(), bookings=(), refunds=None, reschedules=None,
+                 passengers_patch=None, journeys_patch=None, settings_status=200):
         self.flights, self.me_status, self.quote_error, self.hold_error = flights, me_status, quote_error, hold_error
         self.returns = returns
         self.detail_patch, self.hold_delay, self.search_delay = detail_patch or {}, hold_delay, search_delay
         self.past = dict(past)      # mã booking cũ -> hành khách, mới nhất trước
-        self.bookings = {b["code"]: b for b in bookings}    # BookingDetail đầy đủ, mới nhất trước
+        self.bookings = {b["code"]: dict(b) for b in bookings}    # BookingDetail đầy đủ, mới nhất trước
         self.refunds = refunds or {}    # (mã, chiều) -> RefundQuote, hoặc (status, code) lỗi
+        self.reschedules = reschedules or {}    # (mã, chiều, ngày) -> list[RescheduleOption] | (status, code)
         self.passengers_patch = passengers_patch    # hành khách đã gửi -> hành khách của booking đọc lại
         self.journeys_patch = journeys_patch        # các chiều của booking đọc lại -> các chiều mới
         self.settings_status = settings_status
@@ -265,6 +266,20 @@ class FakeBackend:
             if isinstance(quote, tuple):
                 return problem(*quote)
             return httpx.Response(200, json=quote) if quote else problem(404, "NOT_FOUND")
+        if request.method == "GET" and request.url.path.endswith("/reschedule-options"):
+            _, _, _, code, _, direction, _ = request.url.path.split("/")
+            opts = self.reschedules.get((code, direction, request.url.params.get("date")))
+            if isinstance(opts, tuple):
+                return problem(*opts)
+            return httpx.Response(200, json={"options": opts}) if opts is not None else problem(404, "NOT_FOUND")
+        if request.method == "POST" and request.url.path.endswith("/cancel") and request.url.path.startswith("/api/bookings/"):
+            code = request.url.path.split("/")[3]
+            if code not in self.bookings:
+                return problem(404, "NOT_FOUND")
+            if self.bookings[code]["status"] != "PENDING_PAYMENT":
+                return problem(409, "INVALID_STATE")
+            self.bookings[code] = {**self.bookings[code], "status": "CANCELLED"}
+            return httpx.Response(204)
         if request.method == "GET" and (code := request.url.path.removeprefix("/api/bookings/")) in self.past:
             return httpx.Response(200, json={"code": code, "status": "ISSUED", "passengers": self.past[code]})
         return problem(404, "NOT_FOUND")
