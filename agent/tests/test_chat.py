@@ -326,9 +326,10 @@ def test_failed_cancel_approval_reports_cancel_failure_not_created_booking():
 
 
 def test_in_memory_chat_cache_respects_ttl_and_max_chats():
+    from flight_agent.chat import CHAT_TTL_SECONDS
     store = Chats()
     chat = store.create("s1")
-    chat.updated_at -= 90_000.0
+    chat.updated_at -= CHAT_TTL_SECONDS + 60.0
     assert store.get(chat.id, "s1") is None
 
 
@@ -394,6 +395,65 @@ def test_expired_proposal_cannot_be_approved():
     chat.harness.proposal.created_at -= 1000.0
     with pytest.raises(LookupError):
         approve(chat, model, out["cards"][-1]["proposalId"], fake.backend(), TODAY)
+
+
+def test_make_title_collapses_whitespace_and_truncates():
+    from flight_agent.chat import make_title
+    assert make_title("  Tìm   vé\nHAN   đi SGN  ") == "Tìm vé HAN đi SGN"
+    long_text = "Đặt vé " + "rất dài " * 20
+    title = make_title(long_text)
+    assert len(title) <= 60 and title.endswith("…") and not title.endswith(" …")
+    assert len(make_title("a" * 80)) == 60
+
+
+def test_list_for_orders_newest_first_skips_empty_and_isolates_owners(tmp_path):
+    store = Chats(tmp_path / "chats.sqlite3")
+    empty = store.create("user:3")
+    c1 = store.create("user:3")
+    c1.shown.append({"from": "user", "text": "Vé HAN đi SGN ngày mai"})
+    store.save(c1)
+    c1.updated_at -= 100
+    store._conn.execute("UPDATE chats SET updated_at = ? WHERE id = ?", (c1.updated_at, c1.id))
+    store._conn.commit()
+    c2 = store.create("user:3")
+    c2.shown.append({"from": "user", "text": "Hoàn vé mất bao nhiêu phí?"})
+    store.save(c2)
+    other = store.create("user:4")
+    other.shown.append({"from": "user", "text": "Chat của người khác"})
+    store.save(other)
+
+    listed = store.list_for("user:3")
+    assert [x["chatId"] for x in listed] == [c2.id, c1.id]
+    assert listed[0]["title"] == "Hoàn vé mất bao nhiêu phí?"
+    assert listed[0]["updatedAt"].endswith("+07:00")
+    assert empty.id not in [x["chatId"] for x in listed]
+
+
+def test_delete_removes_chat_for_owner_only_and_blocks_save_resurrection(tmp_path):
+    store = Chats(tmp_path / "chats.sqlite3")
+    c = store.create("user:3")
+    c.shown.append({"from": "user", "text": "Xin chào"})
+    store.save(c)
+    assert store.delete(c.id, "user:4") is False
+    assert store.delete(c.id, "user:3") is True
+    assert store.delete(c.id, "user:3") is False
+    store.save(c)  # mô phỏng luồng nền gọi save() sau khi chat đã bị xoá
+    assert store.get(c.id, "user:3") is None
+    assert store.list_for("user:3") == []
+
+
+def test_sqlite_migrates_legacy_session_table_cleanly(tmp_path):
+    import sqlite3
+    db = tmp_path / "legacy.sqlite3"
+    with sqlite3.connect(db) as conn:
+        conn.execute("CREATE TABLE chats (id TEXT PRIMARY KEY, session TEXT NOT NULL, updated_at REAL NOT NULL, payload TEXT NOT NULL)")
+        conn.execute("INSERT INTO chats VALUES ('old', 's1', 9999999999.0, '{}')")
+    store = Chats(db)
+    assert store.get("old", "user:3") is None
+    c = store.create("user:3")
+    c.shown.append({"from": "user", "text": "Sau migration"})
+    store.save(c)
+    assert store.list_for("user:3")[0]["chatId"] == c.id
 
 
 

@@ -8,6 +8,7 @@ import sqlite3
 import threading
 import time
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
 
@@ -19,8 +20,11 @@ from flight_agent.backend import Backend, BackendError
 from flight_agent.core import Constraints, Harness, Proposal, StopRun
 from flight_agent.react import run_turn
 
-CHAT_TTL_SECONDS = 86_400.0     # giữ chat tối đa 24 giờ
-MAX_CHATS = 500                 # giới hạn số chat lưu trữ
+VN = timezone(timedelta(hours=7))   # giờ Việt Nam, thống nhất với app.py
+CHAT_TTL_SECONDS = 7 * 86_400.0     # giữ lịch sử chat tối đa 7 ngày
+MAX_CHATS = 500                     # giới hạn tổng số chat lưu trữ
+LIST_CHATS_LIMIT = 20               # số cuộc trò chuyện gần nhất trả về cho mỗi khách
+TITLE_MAX = 60                      # độ dài tối đa của tiêu đề chat
 
 # Lỗi tạm thời của API LLM không phải lỗi của agent. Key hay tên model sai (401/404) vẫn làm crash.
 INFRA_ERRORS = (openai.RateLimitError, openai.APITimeoutError, openai.APIConnectionError,
@@ -29,15 +33,23 @@ INFRA_ERRORS = (openai.RateLimitError, openai.APITimeoutError, openai.APIConnect
                 ModelRateLimitError, ModelTimeoutError, ModelConnectionError, ModelAPIError)
 
 
+def make_title(text: str) -> str:
+    """Rút gọn tin nhắn đầu tiên thành tiêu đề một dòng, tối đa TITLE_MAX ký tự."""
+    clean = " ".join(str(text).split())
+    return clean if len(clean) <= TITLE_MAX else clean[:TITLE_MAX - 1].rstrip() + "…"
+
+
 @dataclass
 class Chat:
     id: str
-    session: str                # JSESSIONID lúc tạo chat
+    owner: str                  # định danh chủ sở hữu (VD "user:3")
+    title: str = ""
     harness: Harness = field(default_factory=Harness)
     history: list = field(default_factory=list)
     # Các lượt trang đã hiển thị (tin của khách, kết quả mỗi lượt) để dựng lại khung chat khi F5.
     shown: list = field(default_factory=list)
     updated_at: float = field(default_factory=time.time)
+    deleted: bool = False
     lock: threading.RLock = field(default_factory=threading.RLock)
 
 
@@ -47,19 +59,33 @@ class Chats:
         self._db_lock = threading.RLock()
         self._conn = sqlite3.connect(str(db_path), check_same_thread=False)
         with self._db_lock, self._conn:
+            cols = {r[1] for r in self._conn.execute("PRAGMA table_info(chats)").fetchall()}
+            # Bảng v2 cũ gắn chat theo cột `session` (JSESSIONID tạm): không thể quy về user_id an toàn nên tạo lại sạch.
+            if cols and "owner" not in cols:
+                self._conn.execute("DROP TABLE chats")
             self._conn.execute(
                 "CREATE TABLE IF NOT EXISTS chats ("
-                "id TEXT PRIMARY KEY, session TEXT NOT NULL, updated_at REAL NOT NULL, payload TEXT NOT NULL)"
+                "id TEXT PRIMARY KEY, owner TEXT NOT NULL, title TEXT NOT NULL DEFAULT '', "
+                "updated_at REAL NOT NULL, payload TEXT NOT NULL)"
+            )
+            self._conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_chats_owner_updated ON chats(owner, updated_at DESC)"
             )
 
-    def create(self, session: str) -> Chat:
-        chat = Chat(uuid4().hex, session)
+    def create(self, owner: str) -> Chat:
+        chat = Chat(uuid4().hex, owner)
         with self._db_lock:
             self._chats[chat.id] = chat
             self.save(chat)
         return chat
 
     def save(self, chat: Chat) -> None:
+        if chat.deleted:
+            return
+        if not chat.title:
+            first = next((e.get("text", "") for e in chat.shown if e.get("from") == "user"), "")
+            if first:
+                chat.title = make_title(first)
         h = chat.harness
         if h.proposal and h.proposal.is_expired():
             h.proposal = None
@@ -74,6 +100,8 @@ class Chats:
         now = time.time()
         chat.updated_at = now
         with self._db_lock, self._conn:
+            if chat.deleted:
+                return
             for cid in [k for k, c in self._chats.items() if now - c.updated_at > CHAT_TTL_SECONDS]:
                 self._chats.pop(cid, None)
             if len(self._chats) > MAX_CHATS:
@@ -82,45 +110,82 @@ class Chats:
                     self._chats.pop(c.id, None)
             self._conn.execute("DELETE FROM chats WHERE updated_at < ?", (now - CHAT_TTL_SECONDS,))
             self._conn.execute(
-                "INSERT OR REPLACE INTO chats(id, session, updated_at, payload) VALUES (?, ?, ?, ?)",
-                (chat.id, chat.session, now, payload),
+                "INSERT OR REPLACE INTO chats(id, owner, title, updated_at, payload) VALUES (?, ?, ?, ?, ?)",
+                (chat.id, chat.owner, chat.title, now, payload),
             )
             self._conn.execute(
                 "DELETE FROM chats WHERE id NOT IN (SELECT id FROM chats ORDER BY updated_at DESC LIMIT ?)",
                 (MAX_CHATS,),
             )
 
-    def get(self, chat_id: str, session: str) -> Chat | None:
+    def get(self, chat_id: str, owner: str) -> Chat | None:
         now = time.time()
         with self._db_lock:
             chat = self._chats.get(chat_id)
-            if chat is not None and now - chat.updated_at > CHAT_TTL_SECONDS:
+            if chat is not None and (chat.deleted or now - chat.updated_at > CHAT_TTL_SECONDS):
                 self._chats.pop(chat_id, None)
                 with self._conn:
                     self._conn.execute("DELETE FROM chats WHERE id = ?", (chat_id,))
                 return None
             if chat is None:
                 row = self._conn.execute(
-                    "SELECT session, updated_at, payload FROM chats WHERE id = ?", (chat_id,)
+                    "SELECT owner, title, updated_at, payload FROM chats WHERE id = ?", (chat_id,)
                 ).fetchone()
-                if not row or row[0] != session or row[1] < now - CHAT_TTL_SECONDS:
+                if not row or row[0] != owner or row[2] < now - CHAT_TTL_SECONDS:
                     return None
-                data = json.loads(row[2])
+                data = json.loads(row[3])
                 h = Harness(
                     constraints=Constraints(**data["constraints"]) if data.get("constraints") else None,
                     found=data.get("found") or [],
                     proposal=Proposal(**data["proposal"]) if data.get("proposal") else None,
                     known_names={k: (v[0], v[1]) for k, v in (data.get("known_names") or {}).items()},
                 )
-                chat = Chat(chat_id, session, harness=h,
+                chat = Chat(chat_id, owner, title=row[1], harness=h,
                             history=list(messages_from_dict(data.get("history") or [])),
-                            shown=data.get("shown") or [], updated_at=row[1])
+                            shown=data.get("shown") or [], updated_at=row[2])
                 self._chats[chat_id] = chat
-            if chat.session != session:
+            if chat.owner != owner:
                 return None
             if chat.harness.proposal and chat.harness.proposal.is_expired(now):
                 chat.harness.proposal = None
             return chat
+
+    def list_for(self, owner: str, limit: int = LIST_CHATS_LIMIT) -> list[dict]:
+        """Các cuộc trò chuyện gần nhất có ít nhất một tin nhắn của chủ sở hữu."""
+        cutoff = time.time() - CHAT_TTL_SECONDS
+        with self._db_lock:
+            rows = self._conn.execute(
+                "SELECT id, title, updated_at FROM chats "
+                "WHERE owner = ? AND title != '' AND updated_at >= ? "
+                "ORDER BY updated_at DESC LIMIT ?",
+                (owner, cutoff, limit),
+            ).fetchall()
+        return [
+            {
+                "chatId": cid,
+                "title": title,
+                "updatedAt": datetime.fromtimestamp(updated_at, VN).isoformat(timespec="seconds"),
+            }
+            for cid, title, updated_at in rows
+        ]
+
+    def delete(self, chat_id: str, owner: str) -> bool:
+        """Xoá cuộc trò chuyện thuộc chủ sở hữu; đánh dấu deleted để luồng nền không ghi hồi sinh."""
+        with self._db_lock:
+            chat = self._chats.get(chat_id)
+        if chat is not None:
+            if chat.owner != owner:
+                return False
+            with chat.lock, self._db_lock, self._conn:
+                if chat.deleted:
+                    return False
+                chat.deleted = True
+                self._chats.pop(chat_id, None)
+                self._conn.execute("DELETE FROM chats WHERE id = ? AND owner = ?", (chat_id, owner))
+                return True
+        with self._db_lock, self._conn:
+            cur = self._conn.execute("DELETE FROM chats WHERE id = ? AND owner = ?", (chat_id, owner))
+            return cur.rowcount > 0
 
 
 trace_log = logging.getLogger("flight_agent.trace")
