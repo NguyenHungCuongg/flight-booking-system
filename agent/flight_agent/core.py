@@ -440,15 +440,20 @@ class Harness:
         khách muốn đặt cho mình hoặc cho người đã đặt trước đây; đọc tên ra và hỏi khách xác nhận trước khi
         propose_hold. Danh sách rỗng thì hỏi khách thông tin hành khách."""
         page = self.backend.get("/api/bookings", {"size": RECENT_BOOKINGS})
-        passengers = []
+        passengers, sourced = [], []
         for summary in page["content"]:
-            for p in self.backend.get(f"/api/bookings/{summary['code']}")["passengers"]:
+            code = summary["code"]
+            for p in self.backend.get(f"/api/bookings/{code}")["passengers"]:
                 # Không trả số giấy tờ: model chỉ cần đủ tham số cho propose_hold.
-                item = {"full_name": f"{p['lastName']} {p['firstName']}", "gender": p["gender"],
-                        "date_of_birth": p["dateOfBirth"]}
+                full_name = f"{p['lastName']} {p['firstName']}"
+                item = {"full_name": full_name, "gender": p["gender"], "date_of_birth": p["dateOfBirth"]}
                 if item not in passengers:
                     passengers.append(item)
-                    self.known_names[item["full_name"]] = (p["lastName"], p["firstName"])
+                    self.known_names[full_name] = (p["lastName"], p["firstName"])
+                    sourced.append({"fullName": full_name, "gender": p["gender"],
+                                    "dateOfBirth": p["dateOfBirth"], "bookingCode": code})
+        if sourced:
+            self.cards.append({"type": "memory_used", "source": "recent_bookings", "passengers": sourced})
         return {"status": "ok", "passengers": passengers}
 
     def propose_hold(self, flight_ids: list[int], fare_family_id: int, passengers: list[PassengerArg],

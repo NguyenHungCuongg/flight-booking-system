@@ -672,6 +672,30 @@ def test_propose_cancel_only_allows_pending_payment_bookings():
     assert h.cards[-1]["type"] == "cancel_proposal"
 
 
+def test_recent_passengers_emits_memory_used_card_with_source_booking_code():
+    h, _ = ready(FakeBackend(past=PAST))
+    r = h.execute("list_recent_passengers", {})
+    assert r["status"] == "ok" and len(r["passengers"]) == 4
+    card = h.cards[-1]
+    assert card == {
+        "type": "memory_used",
+        "source": "recent_bookings",
+        "passengers": [
+            {"fullName": "NGUYEN HUNG CUONG", "gender": "MALE", "dateOfBirth": "2004-03-12", "bookingCode": "AAA111"},
+            {"fullName": "TRAN THI MAI", "gender": "FEMALE", "dateOfBirth": "2005-01-02", "bookingCode": "AAA111"},
+            {"fullName": "NGUYEN BE NA", "gender": "MALE", "dateOfBirth": "2020-05-05", "bookingCode": "BBB222"},
+            {"fullName": "LE VAN AN", "gender": "MALE", "dateOfBirth": "1990-09-09", "bookingCode": "CCC333"},
+        ],
+    }
+    assert "B1234567" not in json.dumps(card)
+
+
+def test_empty_recent_passengers_does_not_emit_memory_used_card():
+    h, _ = ready()
+    h.execute("list_recent_passengers", {})
+    assert h.cards == []
+
+
 
 
 
