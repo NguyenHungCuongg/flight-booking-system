@@ -159,7 +159,7 @@ def problem(status, code, errors=(), detail=None):
 class FakeBackend:
     def __init__(self, flights=FLIGHTS, returns=RETURNS, me_status=200, quote_error=None, hold_error=None, detail_patch=None,
                  hold_delay=0.0, search_delay=0.0, past=(), bookings=(), refunds=None, reschedules=None,
-                 passengers_patch=None, journeys_patch=None, settings_status=200):
+                 passengers_patch=None, journeys_patch=None, settings_status=200, me_by_session=None):
         self.flights, self.me_status, self.quote_error, self.hold_error = flights, me_status, quote_error, hold_error
         self.returns = returns
         self.detail_patch, self.hold_delay, self.search_delay = detail_patch or {}, hold_delay, search_delay
@@ -170,6 +170,7 @@ class FakeBackend:
         self.passengers_patch = passengers_patch    # hành khách đã gửi -> hành khách của booking đọc lại
         self.journeys_patch = journeys_patch        # các chiều của booking đọc lại -> các chiều mới
         self.settings_status = settings_status
+        self.me_by_session = me_by_session or {}    # JSESSIONID -> user dict hoặc mã lỗi HTTP
         self.requests: list[httpx.Request] = []
         self.holds: list[dict] = []
         self.transport = httpx.MockTransport(self.handle)
@@ -222,6 +223,13 @@ class FakeBackend:
         if request.method == "GET" and request.url.path.endswith("/baggage-options"):
             return httpx.Response(200, json=BAGGAGE.get(request.url.path.split("/")[3], []))
         if route == ("GET", "/api/me"):
+            if self.me_by_session:
+                cookies = dict(part.split("=", 1) for part in request.headers.get("cookie", "").split("; ") if "=" in part)
+                entry = self.me_by_session.get(cookies.get("JSESSIONID", ""))
+                if isinstance(entry, int):
+                    return problem(entry, "UNAUTHENTICATED" if entry == 401 else "FORBIDDEN")
+                if isinstance(entry, dict):
+                    return httpx.Response(200, json=entry)
             if self.me_status != 200:
                 return problem(self.me_status, "UNAUTHENTICATED" if self.me_status == 401 else "FORBIDDEN")
             return httpx.Response(200, json={"id": 3, "fullName": "Nguyễn Hùng Cường",

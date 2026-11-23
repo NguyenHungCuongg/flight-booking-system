@@ -50,8 +50,12 @@ def test_creating_a_chat_needs_a_session():
     assert c.post("/agent/chats", headers={"Cookie": COOKIE}).status_code == 201
 
 
-def test_another_session_cannot_use_the_chat():
-    c = client(FakeBackend(), *hold_flow())
+def test_another_user_cannot_use_the_chat():
+    fake = FakeBackend(me_by_session={
+        "s1": {"id": 3, "fullName": "A", "email": "a@demo.local", "phone": "090", "role": "CUSTOMER", "status": "ACTIVE"},
+        "s2": {"id": 4, "fullName": "B", "email": "b@demo.local", "phone": "091", "role": "CUSTOMER", "status": "ACTIVE"},
+    })
+    c = client(fake, *hold_flow())
     chat = c.post("/agent/chats", headers={"Cookie": COOKIE}).json()["chatId"]
     r = c.post(f"/agent/chats/{chat}/messages", json={"text": "hi"}, headers={"Cookie": "JSESSIONID=s2"})
     assert r.status_code == 404
@@ -204,5 +208,42 @@ def test_app_persists_chat_across_restarts_with_db_path(tmp_path):
     assert view["proposalId"] == pid and len(view["entries"]) == 2
     held = c2.post(f"/agent/chats/{chat}/proposals/{pid}/approve", headers=h)
     assert held.status_code == 200 and held.json()["cards"][0]["type"] == "held"
+
+
+def test_same_user_with_new_session_cookie_still_reads_and_lists_chats():
+    fake = FakeBackend(me_by_session={
+        "s1": {"id": 3, "fullName": "A", "email": "a@demo.local", "phone": "090", "role": "CUSTOMER", "status": "ACTIVE"},
+        "s2": {"id": 3, "fullName": "A", "email": "a@demo.local", "phone": "090", "role": "CUSTOMER", "status": "ACTIVE"},
+        "s3": {"id": 4, "fullName": "B", "email": "b@demo.local", "phone": "091", "role": "CUSTOMER", "status": "ACTIVE"},
+    })
+    c = client(fake, *hold_flow())
+    chat = c.post("/agent/chats", headers={"Cookie": "JSESSIONID=s1"}).json()["chatId"]
+    sent(c, chat, "Tìm vé SGN đi Đà Nẵng", {"Cookie": "JSESSIONID=s1"})
+
+    listed = c.get("/agent/chats", headers={"Cookie": "JSESSIONID=s2"})
+    assert listed.status_code == 200 and [x["chatId"] for x in listed.json()["chats"]] == [chat]
+    assert c.get(f"/agent/chats/{chat}", headers={"Cookie": "JSESSIONID=s2"}).status_code == 200
+    assert c.get("/agent/chats", headers={"Cookie": "JSESSIONID=s3"}).json()["chats"] == []
+    assert c.get(f"/agent/chats/{chat}", headers={"Cookie": "JSESSIONID=s3"}).status_code == 404
+
+
+def test_expired_backend_session_returns_401_on_chat_endpoints():
+    c = client(FakeBackend(me_status=401))
+    assert c.get("/agent/chats", headers={"Cookie": COOKIE}).status_code == 401
+    assert c.post("/agent/chats", headers={"Cookie": COOKIE}).status_code == 401
+
+
+def test_delete_chat_endpoint_isolates_owners_and_returns_204():
+    fake = FakeBackend(me_by_session={
+        "s1": {"id": 3, "fullName": "A", "email": "a@demo.local", "phone": "090", "role": "CUSTOMER", "status": "ACTIVE"},
+        "s2": {"id": 4, "fullName": "B", "email": "b@demo.local", "phone": "091", "role": "CUSTOMER", "status": "ACTIVE"},
+    })
+    c = client(fake, *hold_flow())
+    chat = c.post("/agent/chats", headers={"Cookie": "JSESSIONID=s1"}).json()["chatId"]
+    sent(c, chat, "Đặt vé", {"Cookie": "JSESSIONID=s1"})
+    assert c.delete(f"/agent/chats/{chat}", headers={"Cookie": "JSESSIONID=s2"}).status_code == 404
+    assert c.delete(f"/agent/chats/{chat}", headers={"Cookie": "JSESSIONID=s1"}).status_code == 204
+    assert c.get(f"/agent/chats/{chat}", headers={"Cookie": "JSESSIONID=s1"}).status_code == 404
+    assert c.get("/agent/chats", headers={"Cookie": "JSESSIONID=s1"}).json()["chats"] == []
 
 
