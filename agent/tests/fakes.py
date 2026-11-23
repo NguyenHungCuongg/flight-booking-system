@@ -42,7 +42,7 @@ CITY = {"SGN": "TP. Hồ Chí Minh", "DAD": "Đà Nẵng"}
 
 
 def itinerary(flight_id: int, number: str, time: str, price: int, fare_id: int = 1, origin: str = "SGN",
-              destination: str = "DAD", day: str = "2026-10-30") -> dict:
+              destination: str = "DAD", day: str = "2026-10-30", extra_fares: list[dict] = ()) -> dict:
     """Một hành trình bay thẳng, đúng dạng Itinerary của GET /api/flights/search."""
     depart = datetime.fromisoformat(f"{day}T{time}:00+07:00")
     point = lambda airport, city, at: {"airport": airport, "city": city, "time": at.isoformat(),
@@ -56,11 +56,20 @@ def itinerary(flight_id: int, number: str, time: str, price: int, fare_id: int =
                       "durationMinutes": 80, "aircraftModel": "A321", "layoverMinutesAfter": None}],
         "fareOptions": [{"fareFamilyId": fare_id, "name": "Phổ thông", "cabinClass": "ECONOMY", "carryOnKg": 7,
                          "checkedBaggageKg": 0, "refundable": False, "refundFee": 0, "changeable": True,
-                         "changeFee": 300_000, "adultPrice": price, "totalPrice": price, "seatsLeft": 9}],
+                         "changeFee": 300_000, "adultPrice": price, "totalPrice": price, "seatsLeft": 9},
+                        *extra_fares],
     }
 
 
-FLIGHTS = [itinerary(610, "VJ610", "14:20", 1_150_000), itinerary(122, "VN122", "08:10", 1_850_000),
+CLASSIC_FARE = {"fareFamilyId": 2, "name": "Economy Classic", "cabinClass": "ECONOMY", "carryOnKg": 10,
+                "checkedBaggageKg": 23, "refundable": True, "refundFee": 600_000, "changeable": True,
+                "changeFee": 300_000, "adultPrice": 2_150_000, "totalPrice": 2_150_000, "seatsLeft": 9}
+BUSINESS_FARE = {"fareFamilyId": 4, "name": "Business Classic", "cabinClass": "BUSINESS", "carryOnKg": 18,
+                 "checkedBaggageKg": 32, "refundable": True, "refundFee": 600_000, "changeable": True,
+                 "changeFee": 0, "adultPrice": 3_500_000, "totalPrice": 3_500_000, "seatsLeft": 6}
+
+FLIGHTS = [itinerary(610, "VJ610", "14:20", 1_150_000),
+           itinerary(122, "VN122", "08:10", 1_850_000, extra_fares=[CLASSIC_FARE, BUSINESS_FARE]),
            itinerary(104, "QH104", "06:00", 1_920_000), itinerary(604, "VJ604", "08:30", 2_480_000)]
 BACK = dict(origin="DAD", destination="SGN", day="2026-11-02")
 RETURNS = [itinerary(611, "VJ611", "20:00", 1_050_000, **BACK), itinerary(123, "VN123", "17:00", 1_750_000, **BACK),
@@ -149,14 +158,15 @@ def problem(status, code, errors=(), detail=None):
 
 class FakeBackend:
     def __init__(self, flights=FLIGHTS, returns=RETURNS, me_status=200, quote_error=None, hold_error=None, detail_patch=None,
-                 hold_delay=0.0, search_delay=0.0, past=(), bookings=(), refunds=None, passengers_patch=None,
-                 journeys_patch=None, settings_status=200):
+                 hold_delay=0.0, search_delay=0.0, past=(), bookings=(), refunds=None, reschedules=None,
+                 passengers_patch=None, journeys_patch=None, settings_status=200):
         self.flights, self.me_status, self.quote_error, self.hold_error = flights, me_status, quote_error, hold_error
         self.returns = returns
         self.detail_patch, self.hold_delay, self.search_delay = detail_patch or {}, hold_delay, search_delay
         self.past = dict(past)      # mã booking cũ -> hành khách, mới nhất trước
-        self.bookings = {b["code"]: b for b in bookings}    # BookingDetail đầy đủ, mới nhất trước
+        self.bookings = {b["code"]: dict(b) for b in bookings}    # BookingDetail đầy đủ, mới nhất trước
         self.refunds = refunds or {}    # (mã, chiều) -> RefundQuote, hoặc (status, code) lỗi
+        self.reschedules = reschedules or {}    # (mã, chiều, ngày) -> list[RescheduleOption] | (status, code)
         self.passengers_patch = passengers_patch    # hành khách đã gửi -> hành khách của booking đọc lại
         self.journeys_patch = journeys_patch        # các chiều của booking đọc lại -> các chiều mới
         self.settings_status = settings_status
@@ -222,12 +232,14 @@ class FakeBackend:
             n = {k: int(request.url.params.get(k, d)) for k, d in (("adults", 1), ("children", 0), ("infants", 0))}
             types = ["ADULT"] * n["adults"] + ["CHILD"] * n["children"] + ["INFANT"] * n["infants"]
             q = request.url.params
+            cabin = q.get("cabin", "ECONOMY")
             key = lambda i: (i["segments"][0]["departure"]["airport"], i["segments"][-1]["arrival"]["airport"],
                              i["segments"][0]["departure"]["time"][:10])
             on_route = [i for i in self.pool if key(i) == (q["from"], q["to"], q["date"])]
             priced = [{**i, "fareOptions": [{**f, "totalPrice": fare_total(f["adultPrice"], types)}
-                                            for f in i["fareOptions"]]} for i in on_route]
-            return httpx.Response(200, json={"itineraries": priced})
+                                            for f in i["fareOptions"] if f.get("cabinClass", "ECONOMY") == cabin]}
+                      for i in on_route]
+            return httpx.Response(200, json={"itineraries": [i for i in priced if i["fareOptions"]]})
         if route in (("POST", "/api/bookings/quote"), ("POST", "/api/bookings")):
             code = json.loads(request.content).get("voucherCode")
             if code and code not in VOUCHERS:
@@ -259,6 +271,20 @@ class FakeBackend:
             if isinstance(quote, tuple):
                 return problem(*quote)
             return httpx.Response(200, json=quote) if quote else problem(404, "NOT_FOUND")
+        if request.method == "GET" and request.url.path.endswith("/reschedule-options"):
+            _, _, _, code, _, direction, _ = request.url.path.split("/")
+            opts = self.reschedules.get((code, direction, request.url.params.get("date")))
+            if isinstance(opts, tuple):
+                return problem(*opts)
+            return httpx.Response(200, json={"options": opts}) if opts is not None else problem(404, "NOT_FOUND")
+        if request.method == "POST" and request.url.path.endswith("/cancel") and request.url.path.startswith("/api/bookings/"):
+            code = request.url.path.split("/")[3]
+            if code not in self.bookings:
+                return problem(404, "NOT_FOUND")
+            if self.bookings[code]["status"] != "PENDING_PAYMENT":
+                return problem(409, "INVALID_STATE")
+            self.bookings[code] = {**self.bookings[code], "status": "CANCELLED"}
+            return httpx.Response(204)
         if request.method == "GET" and (code := request.url.path.removeprefix("/api/bookings/")) in self.past:
             return httpx.Response(200, json={"code": code, "status": "ISSUED", "passengers": self.past[code]})
         return problem(404, "NOT_FOUND")
@@ -267,6 +293,8 @@ class FakeBackend:
         body = self.holds[-1]
         by_id = {s["flightId"]: s for i in self.pool for s in i["segments"]}
         journeys = [{"direction": j["direction"], "fareFamilyName": self._fare(j)["name"],
+                     "airlineCode": by_id[j["flightIds"][0]]["airline"]["code"],
+                     "refundable": self._fare(j)["refundable"], "changeable": self._fare(j)["changeable"],
                      "segments": [{"flightId": f, "flightNumber": by_id[f]["flightNumber"],
                                    "departureAirport": by_id[f]["departure"]["airport"],
                                    "departureTime": by_id[f]["departure"]["time"],

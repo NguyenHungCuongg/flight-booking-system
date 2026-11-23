@@ -8,6 +8,7 @@ dừng lượt chat, và dùng CODE để quyết định việc đã xong hay c
 import json
 import re
 import threading
+import time
 import unicodedata
 from collections import deque
 from collections.abc import Callable
@@ -19,10 +20,14 @@ from uuid import uuid4
 from flight_agent.backend import Backend, BackendError
 from flight_agent.policies import fill, load_sections
 
-KEYS = ("depart_before", "max_price")
+KEYS = ("depart_before", "depart_after", "max_price")
 BUDGET = 10          # tối đa số lần gọi model mỗi lượt chat
+TURN_TIMEOUT_SECONDS = 90.0  # trần thời gian tổng cho một lượt chat
+TOKEN_BUDGET = 40_000        # trần token tổng cho một lượt chat
+PROPOSAL_TTL_SECONDS = 900.0 # thời hạn hiệu lực của thẻ đề xuất (15 phút)
 LOOP_WINDOW = 6      # xét 6 lời gọi tool gần nhất ...
 LOOP_REPEAT = 3      # ... cùng (tool, args) 3 lần = lặp
+STALL_LIMIT = 4      # 4 lời gọi tool liên tiếp đều lỗi = bế tắc (stall)
 RECENT_BOOKINGS = 3  # số booking gần nhất mà list_recent_passengers đọc
 MY_BOOKINGS = 10     # số booking gần nhất mà list_my_bookings đọc
 STATES = {"PENDING_PAYMENT": "chờ thanh toán", "ISSUED": "đã xuất vé", "EXPIRED": "hết hạn giữ chỗ",
@@ -69,11 +74,17 @@ class Constraints:
     destination: str
     date: str                           # ngày cất cánh theo giờ sân bay đi, YYYY-MM-DD
     depart_before: str | None = None    # HH:MM có số 0 ở đầu; None = không giới hạn
+    depart_after: str | None = None     # HH:MM có số 0 ở đầu; None = không giới hạn
     max_price: int | None = None        # VND, tổng cả booking; None = không giới hạn
     adults: int = 1
     children: int = 0
     infants: int = 0
     return_date: str | None = None      # ngày cất cánh chiều về YYYY-MM-DD; None = một chiều
+    cabin: str = "ECONOMY"
+    airline: str | None = None
+    nonstop: bool = False
+    refundable: bool = False
+    changeable: bool = False
 
     @property
     def counts(self) -> str:
@@ -81,29 +92,50 @@ class Constraints:
 
     def to_prompt(self) -> str:
         before = self.depart_before or "không giới hạn"
+        after = f", cất cánh từ {self.depart_after}" if self.depart_after else ""
         price = f"{_vnd(self.max_price)} đ" if self.max_price is not None else "không giới hạn"
         back = f", về ngày {self.return_date}" if self.return_date else ", một chiều"
+        extras = []
+        if self.cabin != "ECONOMY":
+            extras.append(f"hạng {CABINS.get(self.cabin, self.cabin)}")
+        if self.airline:
+            extras.append(f"hãng {self.airline}")
+        if self.nonstop:
+            extras.append("bay thẳng")
+        if self.refundable:
+            extras.append("gói hoàn được")
+        if self.changeable:
+            extras.append("gói đổi được")
+        more = (", " + ", ".join(extras)) if extras else ""
         return (f"Ràng buộc hiện tại: {self.origin} → {self.destination} ngày {self.date}{back} cho {self.counts}, "
-                f"chiều đi cất cánh trước {before}, giá tối đa (tổng khách trả: mọi chiều, gồm hành lý, sau giảm giá) "
-                f"{price}.")
+                f"chiều đi cất cánh trước {before}{after}, giá tối đa (tổng khách trả: mọi chiều, gồm hành lý, sau giảm giá) "
+                f"{price}{more}.")
 
     def broken(self, origin: str, destination: str, departure: str, price: int,
-               back: tuple[str, str, str] | None = None) -> list[str]:
+               back: tuple[str, str, str] | None = None, *, airline: str | None = None,
+               stops: int = 0, refundable: bool = True, changeable: bool = True) -> list[str]:
         """Tên các ràng buộc bị vi phạm. `departure` là giờ địa phương ISO có offset, vd 2026-10-30T08:10:00+07:00.
         `back`: (sân bay đi, sân bay đến, giờ cất cánh) của chiều về; None nếu một chiều."""
         checks = [("origin", origin == self.origin),
                   ("destination", destination == self.destination),
                   ("date", departure[:10] == self.date),
                   ("depart_before", self.depart_before is None or departure[11:16] < self.depart_before),
+                  ("depart_after", self.depart_after is None or departure[11:16] >= self.depart_after),
                   ("max_price", self.max_price is None or price <= self.max_price),
                   ("return_date", back is None if self.return_date is None else back is not None
-                   and (back[0], back[1], back[2][:10]) == (self.destination, self.origin, self.return_date))]
+                   and (back[0], back[1], back[2][:10]) == (self.destination, self.origin, self.return_date)),
+                  ("airline", self.airline is None or airline == self.airline),
+                  ("nonstop", not self.nonstop or stops == 0),
+                  ("refundable", not self.refundable or refundable),
+                  ("changeable", not self.changeable or changeable)]
         return [name for name, ok in checks if not ok]
 
     def is_ok(self, origin: str, destination: str, departure: str, price: int,
-              back: tuple[str, str, str] | None = None) -> bool:
+              back: tuple[str, str, str] | None = None, *, airline: str | None = None,
+              stops: int = 0, refundable: bool = True, changeable: bool = True) -> bool:
         """Quy tắc duy nhất, dùng chung cho kiểm quyền và tiêu chí hoàn thành."""
-        return not self.broken(origin, destination, departure, price, back)
+        return not self.broken(origin, destination, departure, price, back,
+                               airline=airline, stops=stops, refundable=refundable, changeable=changeable)
 
 
 def normalise(key: str, value):
@@ -111,10 +143,10 @@ def normalise(key: str, value):
     if key not in KEYS:
         return None, f"Không có ràng buộc {key!r}. Chỉ dùng {', '.join(KEYS)}."
     raw = str(value).strip()
-    if key == "depart_before":
+    if key in ("depart_before", "depart_after"):
         m = re.fullmatch(r"(\d{1,2}):(\d{2})", raw)
         if not m or int(m[1]) > 23 or int(m[2]) > 59:
-            return None, "depart_before phải là giờ dạng HH:MM, ví dụ 09:00."
+            return None, f"{key} phải là giờ dạng HH:MM, ví dụ 09:00."
         return f"{int(m[1]):02d}:{m[2]}", None      # có số 0 ở đầu: Constraints.broken so sánh chuỗi
     if isinstance(value, float) and value.is_integer():
         raw = str(int(value))
@@ -171,6 +203,15 @@ def _journeys(item: dict) -> list[dict]:
     return [item["outbound"], item["return"]] if "outbound" in item else [item]
 
 
+def flights_url(c: Constraints | None) -> str:
+    """Đường dẫn /flights kèm sẵn tham số tìm chuyến hiện tại để khách không phải nhập lại."""
+    if c is None:
+        return "/flights"
+    q = (f"from={c.origin}&to={c.destination}&date={c.date}&adults={c.adults}"
+         f"&children={c.children}&infants={c.infants}&cabin={c.cabin}")
+    return f"/flights?{q}&returnDate={c.return_date}" if c.return_date else f"/flights?{q}"
+
+
 # =====================================================================
 # HARNESS
 # =====================================================================
@@ -189,9 +230,14 @@ class PassengerArg(TypedDict):
 @dataclass
 class Proposal:
     id: str
-    body: dict      # BookingRequest dạng JSON, gửi nguyên khi khách duyệt
-    total: int      # totalAmount của báo giá
+    body: dict      # BookingRequest dạng JSON, gửi nguyên khi khách duyệt (hoặc {"code": code} khi huỷ)
+    total: int      # totalAmount của báo giá / đặt chỗ
     card: dict
+    action: str = "hold"    # "hold" hoặc "cancel"
+    created_at: float = field(default_factory=time.time)
+
+    def is_expired(self, now: float | None = None) -> bool:
+        return (now if now is not None else time.time()) - self.created_at > PROPOSAL_TTL_SECONDS
 
 
 @dataclass
@@ -213,8 +259,13 @@ class Harness:
     cards: list[dict] = field(default_factory=list)
     stop_reason: str | None = None
     model_calls: int = 0
+    failed_steps: int = 0
+    started_at: float = 0.0
+    tokens_used: int = 0
+    bad_citations: list[str] = field(default_factory=list)
     recent: deque = field(default_factory=lambda: deque(maxlen=LOOP_WINDOW))
     held_code: str | None = None                         # booking đọc lại không khớp (hold_mismatch)
+    cancel_code: str | None = None                       # booking huỷ không thành công (cancel_failed)
     on_step: Callable[[dict], None] | None = None        # báo từng dòng trace cho trang (stream SSE)
     # LangGraph chạy các tool call của cùng một AIMessage song song: mỗi lúc chỉ một tool được chạy.
     tool_lock: threading.Lock = field(default_factory=threading.Lock)
@@ -222,38 +273,64 @@ class Harness:
     def begin_turn(self, backend: Backend, today: str, on_step: Callable[[dict], None] | None = None) -> None:
         self.backend, self.today = backend, today
         self.trace, self.cards, self.stop_reason, self.model_calls = [], [], None, 0
-        self.recent, self.held_code, self.on_step = deque(maxlen=LOOP_WINDOW), None, on_step
+        self.failed_steps, self.started_at, self.tokens_used, self.bad_citations = 0, time.monotonic(), 0, []
+        self.recent, self.held_code, self.cancel_code, self.on_step = deque(maxlen=LOOP_WINDOW), None, None, on_step
 
     @property
     def tools(self) -> list:
         return [self.set_constraints, self.search_flights, self.list_recent_passengers, self.propose_hold,
-                self.list_my_bookings, self.get_booking, self.refund_quote, self.read_policy, self.airline_rules]
+                self.list_my_bookings, self.get_booking, self.refund_quote, self.reschedule_options,
+                self.propose_cancel, self.read_policy, self.airline_rules]
 
     # ---- các tool của model
-    def set_constraints(self, origin: str, destination: str, date: str, depart_before: str | None = None,
-                        max_price: int | None = None, adults: int = 1, children: int = 0, infants: int = 0,
-                        return_date: str | None = None) -> dict:
-        """Đặt hoặc thay ràng buộc của chuyến cần tìm. origin, destination: mã IATA sân bay. date: ngày cất cánh
-        YYYY-MM-DD. depart_before: giờ cất cánh chậm nhất HH:MM, bỏ trống nếu khách không nói. max_price: số tiền tối
-        đa khách trả cho cả booking (VND, số nguyên), gồm hành lý và sau giảm giá, bỏ trống nếu khách không nói.
-        adults, children (2 đến dưới 12 tuổi), infants (dưới 2 tuổi): số khách theo tuổi tại ngày bay. return_date:
-        ngày cất cánh chiều về YYYY-MM-DD nếu khách cần khứ hồi, không trước date; bỏ trống nếu một chiều.
-        depart_before chỉ áp cho chiều đi; max_price là tổng cả hai chiều."""
+    def set_constraints(self, origin: str | None = None, destination: str | None = None, date: str | None = None,
+                        depart_before: str | None = None, depart_after: str | None = None,
+                        max_price: int | str | None = None, adults: int | None = None, children: int | None = None,
+                        infants: int | None = None, return_date: str | None = None, cabin: str | None = None,
+                        airline: str | None = None, nonstop: bool | None = None, refundable: bool | None = None,
+                        changeable: bool | None = None) -> dict:
+        """Đặt hoặc cập nhật ràng buộc của chuyến cần tìm. Nếu đã có ràng buộc, có thể chỉ truyền các trường cần sửa;
+        truyền "NONE" để xoá giới hạn depart_before, depart_after, max_price, return_date hoặc airline.
+        origin, destination: mã IATA sân bay. date: ngày cất cánh YYYY-MM-DD. depart_before, depart_after: giờ cất cánh
+        chiều đi chậm nhất / sớm nhất HH:MM. max_price: số tiền tối đa khách trả cho cả booking (VND). adults, children,
+        infants: số khách theo tuổi tại ngày bay. return_date: ngày về YYYY-MM-DD nếu khứ hồi. cabin: ECONOMY,
+        PREMIUM_ECONOMY, BUSINESS, FIRST. airline: mã IATA 2 ký tự hãng bay (VN, VJ, QH). nonstop: True nếu chỉ bay
+        thẳng. refundable, changeable: True nếu cần gói hoàn/đổi được."""
+        partial = origin is None or destination is None or date is None
+        prev = self.constraints
+        if prev is None and partial:
+            return {"status": "invalid_param",
+                    "hint": "Cần đủ sân bay đi (origin), sân bay đến (destination) và ngày đi (date)."}
+        origin = origin if origin is not None else prev.origin
+        destination = destination if destination is not None else prev.destination
+        date = date if date is not None else prev.date
+
+        def _clear(v) -> bool:
+            return isinstance(v, str) and v.strip().upper() in ("", "NONE")
+
         try:
-            counts = {"adults": int(adults), "children": int(children), "infants": int(infants)}
+            counts = {
+                "adults": int(adults if adults is not None else (prev.adults if prev else 1)),
+                "children": int(children if children is not None else (prev.children if prev else 0)),
+                "infants": int(infants if infants is not None else (prev.infants if prev else 0)),
+            }
         except (TypeError, ValueError):
             counts = None
         if counts is None or counts["adults"] < 1 or min(counts.values()) < 0:
             return {"status": "invalid_param", "hint": "adults là số nguyên từ 1, children và infants từ 0."}
         limits = {}
-        for key, value in (("depart_before", depart_before), ("max_price", max_price)):
-            if value is not None:
+        for key, value in (("depart_before", depart_before), ("depart_after", depart_after), ("max_price", max_price)):
+            if _clear(value) or (key == "max_price" and value == 0):
+                limits[key] = None
+            elif value is not None:
                 limits[key], hint = normalise(key, value)
                 if hint:
                     return {"status": "invalid_param", "hint": hint}
+            else:
+                limits[key] = getattr(prev, key) if prev else None
         if self.airports is None:
             self.airports = {a["code"]: a for a in self.backend.get("/api/airports")}
-        origin, destination = origin.strip().upper(), destination.strip().upper()
+        origin, destination = str(origin).strip().upper(), str(destination).strip().upper()
         if unknown := [c for c in (origin, destination) if c not in self.airports]:
             return {"status": "invalid_param",
                     "hint": f"Không có sân bay {', '.join(unknown)}. Các mã có: {', '.join(sorted(self.airports))}."}
@@ -262,33 +339,63 @@ class Harness:
             return {"status": "denied", "hint": "Trợ lý chưa hỗ trợ hành trình quốc tế."}
         if (day := _day(date)) is None or day.isoformat() < self.today:
             return {"status": "invalid_param", "hint": f"date phải là ngày YYYY-MM-DD từ hôm nay ({self.today})."}
-        if return_date is not None and ((back := _day(return_date)) is None or back < day):
+        ret = None if _clear(return_date) else (
+            return_date if return_date is not None else (prev.return_date if prev and partial else None)
+        )
+        if ret is not None and ((back := _day(ret)) is None or back < day):
             return {"status": "invalid_param",
                     "hint": f"return_date phải là ngày YYYY-MM-DD, không trước ngày đi {date}."}
-        self.constraints = c = Constraints(origin, destination, date, **limits, **counts, return_date=return_date)
+        cab = str(cabin if cabin is not None else (prev.cabin if prev else "ECONOMY")).strip().upper()
+        if cab not in CABINS:
+            return {"status": "invalid_param", "hint": f"cabin phải thuộc {', '.join(CABINS)}."}
+        air = None if _clear(airline) else (airline if airline is not None else (prev.airline if prev else None))
+        if air is not None:
+            if self.airlines is None:
+                self.airlines = {a["code"]: a for a in self.backend.get("/api/airlines")}
+            air = str(air).strip().upper()
+            if air not in self.airlines:
+                names = ", ".join(f"{c} ({a['name']})" for c, a in self.airlines.items())
+                return {"status": "invalid_param", "hint": f"Không có hãng {air}. Các hãng có: {names}."}
+        ns = bool(nonstop if nonstop is not None else (prev.nonstop if prev else False))
+        ref = bool(refundable if refundable is not None else (prev.refundable if prev else False))
+        chg = bool(changeable if changeable is not None else (prev.changeable if prev else False))
+        self.constraints = c = Constraints(origin, destination, date, **limits, **counts, return_date=ret,
+                                           cabin=cab, airline=air, nonstop=ns, refundable=ref, changeable=chg)
         self.found, self.proposal = [], None
         self.cards.append({"type": "constraints", "origin": c.origin, "destination": c.destination, "date": c.date,
-                           "returnDate": c.return_date, "departBefore": c.depart_before, "maxPrice": c.max_price,
-                           **counts})
+                           "returnDate": c.return_date, "departBefore": c.depart_before, "departAfter": c.depart_after,
+                           "maxPrice": c.max_price, "cabin": c.cabin, "airline": c.airline, "nonstop": c.nonstop,
+                           "refundable": c.refundable, "changeable": c.changeable, **counts})
         return {"status": "ok", "constraints": c.to_prompt()}
 
+    def _broken_for(self, o: dict, r: dict | None = None) -> list[str]:
+        c = self.constraints
+        if r is None:
+            return c.broken(o["segments"][0]["from"], o["segments"][-1]["to"], o["depart"], o["price"],
+                            airline=o["airline"], stops=o["stops"], refundable=o["refundable"],
+                            changeable=o["changeable"])
+        airline = o["airline"] if r["airline"] == o["airline"] else f"{o['airline']}+{r['airline']}"
+        return c.broken(o["segments"][0]["from"], o["segments"][-1]["to"], o["depart"], o["price"] + r["price"],
+                        back=(r["segments"][0]["from"], r["segments"][-1]["to"], r["depart"]),
+                        airline=airline if c.airline is None or (o["airline"] == c.airline and r["airline"] == c.airline) else "MIX",
+                        stops=max(o["stops"], r["stops"]),
+                        refundable=o["refundable"] and r["refundable"],
+                        changeable=o["changeable"] and r["changeable"])
+
     def search_flights(self) -> dict:
-        """Tìm chuyến hạng phổ thông cho số khách trong ràng buộc hiện tại; price là tổng cả booking.
+        """Tìm chuyến cho số khách và hạng ghế trong ràng buộc hiện tại; price là tổng cả booking.
         matching: tối đa 5 hành trình thoả mọi ràng buộc, rẻ nhất trước. nearest: tối đa 2 hành trình rẻ nhất chỉ vi
         phạm một ràng buộc. Khứ hồi: mỗi mục có outbound và return (mỗi chiều dạng như một hành trình một chiều), price
         là tổng hai chiều; chỉ ghép cặp chiều về cất cánh sau khi chiều đi hạ cánh."""
         c = self.constraints
         legs = self._legs(c.origin, c.destination, c.date)
         if c.return_date is None:
-            self.found = [{**o, "broken": c.broken(o["segments"][0]["from"], o["segments"][-1]["to"], o["depart"],
-                                                   o["price"])} for o in legs]
+            self.found = [{**o, "broken": self._broken_for(o)} for o in legs]
         else:
             backs = self._legs(c.destination, c.origin, c.return_date)
             # BR-04: chiều về cất cánh sau khi chiều đi hạ cánh; chuỗi giờ có offset nên so bằng datetime
             self.found = [{"outbound": o, "return": r, "price": o["price"] + r["price"],
-                           "broken": c.broken(o["segments"][0]["from"], o["segments"][-1]["to"], o["depart"],
-                                              o["price"] + r["price"],
-                                              back=(r["segments"][0]["from"], r["segments"][-1]["to"], r["depart"]))}
+                           "broken": self._broken_for(o, r)}
                           for o in legs for r in backs
                           if datetime.fromisoformat(r["depart"]) > datetime.fromisoformat(o["segments"][-1]["arrive"])]
         matching = sorted((i for i in self.found if not i["broken"]), key=lambda i: i["price"])[:MATCHING]
@@ -297,16 +404,23 @@ class Harness:
         return {"status": "ok", "matching": matching, "nearest": self._nearest()}
 
     def _legs(self, origin: str, destination: str, day: str) -> list[dict]:
-        """Một lần tìm chuyến cho một chiều: mỗi hành trình có gói giá thành một dict rút gọn, lấy gói rẻ nhất."""
+        """Một lần tìm chuyến cho một chiều: chọn gói rẻ nhất thoả yêu cầu hoàn/đổi, giữ danh sách fares để chọn gói khác."""
         c = self.constraints
         data = self.backend.get("/api/flights/search", {"from": origin, "to": destination, "date": day,
                                                         "adults": c.adults, "children": c.children,
-                                                        "infants": c.infants, "cabin": "ECONOMY"})
+                                                        "infants": c.infants, "cabin": c.cabin})
         legs = []
         for it in data["itineraries"]:
             if not it["fareOptions"]:
                 continue
-            segs, fare = it["segments"], it["fareOptions"][0]      # gói rẻ nhất
+            segs = it["segments"]
+            fares = [{"fare_family_id": f["fareFamilyId"], "fare": f["name"], "conditions": _conditions(f),
+                      "price": f["totalPrice"], "seats_left": f["seatsLeft"],
+                      "refundable": bool(f.get("refundable")), "changeable": bool(f.get("changeable"))}
+                     for f in it["fareOptions"]]
+            fare = next((f for f in fares
+                         if (not c.refundable or f["refundable"]) and (not c.changeable or f["changeable"])),
+                        fares[0])
             legs.append({
                 "flight_ids": [s["flightId"] for s in segs],
                 "airline": segs[0]["airline"]["code"],     # hãng của itinerary là hãng chặng đầu, như FlightApi
@@ -314,9 +428,10 @@ class Harness:
                 "segments": [{"flightNumber": s["flightNumber"], "from": s["departure"]["airport"],
                               "to": s["arrival"]["airport"], "depart": s["departure"]["time"],
                               "arrive": s["arrival"]["time"]} for s in segs],
-                "depart": segs[0]["departure"]["time"], "stops": it["stops"], "fare_family_id": fare["fareFamilyId"],
-                "fare": fare["name"], "conditions": _conditions(fare), "price": fare["totalPrice"],
-                "seats_left": fare["seatsLeft"],
+                "depart": segs[0]["departure"]["time"], "stops": it["stops"],
+                "fare_family_id": fare["fare_family_id"], "fare": fare["fare"], "conditions": fare["conditions"],
+                "price": fare["price"], "seats_left": fare["seats_left"],
+                "refundable": fare["refundable"], "changeable": fare["changeable"], "fares": fares,
             })
         return legs
 
@@ -338,14 +453,15 @@ class Harness:
 
     def propose_hold(self, flight_ids: list[int], fare_family_id: int, passengers: list[PassengerArg],
                      return_flight_ids: list[int] | None = None, return_fare_family_id: int | None = None,
-                     baggage_kg: int | None = None, voucher_code: str | None = None) -> dict:
+                     baggage_kg: int | None = None, return_baggage_kg: int | None = None,
+                     voucher_code: str | None = None) -> dict:
         """Báo giá và đưa thẻ duyệt giữ chỗ cho khách. flight_ids, fare_family_id: lấy đúng từ một hành trình trong
         matching. Khứ hồi: return_flight_ids, return_fare_family_id lấy từ return của cùng mục trong matching.
         passengers: mỗi hành khách một mục, đủ số người lớn, trẻ em, em bé trong ràng buộc; full_name: họ tên đầy đủ,
         gender: MALE hoặc FEMALE, date_of_birth: YYYY-MM-DD. Loại khách do hệ thống tính từ ngày sinh.
-        baggage_kg: số kg hành lý ký gửi mua thêm cho mỗi người lớn và trẻ em trên mỗi chiều, chọn từ
-        baggage_options; bỏ trống nếu khách không mua. voucher_code: mã giảm giá khách đưa; bỏ trống nếu khách không
-        có mã, không tự bịa mã.
+        baggage_kg: số kg hành lý ký gửi mua thêm cho mỗi người lớn và trẻ em (mặc định áp cho cả hai chiều nếu khứ hồi);
+        return_baggage_kg: số kg riêng cho chiều về nếu khách mua khác chiều đi (0 nếu chiều về không mua).
+        voucher_code: mã giảm giá khách đưa; bỏ trống nếu khách không có mã, không tự bịa mã.
         Chỉ trả pending_approval: khách tự bấm Giữ chỗ trên thẻ."""
         c = self.constraints
         # Model có thể gửi sai dạng (chuỗi JSON, object đơn): trả invalid_param để model tự sửa, không làm hỏng lượt chat.
@@ -377,24 +493,37 @@ class Harness:
                             "hoặc hỏi lại ngày sinh."}
         me = self.backend.get("/api/me")
         it = self._found(flight_ids, fare_family_id, return_flight_ids, return_fare_family_id)
+        if c.return_date is None and return_baggage_kg is not None:
+            return {"status": "invalid_param", "hint": "Một chiều: không truyền return_baggage_kg."}
         # Bảng giá hành lý của hãng chặng đầu mỗi chiều: backend so mức hành lý với hãng của itinerary.
         prices = {d: self._baggage(j["airline"]) for d, j in zip(DIRECTIONS, _journeys(it))}
         on_sale = sorted(set.intersection(*({o["weightKg"] for o in p} for p in prices.values())))
         try:
             kg = int(baggage_kg or 0)       # None và 0 là không mua
+            kg_ret = kg if return_baggage_kg is None else int(return_baggage_kg or 0)
         except (TypeError, ValueError):
-            kg = -1
-        if kg < 0 or (kg and kg not in on_sale):
-            return {"status": "invalid_param",
-                    "hint": f"baggage_kg phải là một trong các mức {', '.join(map(str, on_sale))} kg, hoặc bỏ trống."
-                    if on_sale else "Hành trình này không có mức hành lý ký gửi nào bán cho mọi chiều: bỏ trống "
-                                    "baggage_kg."}
+            kg = kg_ret = -1
+        if return_baggage_kg is None:
+            if kg < 0 or (kg and kg not in on_sale):
+                return {"status": "invalid_param",
+                        "hint": f"baggage_kg phải là một trong các mức {', '.join(map(str, on_sale))} kg, hoặc bỏ trống."
+                        if on_sale else "Hành trình này không có mức hành lý ký gửi nào bán cho mọi chiều: bỏ trống "
+                                        "baggage_kg."}
+            kg_by_dir = {d: kg for d in prices}
+        else:
+            kg_by_dir = {"OUTBOUND": kg, "RETURN": kg_ret}
+            for d, k_val in kg_by_dir.items():
+                sold_d = sorted({o["weightKg"] for o in prices[d]})
+                if k_val < 0 or (k_val and k_val not in sold_d):
+                    return {"status": "invalid_param",
+                            "hint": f"Hành lý chiều {d} phải thuộc {', '.join(map(str, sold_d))} kg, hoặc 0."}
+        any_bag = any(kg_by_dir.values())
         body = {"journeys": [{"direction": d, "flightIds": j["flight_ids"], "fareFamilyId": j["fare_family_id"]}
                              for d, j in zip(DIRECTIONS, _journeys(it))],
                 "passengers": built,
                 # BR-22: em bé không mua hành lý
                 "baggage": [{"passengerIndex": i, "direction": d, "baggageOptionId": o["id"]}
-                            for d, p in prices.items() for o in p if kg and o["weightKg"] == kg
+                            for d, p in prices.items() for o in p if kg_by_dir[d] and o["weightKg"] == kg_by_dir[d]
                             for i, x in enumerate(built) if x["type"] != "INFANT"],
                 "contact": {"name": me["fullName"], "email": me["email"], "phone": me["phone"]},
                 # như VoucherApi.check: booking đọc lại trả mã đã chuẩn hoá, is_done so khớp chính xác
@@ -402,7 +531,7 @@ class Harness:
         quote = self.backend.post("/api/bookings/quote", body)
         total = quote["totalAmount"]
         if self.constraints.max_price is not None and total > self.constraints.max_price:
-            drop = " Hỏi khách bỏ hành lý hay nới giá tối đa." if kg else ""
+            drop = " Hỏi khách bỏ hành lý hay nới giá tối đa." if any_bag else ""
             return {"status": "denied",
                     "hint": f"Báo giá {_vnd(total)} đ vượt giá tối đa.{drop} {self.constraints.to_prompt()}"}
         pid = uuid4().hex
@@ -410,14 +539,15 @@ class Harness:
         code = body["voucherCode"]
         card = {"type": "proposal", "proposalId": pid,
                 "journeys": [{"direction": d, "segments": j["segments"], "fare": j["fare"], "fares": q["passengerFares"],
-                              "baggage": {"weightKg": kg, "count": count, "total": q["baggageTotal"]} if kg else None}
+                              "baggage": {"weightKg": kg_by_dir[d], "count": count, "total": q["baggageTotal"]}
+                              if kg_by_dir[d] else None}
                              for d, j, q in zip(DIRECTIONS, _journeys(it), quote["journeys"])],
                 "passengers": built, "contact": body["contact"],
                 "discount": {"code": code, "amount": quote["discountTotal"]} if code else None, "totalAmount": total}
         self.proposal = Proposal(pid, body, total, card)
         self.cards.append(card)
         result = {"status": "pending_approval", "total": total}
-        if not kg and on_sale:      # chỉ mời mức mua được: mọi chiều đều bán
+        if not any_bag and on_sale:      # chỉ mời mức mua được: mọi chiều đều bán
             result["baggage_options"] = {d: [f"{o['weightKg']} kg: {_money(o['price'])}" for o in p
                                              if o["weightKg"] in on_sale] for d, p in prices.items()}
         return result
@@ -473,6 +603,51 @@ class Harness:
         return {"status": "ok", "journey_value": _money(q["journeyValue"]), "fee": _money(q["fee"]),
                 "refund_amount": _money(q["refundAmount"]), "page": f"/bookings/{code}/refund/{direction.lower()}"}
 
+    def reschedule_options(self, code: str, direction: str, date: str) -> dict:
+        """Các chuyến thay thế và số tiền phải trả thêm (amount_due, đã gồm phí đổi và chênh lệch giá vé) khi đổi một
+        chiều của booking sang ngày mới YYYY-MM-DD. direction: OUTBOUND hoặc RETURN. Trợ lý không tự đổi chuyến: khách
+        tự làm ở page."""
+        if (code := _booking_code(code)) is None:
+            return BAD_CODE
+        direction = str(direction).strip().upper()
+        if direction not in ("OUTBOUND", "RETURN"):
+            return {"status": "invalid_param", "hint": "direction phải là OUTBOUND (chiều đi) hoặc RETURN (chiều về)."}
+        if (day := _day(date)) is None or day.isoformat() < self.today:
+            return {"status": "invalid_param", "hint": f"date phải là ngày YYYY-MM-DD từ hôm nay ({self.today})."}
+        data = self.backend.get(f"/api/bookings/{code}/journeys/{direction}/reschedule-options", {"date": date})
+        options = []
+        for o in (data.get("options") or [])[:MATCHING]:
+            segs = o["itinerary"]["segments"]
+            q = o["quote"]
+            options.append({
+                "flights": "+".join(s["flightNumber"] for s in segs),
+                "depart": _when(segs[0]["departure"]["time"]),
+                "arrive": _when(segs[-1]["arrival"]["time"]),
+                "change_fee": _money(q["changeFeeTotal"]),
+                "amount_due": _money(q["amountDue"]),
+            })
+        return {"status": "ok", "options": options, "page": f"/bookings/{code}/reschedule/{direction.lower()}"}
+
+    def propose_cancel(self, code: str) -> dict:
+        """Tạo thẻ duyệt để khách xác nhận huỷ một đặt chỗ đang chờ thanh toán (PENDING_PAYMENT). Chỉ trả
+        pending_approval: khách tự bấm Huỷ giữ chỗ trên thẻ."""
+        if (code := _booking_code(code)) is None:
+            return BAD_CODE
+        b = self.backend.get(f"/api/bookings/{code}")
+        if b["status"] != "PENDING_PAYMENT":
+            state = STATES.get(b["status"], b["status"])
+            return {"status": "denied",
+                    "hint": f"Chỉ huỷ được đặt chỗ đang chờ thanh toán (trạng thái hiện tại: {state})."}
+        pid = uuid4().hex
+        routes = [f"{j['segments'][0]['departureAirport']} → {j['segments'][-1]['arrivalAirport']} "
+                  f"{_when(j['segments'][0]['departureTime'])}"
+                  for j in (b.get("journeys") or []) if j.get("segments")]
+        card = {"type": "cancel_proposal", "proposalId": pid, "code": code, "routes": routes,
+                "totalAmount": b["totalAmount"]}
+        self.proposal = Proposal(pid, {"code": code}, b["totalAmount"], card, action="cancel")
+        self.cards.append(card)
+        return {"status": "pending_approval", "code": code}
+
     # ---- chính sách: chỉ GET, không cần ràng buộc chuyến bay
     def read_policy(self, sections: list[str]) -> dict:
         """Đọc tối đa 4 mục chính sách SkyLine theo mã mục trong mục lục chính sách của system prompt, ví dụ
@@ -515,13 +690,35 @@ class Harness:
                 ({k: o[k] for k in ("id", "weightKg", "price")} for o in options), key=lambda o: o["weightKg"])
         return self.baggage_prices[airline]
 
+    def _with_fare(self, leg: dict, fare_family_id: int) -> dict | None:
+        fares = leg.get("fares") or []
+        chosen = next((f for f in fares if f["fare_family_id"] == fare_family_id), None)
+        if chosen is None:
+            return leg if leg.get("fare_family_id") == fare_family_id else None
+        return {**leg, "fare_family_id": chosen["fare_family_id"], "fare": chosen["fare"],
+                "conditions": chosen["conditions"], "price": chosen["price"], "seats_left": chosen["seats_left"],
+                "refundable": chosen["refundable"], "changeable": chosen["changeable"]}
+
     def _found(self, flight_ids, fare_family_id, return_flight_ids=None, return_fare_family_id=None) -> dict | None:
         """Mục của lần tìm gần nhất có đúng các chiều khách chọn: một chiều không được có tham số chiều về."""
-        chosen = [(flight_ids, fare_family_id)]
-        if return_flight_ids is not None or return_fare_family_id is not None:
-            chosen.append((return_flight_ids, return_fare_family_id))
-        return next((i for i in self.found
-                     if [(j["flight_ids"], j["fare_family_id"]) for j in _journeys(i)] == chosen), None)
+        want_rt = return_flight_ids is not None or return_fare_family_id is not None
+        for i in self.found:
+            js = _journeys(i)
+            if (len(js) == 2) != want_rt:
+                continue
+            if js[0]["flight_ids"] != flight_ids or (want_rt and js[1]["flight_ids"] != return_flight_ids):
+                continue
+            out = self._with_fare(js[0], fare_family_id)
+            if out is None:
+                continue
+            if not want_rt:
+                return {**out, "broken": self._broken_for(out)}
+            ret = self._with_fare(js[1], return_fare_family_id)
+            if ret is None:
+                continue
+            return {"outbound": out, "return": ret, "price": out["price"] + ret["price"],
+                    "broken": self._broken_for(out, ret)}
+        return None
 
     def _nearest(self) -> list[dict]:
         return sorted((i for i in self.found if len(i["broken"]) == 1), key=lambda i: i["price"])[:2]
@@ -533,7 +730,10 @@ class Harness:
     def before_model(self) -> None:
         if self.stop_reason:
             raise StopRun
-        if self.model_calls >= BUDGET:
+        if self.started_at and (time.monotonic() - self.started_at) > TURN_TIMEOUT_SECONDS:
+            self.stop("timeout")
+            raise StopRun
+        if self.model_calls >= BUDGET or self.tokens_used >= TOKEN_BUDGET:
             self.stop("budget")
             raise StopRun
         self.model_calls += 1
@@ -587,6 +787,12 @@ class Harness:
             except BackendError as e:
                 result = self.backend_error(e)
         self.trace.append({"tool": tool, "args": args, "status": result["status"]})
+        if result["status"] in ("ok", "pending_approval"):
+            self.failed_steps = 0
+        else:
+            self.failed_steps += 1
+            if self.failed_steps >= STALL_LIMIT:
+                self.stop("stall")
         if self.on_step:
             self.on_step(self.trace[-1])
         return result
@@ -618,6 +824,13 @@ class Harness:
             return False
         out = journeys[0]["segments"]
         back = journeys[1]["segments"] if len(journeys) == 2 else None
+        j0, j1 = journeys[0], (journeys[1] if len(journeys) == 2 else None)
+        air0 = j0.get("airlineCode") or (self.constraints.airline if self.constraints else None)
+        air1 = (j1.get("airlineCode") or air0) if j1 else air0
+        airline = air0 if air1 == air0 else f"{air0}+{air1}"
+        stops = max(len(out) - 1, (len(back) - 1) if back else 0)
+        refundable = bool(j0.get("refundable", True)) and (bool(j1.get("refundable", True)) if j1 else True)
+        changeable = bool(j0.get("changeable", True)) and (bool(j1.get("changeable", True)) if j1 else True)
         return (detail.get("status") == "PENDING_PAYMENT"
                 and _people(detail.get("passengers") or []) == _people(proposal.body["passengers"])
                 and detail.get("totalAmount") == proposal.total
@@ -626,16 +839,23 @@ class Harness:
                 and self.constraints.is_ok(out[0]["departureAirport"], out[-1]["arrivalAirport"],
                                            out[0]["departureTime"], detail["totalAmount"],
                                            back and (back[0]["departureAirport"], back[-1]["arrivalAirport"],
-                                                     back[0]["departureTime"])))
+                                                     back[0]["departureTime"]),
+                                           airline=airline, stops=stops,
+                                           refundable=refundable, changeable=changeable))
 
     # ---- 4. BÀN GIAO: đủ để khách nắm tình hình trong 30 giây
     def handoff(self) -> dict:
         done = [self.constraints.to_prompt()] if self.constraints else []
-        done.append(f"Đã tạo booking {self.held_code} nhưng đọc lại không khớp." if self.held_code
-                    else "Chưa giữ chỗ, chưa trừ tiền.")
+        if self.cancel_code:
+            done.append(f"Chưa huỷ được đặt chỗ {self.cancel_code}.")
+        elif self.held_code:
+            done.append(f"Đã tạo booking {self.held_code} nhưng đọc lại không khớp.")
+        else:
+            done.append("Chưa giữ chỗ, chưa trừ tiền.")
         last = self.trace[-1]["tool"] if self.trace else "-"
-        retry = "Bạn muốn thử lại hay tự đặt trên /flights?"
         c = self.constraints
+        url = flights_url(c)
+        retry = f"Bạn muốn thử lại hay tự đặt trên {url}?"
         if near := self._nearest():
             n = near[0]
             legs = ", về ".join(f"{j['flights']} lúc {_when(j['depart'])}" for j in _journeys(n))
@@ -649,14 +869,18 @@ class Harness:
         questions = {
             "no_match": no_match,
             "budget": f"Trợ lý đã dùng hết {BUDGET} lần gọi mô hình cho lượt này. {retry}",
+            "timeout": f"Lượt xử lý đã quá thời gian chờ ({int(TURN_TIMEOUT_SECONDS)} giây). {retry}",
             "loop": f"Trợ lý lặp lại {last} mà không tiến triển. {retry}",
+            "stall": f"Trợ lý gặp lỗi liên tiếp qua {STALL_LIMIT} bước mà chưa xử lý được yêu cầu. {retry}",
             "infra": "Mô hình AI đang quá tải hoặc không phản hồi. Bạn thử lại sau ít phút nhé?",
             "unauthenticated": "Phiên đăng nhập đã hết hạn. Bạn đăng nhập lại rồi thử tiếp nhé?",
             "forbidden": "Trợ lý chỉ dùng cho tài khoản khách hàng. Bạn đăng nhập bằng tài khoản khách hàng nhé?",
             "international": "Hành trình quốc tế cần khai hộ chiếu, trợ lý chưa hỗ trợ. "
-                             "Bạn đặt chuyến này trên /flights nhé?",
+                             f"Bạn đặt chuyến này trên {url} nhé?",
             "hold_mismatch": f"Booking {self.held_code} đọc lại không khớp với thẻ đã duyệt. "
                              f"Bạn kiểm tra ở /bookings/{self.held_code} nhé?",
+            "cancel_failed": f"Không huỷ được đặt chỗ {self.cancel_code}. "
+                             f"Bạn kiểm tra và tự huỷ ở /bookings/{self.cancel_code} nhé?",
         }
         return {"type": "handoff", "doneSoFar": done,
                 "tried": [f"{t['tool']}({json.dumps(t['args'], ensure_ascii=False)}) → {t['status']}"

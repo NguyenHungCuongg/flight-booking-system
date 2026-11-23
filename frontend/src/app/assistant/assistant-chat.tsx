@@ -26,7 +26,9 @@ function proposalIds(entries: Entry[]) {
   return entries.flatMap((e) =>
     e.from === "agent"
       ? e.turn.cards.flatMap((c) =>
-          c.type === "proposal" ? [c.proposalId] : [],
+          c.type === "proposal" || c.type === "cancel_proposal"
+            ? [c.proposalId]
+            : [],
         )
       : [],
   );
@@ -90,6 +92,16 @@ function ConstraintsCard({
             ? `Tối đa ${vnd(card.maxPrice)}`
             : "Giá: không giới hạn"}
         </li>
+        {card.departAfter && (
+          <li className={chip}>{`Từ ${card.departAfter}`}</li>
+        )}
+        {card.cabin && card.cabin !== "ECONOMY" && (
+          <li className={chip}>{`Hạng ${card.cabin}`}</li>
+        )}
+        {card.airline && <li className={chip}>{`Hãng ${card.airline}`}</li>}
+        {card.nonstop && <li className={chip}>Bay thẳng</li>}
+        {card.refundable && <li className={chip}>Hoàn được</li>}
+        {card.changeable && <li className={chip}>Đổi được</li>}
       </ul>
     </div>
   );
@@ -221,10 +233,62 @@ function CardView(props: {
           </Link>
         </div>
       );
+    case "cancel_proposal":
+      return (
+        <div className="grid gap-12 card-hi p-16">
+          <p className="text-caption font-semibold text-muted">
+            Duyệt huỷ giữ chỗ
+          </p>
+          <p className="font-semibold">{`Đặt chỗ ${card.code} (${vnd(card.totalAmount)})`}</p>
+          {card.routes.length > 0 && (
+            <ul className="grid gap-4 text-caption">
+              {card.routes.map((r, i) => (
+                <li key={i}>{r}</li>
+              ))}
+            </ul>
+          )}
+          {props.open && (
+            <div className="flex flex-wrap gap-8">
+              <button
+                type="button"
+                className={pillPrimary}
+                disabled={props.busy}
+                onClick={props.onHold}
+              >
+                Huỷ giữ chỗ
+              </button>
+              <button
+                type="button"
+                className={pillLine}
+                disabled={props.busy}
+                onClick={props.onEdit}
+              >
+                Đóng
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    case "cancelled":
+      return (
+        <div className="grid gap-12 card p-16">
+          <p className="font-semibold">{`Đã huỷ giữ chỗ ${card.code}.`}</p>
+        </div>
+      );
     case "handoff":
       return (
         <div className="grid gap-8 card p-16">
-          <p className="font-semibold">{card.question}</p>
+          <p className="font-semibold">
+            {replyParts(card.question).map((part, k) =>
+              typeof part === "string" ? (
+                part
+              ) : (
+                <Link key={k} href={part.href} className={textLink}>
+                  {part.href}
+                </Link>
+              ),
+            )}
+          </p>
           <details className="text-caption text-muted">
             <summary className="cursor-pointer">Đã làm và đã thử</summary>
             <ul className="mt-8 grid gap-4">
@@ -246,6 +310,7 @@ function CardView(props: {
 /** Trang /assistant: chat với trợ lý. Thẻ duyệt chỉ giữ chỗ khi khách bấm "Giữ chỗ"; thanh toán vẫn ở C-09. */
 export default function AssistantChat() {
   const chatId = useRef<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -256,6 +321,22 @@ export default function AssistantChat() {
   const [closed, setClosed] = useState<ReadonlySet<string>>(new Set());
 
   const latest = proposalIds(entries).at(-1);
+
+  function stopStream() {
+    abortRef.current?.abort();
+    abortRef.current = null;
+  }
+
+  function resetChat() {
+    stopStream();
+    sessionStorage.removeItem(CHAT_KEY);
+    chatId.current = null;
+    setEntries([]);
+    setSteps([]);
+    setClosed(new Set());
+    setError(null);
+    setBusy(false);
+  }
 
   // Đọc sessionStorage sau khi hydrate. Thẻ duyệt không phải đề xuất còn hiệu lực thì dựng lại không có nút.
   useEffect(() => {
@@ -295,10 +376,12 @@ export default function AssistantChat() {
       const turn = await work();
       if (turn) setEntries((list) => [...list, { from: "agent", turn }]);
     } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
       setError(
         e instanceof AgentError ? e.message : "Đã có lỗi xảy ra. Hãy thử lại.",
       );
     } finally {
+      abortRef.current = null;
       // Cùng nhịp với setEntries: các bước tạm không hiện cùng trace của lượt.
       setSteps([]);
       setBusy(false);
@@ -312,6 +395,8 @@ export default function AssistantChat() {
     setText("");
     setEntries((list) => [...list, { from: "user", text: message }]);
     const onStep = (s: Step) => setSteps((list) => [...list, s]);
+    const controller = new AbortController();
+    abortRef.current = controller;
     void run(async () => {
       const id = chatId.current ?? (await newChat());
       try {
@@ -319,6 +404,7 @@ export default function AssistantChat() {
           `/chats/${id}/messages`,
           { text: message },
           onStep,
+          controller.signal,
         );
       } catch (e) {
         // Service khởi động lại thì chat cũ mất: tạo chat mới và gửi lại một lần.
@@ -328,6 +414,7 @@ export default function AssistantChat() {
           `/chats/${fresh}/messages`,
           { text: message },
           onStep,
+          controller.signal,
         );
       }
     });
@@ -361,7 +448,18 @@ export default function AssistantChat() {
     <div className="min-h-dvh">
       <SiteHeader />
       <main className="mx-auto grid max-w-page gap-28 px-16 pt-16 pb-80 sm:px-38">
-        <h1 className="text-heading-lg font-bold">Trợ lý đặt vé</h1>
+        <div className="flex flex-wrap items-center justify-between gap-12">
+          <h1 className="text-heading-lg font-bold">Trợ lý đặt vé</h1>
+          {entries.length > 0 && (
+            <button
+              type="button"
+              className={pillLine}
+              onClick={resetChat}
+            >
+              Cuộc trò chuyện mới
+            </button>
+          )}
+        </div>
         {entries.length === 0 && (
           <p className="text-muted">
             Gõ yêu cầu bằng lời, ví dụ “Đặt giúp mình 1 vé SGN đi Đà Nẵng thứ 6
@@ -384,7 +482,10 @@ export default function AssistantChat() {
                 {/* Thẻ "Đã giữ chỗ" và thẻ bàn giao đã nói đúng câu trả lời, không lặp lại. */}
                 {entry.turn.reply &&
                   !entry.turn.cards.some(
-                    (c) => c.type === "held" || c.type === "handoff",
+                    (c) =>
+                      c.type === "held" ||
+                      c.type === "cancelled" ||
+                      c.type === "handoff",
                   ) && (
                     <p className="whitespace-pre-line">
                       {replyParts(entry.turn.reply).map((part, k) =>
@@ -406,16 +507,21 @@ export default function AssistantChat() {
                     key={j}
                     card={card}
                     open={
-                      card.type === "proposal" &&
+                      (card.type === "proposal" ||
+                        card.type === "cancel_proposal") &&
                       card.proposalId === latest &&
                       !closed.has(card.proposalId)
                     }
                     busy={busy}
                     onHold={() =>
-                      card.type === "proposal" && hold(card.proposalId)
+                      (card.type === "proposal" ||
+                        card.type === "cancel_proposal") &&
+                      hold(card.proposalId)
                     }
                     onEdit={() =>
-                      card.type === "proposal" && edit(card.proposalId)
+                      (card.type === "proposal" ||
+                        card.type === "cancel_proposal") &&
+                      edit(card.proposalId)
                     }
                   />
                 ))}
@@ -444,13 +550,23 @@ export default function AssistantChat() {
             placeholder="Nhắn cho trợ lý…"
             className="min-h-40 min-w-0 flex-1 rounded-inner border border-line-strong bg-surface px-14 py-8 transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_var(--color-accent-soft)] focus:outline-none"
           />
-          <button
-            type="submit"
-            className={pillPrimary}
-            disabled={busy || !text.trim()}
-          >
-            Gửi
-          </button>
+          {busy && abortRef.current ? (
+            <button
+              type="button"
+              className={pillLine}
+              onClick={stopStream}
+            >
+              Dừng
+            </button>
+          ) : (
+            <button
+              type="submit"
+              className={pillPrimary}
+              disabled={busy || !text.trim()}
+            >
+              Gửi
+            </button>
+          )}
         </form>
       </main>
     </div>

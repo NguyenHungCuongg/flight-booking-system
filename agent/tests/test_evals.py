@@ -67,7 +67,7 @@ def test_cases_are_well_formed():
     assert len(CASES) >= 15 and len({c.name for c in CASES}) == len(CASES)
     for c in CASES:
         ends = (c.end,) if isinstance(c.end, str) else c.end
-        assert c.turns and set(ends) <= {"proposal", "reply", "no_match", "international"}, c.name
+        assert c.turns and set(ends) <= {"proposal", "cancel_proposal", "reply", "no_match", "international"}, c.name
         assert ("proposal" in ends) == (c.flight_ids is not None), c.name
         if "proposal" in ends and any(AN in t for t in c.turns):     # có đủ thông tin hành khách thì phải chấm
             assert AN_PAX in (c.passengers or []), c.name
@@ -236,3 +236,13 @@ def test_citing_a_document_that_does_not_exist_fails():
     r = run_case(policy_case(abstain=True), bad)
     assert not r["passed"] and any("cites" in f for f in r["failures"])
     assert run_case(policy_case(abstain=True), ok)["passed"]
+
+
+def test_cancel_proposal_is_graded_without_crashing():
+    from tests.fakes import booking
+    held = booking("K7M2QX", "PENDING_PAYMENT", hold_expires="2026-10-26T15:40:00+07:00")
+    case = Case(name="huy", group="tra cứu", turns=["Huỷ đơn K7M2QX"], end="cancel_proposal",
+                calls=["propose_cancel"], backend={"bookings": [held]})
+    m = scripted(call("propose_cancel", code="K7M2QX"), AIMessage("Bấm Huỷ giữ chỗ nhé."))
+    assert run_case(case, m)["passed"]
+

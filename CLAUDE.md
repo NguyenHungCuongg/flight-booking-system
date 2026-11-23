@@ -16,6 +16,8 @@ Design docs in `docs/` are the source of truth; read the relevant one before imp
 
 Agentic AI knowledge lives in `docs/ref/`, the course notes, one file per "Buổi N": agent loop, ReAct, stop conditions and agent debugging (Buổi 3); prompt/context engineering, structured output and tool calling (Buổi 2); skills (Buổi 4); RAG: chunking, embeddings, hybrid search, reranking, grounding (Buổi 6); memory, context compaction and prompt caching (Buổi 7); overview of chatbot vs RAG vs workflow vs agent (Buổi 1). Read the matching session before designing or changing the booking agent (`agent/`) or answering an Agentic AI question; the agent roadmaps cite these notes as "Buổi N".
 
+Course report (chapters 1–4, one Markdown file per chapter): `report/`. Before writing or editing it, read `report/AGENTS.md` (rules, sources per chapter, course methods from the slides in `docs/ref/software/`).
+
 Docs, code comments and user-facing error messages are in Vietnamese; keep new ones in Vietnamese too.
 
 Roadmap workflow (`docs/superpowers/plans/2026-10-09-00-roadmap.md`): the work is split into 21 plans, and each plan's detailed file is written right before it is implemented, using the real class/API names that earlier plans created. When a plan is finished, tick its "Xong" column (§2) and add its APIs to the contract table (§6).

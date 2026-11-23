@@ -47,3 +47,11 @@ def test_unreachable_backend_is_a_network_error():
     with pytest.raises(BackendError) as e:
         Backend("http://be", "", None, httpx.MockTransport(down)).get("/api/me")
     assert (e.value.status, e.value.code) == (0, "NETWORK")
+
+
+def test_post_with_no_body_and_204_response_returns_empty_dict():
+    def no_content(request):
+        return httpx.Response(204)
+    b = Backend("http://be", "JSESSIONID=s1", "t", httpx.MockTransport(no_content))
+    assert b.post("/api/bookings/K7M2QX/cancel") == {}
+

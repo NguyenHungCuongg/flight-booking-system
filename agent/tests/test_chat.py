@@ -262,3 +262,139 @@ def test_chat_belongs_to_its_session():
     assert chats.get(chat.id, "s1") is chat
     assert chats.get(chat.id, "s2") is None
     assert chats.get("nope", "s1") is None
+
+
+def test_runtime_guardrail_strips_markdown_fixes_unread_citations_and_blocks_false_hold_claims():
+    fake = FakeBackend()
+    chat = Chats().create("s1")
+    out = turn(chat, scripted(
+        call("set_constraints", **ROUTE),
+        call("search_flights"),
+        AIMessage(content="Mình **đã giữ chỗ thành công** chuyến `VN122` theo /chinh-sach/hoan-doi-hanh-ly#muc-bia!")
+    ), "Đặt vé", fake.backend(), TODAY)
+    assert "**" not in out["reply"] and "`" not in out["reply"]
+    assert "/chinh-sach/hoan-doi-hanh-ly#muc-bia" not in out["reply"]
+    assert "/chinh-sach/dieu-khoan" in out["reply"]
+    assert "Hệ thống chưa giữ chỗ" in out["reply"]
+    assert "hoan-doi-hanh-ly#muc-bia" in chat.harness.bad_citations
+
+
+def test_old_tool_messages_are_compacted_on_next_turn():
+    from flight_agent.react import compact_history
+    from langchain_core.messages import HumanMessage, ToolMessage
+    t1_tool = ToolMessage(content="x" * 1000, tool_call_id="call-1", name="search_flights")
+    t2_tool = ToolMessage(content="y" * 1000, tool_call_id="call-2", name="search_flights")
+    # Messages from the immediately preceding turn (after the last HumanMessage) stay intact for Turn 2;
+    # messages from older turns (before the last HumanMessage) are compacted.
+    compacted = compact_history([HumanMessage("turn 1"), t1_tool, HumanMessage("turn 2"), t2_tool])
+    assert compacted[1].tool_call_id == "call-1" and len(compacted[1].content) < 100
+    assert compacted[3].tool_call_id == "call-2" and len(compacted[3].content) == 1000
+
+
+def test_token_usage_from_model_response_is_accumulated_in_run_turn():
+    fake = FakeBackend()
+    chat = Chats().create("s1")
+    msg1 = call("set_constraints", **ROUTE)
+    msg1.usage_metadata = {"input_tokens": 100, "output_tokens": 50, "total_tokens": 150}
+    msg2 = AIMessage(content="Xong.", usage_metadata={"input_tokens": 200, "output_tokens": 50, "total_tokens": 250})
+    turn(chat, scripted(msg1, msg2), "Đặt vé", fake.backend(), TODAY)
+    assert chat.harness.tokens_used == 400
+
+
+def test_read_back_violating_airline_or_nonstop_constraint_hands_off():
+    fake = FakeBackend(journeys_patch=lambda js: [{**js[0], "airlineCode": "VJ"}])
+    chat, model, out = proposed(fake, route={**ROUTE, "airline": "VN"})
+    result = approve(chat, model, out["cards"][-1]["proposalId"], fake.backend(), TODAY)
+    assert [c["type"] for c in result["cards"]] == ["handoff"]
+
+
+def test_failed_cancel_approval_reports_cancel_failure_not_created_booking():
+    from tests.fakes import booking
+    held = booking("K7M2QX", "PENDING_PAYMENT", hold_expires="2026-10-26T15:40:00+07:00")
+    fake = FakeBackend(bookings=[held])
+    chat = Chats().create("s1")
+    out = turn(chat, scripted(call("propose_cancel", code="K7M2QX"), AIMessage(content="Duyệt huỷ nhé.")),
+               "Huỷ K7M2QX", fake.backend(), TODAY)
+    pid = out["cards"][-1]["proposalId"]
+    # Booking expired before user clicked approve
+    fake.bookings["K7M2QX"]["status"] = "EXPIRED"
+    res = approve(chat, scripted(), pid, fake.backend(), TODAY)
+    card = res["cards"][0]
+    assert card["type"] == "handoff"
+    assert "Đã tạo booking" not in " ".join(card["doneSoFar"])
+    assert "Không huỷ được đặt chỗ K7M2QX" in card["question"]
+
+
+def test_in_memory_chat_cache_respects_ttl_and_max_chats():
+    store = Chats()
+    chat = store.create("s1")
+    chat.updated_at -= 90_000.0
+    assert store.get(chat.id, "s1") is None
+
+
+
+def test_structured_trace_log_omits_pii_arguments():
+    from flight_agent.chat import log_turn
+    fake = FakeBackend()
+    chat, _, _ = proposed(fake)
+    entry = log_turn(chat.id, "turn", chat.harness, 42)
+    assert entry["chat_id"] == chat.id and entry["action"] == "turn" and entry["latency_ms"] == 42
+    assert entry["steps"][-1] == {"tool": "propose_hold", "status": "pending_approval"}
+    assert "Nguyễn Hùng Cường" not in str(entry) and "2004-03-12" not in str(entry)
+
+
+def test_approving_cancel_proposal_cancels_and_verifies_status():
+    from tests.fakes import booking
+    held = booking("K7M2QX", "PENDING_PAYMENT", hold_expires="2026-10-26T15:40:00+07:00")
+    fake = FakeBackend(bookings=[held])
+    chat = Chats().create("s1")
+    out = turn(chat, scripted(call("propose_cancel", code="K7M2QX"),
+                              AIMessage(content="Bấm Huỷ giữ chỗ để xác nhận nhé.")),
+               "Huỷ đơn K7M2QX", fake.backend(), TODAY)
+    pid = out["cards"][-1]["proposalId"]
+    res = approve(chat, scripted(), pid, fake.backend(), TODAY)
+    assert res["cards"] == [{"type": "cancelled", "code": "K7M2QX"}]
+    assert fake.bookings["K7M2QX"]["status"] == "CANCELLED"
+
+
+def test_chat_and_live_proposal_survive_service_restart_via_sqlite(tmp_path):
+    db = tmp_path / "chats.sqlite3"
+    fake = FakeBackend()
+    store1 = Chats(db)
+    chat1 = store1.create("s1")
+    chat1.shown.append({"from": "user", "text": "Đặt vé"})
+    out = turn(
+        chat1,
+        scripted(
+            call("set_constraints", **ROUTE),
+            call("search_flights"),
+            call("propose_hold", flight_ids=[122], fare_family_id=1, passengers=[PAX]),
+            AIMessage(content="Bấm Giữ chỗ nhé."),
+        ),
+        "Đặt vé",
+        fake.backend(),
+        TODAY,
+        store=store1,
+    )
+    chat1.shown.append({"from": "agent", "turn": out})
+    store1.save(chat1)
+    pid = out["cards"][-1]["proposalId"]
+
+    store2 = Chats(db)
+    chat2 = store2.get(chat1.id, "s1")
+    assert chat2 is not None and len(chat2.shown) == 2
+    assert chat2.harness.proposal is not None and chat2.harness.proposal.id == pid
+    res = approve(chat2, scripted(), pid, fake.backend(), TODAY, store=store2)
+    assert res["cards"][0]["type"] == "held"
+
+
+def test_expired_proposal_cannot_be_approved():
+    fake = FakeBackend()
+    chat, model, out = proposed(fake)
+    chat.harness.proposal.created_at -= 1000.0
+    with pytest.raises(LookupError):
+        approve(chat, model, out["cards"][-1]["proposalId"], fake.backend(), TODAY)
+
+
+
+

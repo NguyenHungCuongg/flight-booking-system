@@ -13,14 +13,20 @@ export type Segment = {
 export type PassengerType = "ADULT" | "CHILD" | "INFANT";
 
 export type Card =
-  | {
+    | {
       type: "constraints";
       origin: string;
       destination: string;
       date: string;
       returnDate: string | null;
       departBefore: string | null;
+      departAfter?: string | null;
       maxPrice: number | null;
+      cabin?: string;
+      airline?: string | null;
+      nonstop?: boolean;
+      refundable?: boolean;
+      changeable?: boolean;
       adults: number;
       children: number;
       infants: number;
@@ -52,6 +58,14 @@ export type Card =
       totalAmount: number;
     }
   | { type: "held"; code: string; holdExpiresAt: string; totalAmount: number }
+  | {
+      type: "cancel_proposal";
+      proposalId: string;
+      code: string;
+      routes: string[];
+      totalAmount: number;
+    }
+  | { type: "cancelled"; code: string }
   | { type: "handoff"; doneSoFar: string[]; tried: string[]; question: string };
 
 export type Turn = {
@@ -99,14 +113,22 @@ export async function agentStream(
   path: string,
   body: unknown,
   onStep: (step: Step) => void,
+  signal?: AbortSignal,
 ): Promise<Turn> {
-  const res = await agentResponse("POST", path, await postHeaders(body), body);
+  const res = await agentResponse(
+    "POST",
+    path,
+    await postHeaders(body),
+    body,
+    signal,
+  );
   try {
     for await (const event of sseEvents(res.body!)) {
       if (event.type === "turn") return event.turn;
       onStep({ tool: event.tool, args: event.args, status: event.status });
     }
-  } catch {
+  } catch (e) {
+    if (signal?.aborted) throw e;
     // mất kết nối giữa chừng: báo như stream đóng sớm
   }
   throw new AgentError(0, DOWN);
@@ -135,7 +157,7 @@ export async function* sseEvents(
 
 // Đường dẫn nội bộ trong câu trả lời (nguồn trích dẫn, trang tự thao tác); dấu câu cuối câu không thuộc link.
 const INTERNAL_LINK =
-  /(\/(?:chinh-sach|flights|bookings)\b(?:[/#][A-Za-z0-9-]+)*)/;
+  /(\/(?:chinh-sach|flights|bookings)\b(?:\/[A-Za-z0-9_-]+)*(?:\?[A-Za-z0-9_=&-]+)?(?:#[A-Za-z0-9_-]+)?)/;
 
 /** Câu trả lời là văn bản thuần: tách các đường dẫn nội bộ ra để hiện thành link. */
 export function replyParts(text: string): (string | { href: string })[] {
@@ -167,6 +189,7 @@ async function agentResponse(
   path: string,
   headers: Headers,
   body?: unknown,
+  signal?: AbortSignal,
 ): Promise<Response> {
   let res: Response;
   try {
@@ -175,8 +198,10 @@ async function agentResponse(
       headers,
       credentials: "same-origin",
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal,
     });
-  } catch {
+  } catch (e) {
+    if (signal?.aborted) throw e;
     throw new AgentError(0, DOWN);
   }
   if (res.ok) return res;

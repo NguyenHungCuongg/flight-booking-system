@@ -17,4 +17,15 @@ test("replyParts tách đường dẫn nội bộ, bỏ dấu câu ở cuối", 
   expect(replyParts("/bookings/K7M2QX/refund/outbound")).toEqual([
     { href: "/bookings/K7M2QX/refund/outbound" },
   ]);
+  expect(
+    replyParts(
+      "Bạn muốn thử lại hay tự đặt trên /flights?from=SGN&to=DAD&date=2026-10-30&adults=2&children=0&infants=0&cabin=ECONOMY?",
+    ),
+  ).toEqual([
+    "Bạn muốn thử lại hay tự đặt trên ",
+    {
+      href: "/flights?from=SGN&to=DAD&date=2026-10-30&adults=2&children=0&infants=0&cabin=ECONOMY",
+    },
+    "?",
+  ]);
 });

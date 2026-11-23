@@ -176,3 +176,33 @@ def test_llm_outage_mid_stream_ends_with_a_handoff():
     ev = events(c.post(f"/agent/chats/{chat}/messages", json={"text": "Đặt vé"}, headers=h))
     assert [e["type"] for e in ev] == ["step", "turn"]
     assert ev[-1]["turn"]["cards"][-1]["type"] == "handoff"
+
+
+def test_rate_limit_blocks_excessive_messages_per_session():
+    app = create_app(model=scripted(*hold_flow() * 3), backend_url="http://be",
+                     transport=FakeBackend().transport, today=lambda: "2026-10-26", rate_limit=2)
+    c = TestClient(app)
+    chat = c.post("/agent/chats", headers={"Cookie": COOKIE}).json()["chatId"]
+    assert c.post(f"/agent/chats/{chat}/messages", json={"text": "1"}, headers={"Cookie": COOKIE}).status_code == 200
+    assert c.post(f"/agent/chats/{chat}/messages", json={"text": "2"}, headers={"Cookie": COOKIE}).status_code == 200
+    r = c.post(f"/agent/chats/{chat}/messages", json={"text": "3"}, headers={"Cookie": COOKIE})
+    assert r.status_code == 429 and "quá nhanh" in r.json()["detail"]
+
+
+def test_app_persists_chat_across_restarts_with_db_path(tmp_path):
+    db = str(tmp_path / "app.sqlite3")
+    fake = FakeBackend()
+    c1 = TestClient(create_app(model=scripted(*hold_flow()), backend_url="http://be",
+                               transport=fake.transport, today=lambda: "2026-10-26", db_path=db))
+    h = {"Cookie": COOKIE, "X-XSRF-TOKEN": "from-header"}
+    chat = c1.post("/agent/chats", headers=h).json()["chatId"]
+    pid = sent(c1, chat, "Đặt vé", h)["cards"][-1]["proposalId"]
+
+    c2 = TestClient(create_app(model=scripted(), backend_url="http://be",
+                               transport=fake.transport, today=lambda: "2026-10-26", db_path=db))
+    view = c2.get(f"/agent/chats/{chat}", headers=h).json()
+    assert view["proposalId"] == pid and len(view["entries"]) == 2
+    held = c2.post(f"/agent/chats/{chat}/proposals/{pid}/approve", headers=h)
+    assert held.status_code == 200 and held.json()["cards"][0]["type"] == "held"
+
+
