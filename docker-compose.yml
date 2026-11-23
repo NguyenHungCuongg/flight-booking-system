@@ -41,6 +41,29 @@ services:
       retries: 12
       start_period: 30s
 
+  agent:
+    build: ./agent
+    env_file:
+      - path: ./agent/.env
+        required: false
+    environment:
+      BACKEND_URL: http://backend:8080
+      AGENT_DB_PATH: /data/chats.sqlite3
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./frontend/content/chinh-sach:/app/frontend/content/chinh-sach:ro
+      - agentdata:/data
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "uv", "run", "--no-dev", "--no-sync", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/openapi.json')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
   frontend:
     build: ./frontend
     ports:
@@ -56,3 +79,4 @@ services:
 
 volumes:
   pgdata:
+  agentdata:
