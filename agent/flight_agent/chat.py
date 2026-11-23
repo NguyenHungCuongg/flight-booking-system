@@ -170,20 +170,17 @@ class Chats:
         ]
 
     def delete(self, chat_id: str, owner: str) -> bool:
-        """Xoá cuộc trò chuyện thuộc chủ sở hữu; đánh dấu deleted để luồng nền không ghi hồi sinh."""
-        with self._db_lock:
+        """Xoá cuộc trò chuyện thuộc chủ sở hữu ngay lập tức (không chờ chat.lock);
+        đặt deleted=True dưới _db_lock để luồng nền gọi save() không ghi hồi sinh."""
+        with self._db_lock, self._conn:
             chat = self._chats.get(chat_id)
-        if chat is not None:
-            if chat.owner != owner:
-                return False
-            with chat.lock, self._db_lock, self._conn:
-                if chat.deleted:
+            if chat is not None:
+                if chat.owner != owner or chat.deleted:
                     return False
                 chat.deleted = True
                 self._chats.pop(chat_id, None)
                 self._conn.execute("DELETE FROM chats WHERE id = ? AND owner = ?", (chat_id, owner))
                 return True
-        with self._db_lock, self._conn:
             cur = self._conn.execute("DELETE FROM chats WHERE id = ? AND owner = ?", (chat_id, owner))
             return cur.rowcount > 0
 

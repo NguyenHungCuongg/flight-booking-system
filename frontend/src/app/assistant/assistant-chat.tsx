@@ -41,6 +41,7 @@ export default function AssistantChat() {
   const router = useRouter();
   const chatId = useRef<string | null>(null);
   const initStarted = useRef(false);
+  const runTokenRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -50,6 +51,8 @@ export default function AssistantChat() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [streaming, setStreaming] = useState(false);
+  const [holding, setHolding] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Các bước tool của lượt đang chạy, nhận dần qua stream.
   const [steps, setSteps] = useState<Step[]>([]);
@@ -82,13 +85,14 @@ export default function AssistantChat() {
     }
   }, [redirectIfExpired]);
 
-  function stopStream() {
+  const stopStream = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
     setStreaming(false);
-  }
+  }, []);
 
-  function resetChat() {
+  const resetChat = useCallback(() => {
+    runTokenRef.current += 1;
     stopStream();
     sessionStorage.removeItem(CHAT_KEY);
     chatId.current = null;
@@ -100,16 +104,29 @@ export default function AssistantChat() {
     setError(null);
     setBusy(false);
     inputRef.current?.focus();
-  }
+  }, [stopStream]);
 
   const run = useCallback(
-    async (work: () => Promise<Turn | void>) => {
+    async (
+      work: (token: number, signal?: AbortSignal) => Promise<Turn | void>,
+      opts?: { abortable?: boolean; streaming?: boolean },
+    ) => {
+      stopStream();
+      const token = ++runTokenRef.current;
+      let controller: AbortController | undefined;
+      if (opts?.abortable) {
+        controller = new AbortController();
+        abortRef.current = controller;
+      }
+      setStreaming(Boolean(opts?.streaming));
       setBusy(true);
       setError(null);
       try {
-        const turn = await work();
+        const turn = await work(token, controller?.signal);
+        if (token !== runTokenRef.current) return;
         if (turn) setEntries((list) => [...list, { from: "agent", turn }]);
       } catch (e) {
+        if (token !== runTokenRef.current) return;
         if (e instanceof DOMException && e.name === "AbortError") return;
         if (redirectIfExpired(e)) return;
         setError(
@@ -118,42 +135,52 @@ export default function AssistantChat() {
             : "Đã có lỗi xảy ra. Hãy thử lại.",
         );
       } finally {
-        abortRef.current = null;
-        setStreaming(false);
-        // Cùng nhịp với setEntries: các bước tạm không hiện cùng trace của lượt.
-        setSteps([]);
-        setBusy(false);
+        if (token === runTokenRef.current) {
+          abortRef.current = null;
+          setStreaming(false);
+          // Cùng nhịp với setEntries: các bước tạm không hiện cùng trace của lượt.
+          setSteps([]);
+          setBusy(false);
+        }
       }
     },
-    [redirectIfExpired],
+    [redirectIfExpired, stopStream],
   );
 
   const openChat = useCallback(
     async (id: string) => {
-      stopStream();
-      chatId.current = id;
-      setActiveId(id);
-      sessionStorage.setItem(CHAT_KEY, id);
-      await run(async () => {
-        try {
-          const view = await agentGet<ChatView>(`/chats/${id}`);
-          setEntries(view.entries);
-          setClosed(
-            new Set(
-              proposalIds(view.entries).filter((p) => p !== view.proposalId),
-            ),
-          );
-        } catch (e) {
-          // Chat đã hết hạn hoặc thuộc tài khoản khác: mở chat trống, không báo lỗi.
-          if (!(e instanceof AgentError && e.status === 404)) throw e;
-          sessionStorage.removeItem(CHAT_KEY);
-          chatId.current = null;
-          setActiveId(null);
-          setEntries([]);
-          setClosed(new Set());
-          setChats((list) => list.filter((c) => c.chatId !== id));
-        }
-      });
+      await run(
+        async (token, signal) => {
+          try {
+            const view = await agentGet<ChatView>(`/chats/${id}`, signal);
+            if (token !== runTokenRef.current) return;
+            chatId.current = id;
+            setActiveId(id);
+            sessionStorage.setItem(CHAT_KEY, id);
+            setEntries(view.entries);
+            setClosed(
+              new Set(
+                proposalIds(view.entries).filter((p) => p !== view.proposalId),
+              ),
+            );
+          } catch (e) {
+            if (token !== runTokenRef.current) return;
+            // Chat đã hết hạn hoặc thuộc tài khoản khác: mở chat trống, không báo lỗi.
+            if (!(e instanceof AgentError && e.status === 404)) throw e;
+            if (sessionStorage.getItem(CHAT_KEY) === id) {
+              sessionStorage.removeItem(CHAT_KEY);
+            }
+            if (chatId.current === id) {
+              chatId.current = null;
+              setActiveId(null);
+              setEntries([]);
+              setClosed(new Set());
+            }
+            setChats((list) => list.filter((c) => c.chatId !== id));
+          }
+        },
+        { abortable: true },
+      );
     },
     [run],
   );
@@ -169,8 +196,15 @@ export default function AssistantChat() {
     }
   }, [openChat, refreshChats]);
 
-  async function newChat() {
-    const { chatId: id } = await agentPost<{ chatId: string }>("/chats");
+  async function newChat(token: number, signal?: AbortSignal) {
+    const { chatId: id } = await agentPost<{ chatId: string }>(
+      "/chats",
+      undefined,
+      signal,
+    );
+    if (token !== runTokenRef.current || signal?.aborted) {
+      throw new DOMException("Aborted", "AbortError");
+    }
     chatId.current = id;
     setActiveId(id);
     sessionStorage.setItem(CHAT_KEY, id);
@@ -183,53 +217,57 @@ export default function AssistantChat() {
     if (!message || busy) return;
     setText("");
     setEntries((list) => [...list, { from: "user", text: message }]);
-    const onStep = (s: Step) => setSteps((list) => [...list, s]);
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setStreaming(true);
-    void run(async () => {
-      const id = chatId.current ?? (await newChat());
-      try {
-        const result = await agentStream(
-          `/chats/${id}/messages`,
-          { text: message },
-          onStep,
-          controller.signal,
-        );
-        void refreshChats();
-        return result;
-      } catch (e) {
-        // Service khởi động lại hoặc chat bị xoá: tạo chat mới và gửi lại một lần.
-        if (!(e instanceof AgentError && e.status === 404)) throw e;
-        const fresh = await newChat();
-        const result = await agentStream(
-          `/chats/${fresh}/messages`,
-          { text: message },
-          onStep,
-          controller.signal,
-        );
-        void refreshChats();
-        return result;
-      }
-    });
+    void run(
+      async (token, signal) => {
+        const onStep = (s: Step) => {
+          if (token === runTokenRef.current) setSteps((list) => [...list, s]);
+        };
+        const id = chatId.current ?? (await newChat(token, signal));
+        try {
+          const result = await agentStream(
+            `/chats/${id}/messages`,
+            { text: message },
+            onStep,
+            signal,
+          );
+          if (token === runTokenRef.current) void refreshChats();
+          return result;
+        } catch (e) {
+          // Service khởi động lại hoặc chat bị xoá: tạo chat mới và gửi lại một lần.
+          if (!(e instanceof AgentError && e.status === 404)) throw e;
+          const fresh = await newChat(token, signal);
+          const result = await agentStream(
+            `/chats/${fresh}/messages`,
+            { text: message },
+            onStep,
+            signal,
+          );
+          if (token === runTokenRef.current) void refreshChats();
+          return result;
+        }
+      },
+      { abortable: true, streaming: true },
+    );
   }
 
   async function deleteChat(id: string) {
-    if (busy) return;
+    if (holding || deletingId === id) return;
+    if (chatId.current === id) resetChat();
+    setDeletingId(id);
     try {
       await agentDelete(`/chats/${id}`);
       setChats((list) => list.filter((c) => c.chatId !== id));
-      if (chatId.current === id) resetChat();
     } catch (e) {
       if (redirectIfExpired(e)) return;
       if (e instanceof AgentError && e.status === 404) {
         setChats((list) => list.filter((c) => c.chatId !== id));
-        if (chatId.current === id) resetChat();
         return;
       }
       setError(
         e instanceof AgentError ? e.message : "Không xoá được cuộc trò chuyện.",
       );
+    } finally {
+      setDeletingId((cur) => (cur === id ? null : cur));
     }
   }
 
@@ -246,14 +284,18 @@ export default function AssistantChat() {
   }
 
   function hold(proposalId: string) {
-    void run(async () => {
+    const id = chatId.current;
+    if (!id) return;
+    setHolding(true);
+    void run(async (token) => {
       try {
         const out = await agentPost<Turn>(
-          `/chats/${chatId.current}/proposals/${proposalId}/approve`,
+          `/chats/${id}/proposals/${proposalId}/approve`,
         );
-        void refreshChats();
+        if (token === runTokenRef.current) void refreshChats();
         return out;
       } finally {
+        setHolding(false);
         close(proposalId);
       }
     });
@@ -268,6 +310,8 @@ export default function AssistantChat() {
           activeId={activeId}
           loading={loadingHistory}
           busy={busy}
+          holding={holding}
+          deletingId={deletingId}
           onSelect={(id) => void openChat(id)}
           onNew={resetChat}
           onDelete={(id) => void deleteChat(id)}

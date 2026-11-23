@@ -247,3 +247,22 @@ def test_delete_chat_endpoint_isolates_owners_and_returns_204():
     assert c.get("/agent/chats", headers={"Cookie": "JSESSIONID=s1"}).json()["chats"] == []
 
 
+def test_delete_chat_during_running_turn_returns_immediately_and_does_not_resurrect():
+    c = client(FakeBackend(search_delay=0.4), *hold_flow())
+    h = {"Cookie": COOKIE}
+    chat = c.post("/agent/chats", headers=h).json()["chatId"]
+    sending = threading.Thread(
+        target=lambda: c.post(f"/agent/chats/{chat}/messages", json={"text": "Đặt vé"}, headers=h)
+    )
+    sending.start()
+    time.sleep(0.08)  # lượt nền đang giữ chat.lock chờ search_flights
+    t0 = time.monotonic()
+    res = c.delete(f"/agent/chats/{chat}", headers=h)
+    elapsed = time.monotonic() - t0
+    sending.join()
+    assert res.status_code == 204
+    assert elapsed < 0.25
+    assert c.get(f"/agent/chats/{chat}", headers=h).status_code == 404
+    assert c.get("/agent/chats", headers=h).json()["chats"] == []
+
+

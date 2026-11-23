@@ -200,7 +200,7 @@ test("Stream đóng mà không có câu trả lời thì báo lỗi", async ({ p
   await expect(
     page.getByText("Trợ lý đang không hoạt động. Hãy thử lại sau."),
   ).toBeVisible();
-  await expect(page.getByText("search_flights({}) → ok")).toHaveCount(0);
+  await expect(page.getByText("Tìm chuyến bay phù hợp")).toHaveCount(0);
   await expect(page.getByRole("textbox")).toBeEnabled();
   await expect(page.getByText("Đặt vé SGN đi Đà Nẵng")).toBeVisible();
 });
@@ -361,5 +361,106 @@ test("Service agent tắt (503 khi nạp lịch sử) vẫn mở trang trống k
   );
   await page.goto("/assistant");
   await expect(page.getByText("Gõ yêu cầu bằng lời")).toBeVisible();
+  await expect(page.getByRole("textbox")).toBeEnabled();
+});
+
+test("Bấm Cuộc trò chuyện mới khi đang mở chat chậm không bị ghi đè dữ liệu cũ", async ({
+  page,
+}) => {
+  const chats = [
+    {
+      chatId: "slow-1",
+      title: "Chat tải chậm",
+      updatedAt: "2026-11-23T18:00:00+07:00",
+    },
+  ];
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/agent/chats", (r) => r.fulfill({ json: { chats } }));
+  await page.route("**/agent/chats/slow-1", async (r) => {
+    await gate;
+    await r.fulfill({ json: VIEW });
+  });
+  await page.goto("/assistant");
+  await page.getByRole("button", { name: /^Chat tải chậm/ }).click();
+  await page.getByRole("button", { name: "Cuộc trò chuyện mới" }).click();
+  release();
+  await page.waitForTimeout(200);
+  await expect(page.getByText("Đổi chuyến sớm hơn")).toHaveCount(0);
+  await expect
+    .poll(() => page.evaluate(() => sessionStorage.getItem("assistant-chat")))
+    .toBeNull();
+});
+
+test("Mở chat lỗi 503 không làm đổi chatId hiện tại hay ghi đè sessionStorage", async ({
+  page,
+}) => {
+  const chats = [
+    {
+      chatId: "abc",
+      title: "Chat đang mở",
+      updatedAt: "2026-11-23T18:05:00+07:00",
+    },
+    {
+      chatId: "bad-1",
+      title: "Chat bị lỗi",
+      updatedAt: "2026-11-23T18:00:00+07:00",
+    },
+  ];
+  await page.addInitScript(remember, "abc");
+  await page.route("**/agent/chats", (r) => r.fulfill({ json: { chats } }));
+  await page.route("**/agent/chats/abc", (r) => r.fulfill({ json: VIEW }));
+  await page.route("**/agent/chats/bad-1", (r) =>
+    r.fulfill({ status: 503, json: { detail: "Down" } }),
+  );
+  await page.goto("/assistant");
+  await expect(page.getByText("Đổi chuyến sớm hơn")).toBeVisible();
+  await page.getByRole("button", { name: /^Chat bị lỗi/ }).click();
+  await expect(
+    page.getByText("Trợ lý đang không hoạt động. Hãy thử lại sau."),
+  ).toBeVisible();
+  await expect(page.getByText("Đổi chuyến sớm hơn")).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => sessionStorage.getItem("assistant-chat")))
+    .toBe("abc");
+});
+
+test("Có thể xoá cuộc trò chuyện đang mở ngay khi đang stream", async ({
+  page,
+}) => {
+  const chats = [
+    {
+      chatId: "abc",
+      title: "Chat đang stream",
+      updatedAt: "2026-11-23T18:05:00+07:00",
+    },
+  ];
+  await page.addInitScript(remember, "abc");
+  await page.route("**/agent/chats", (r) => r.fulfill({ json: { chats } }));
+  await page.route("**/agent/chats/abc", (r) =>
+    r.request().method() === "DELETE"
+      ? r.fulfill({ status: 204 })
+      : r.fulfill({ json: VIEW }),
+  );
+  let releaseStream!: () => void;
+  const holdStream = new Promise<void>((resolve) => {
+    releaseStream = resolve;
+  });
+  await page.route("**/agent/chats/abc/messages", async (r) => {
+    await holdStream;
+    await r.fulfill({ contentType: "text/event-stream", body: sse(STEP) });
+  });
+  await page.goto("/assistant");
+  await expect(page.getByText("Đổi chuyến sớm hơn")).toBeVisible();
+  await page.getByRole("textbox").fill("Tin mới khi đang mở");
+  await page.getByRole("button", { name: "Gửi" }).click();
+  await expect(page.getByRole("button", { name: "Dừng" })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Xoá cuộc trò chuyện Chat đang stream" })
+    .click();
+  releaseStream();
+  await expect(page.getByText("Đổi chuyến sớm hơn")).toHaveCount(0);
   await expect(page.getByRole("textbox")).toBeEnabled();
 });

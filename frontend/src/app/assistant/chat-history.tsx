@@ -11,6 +11,8 @@ export default function ChatHistory({
   activeId,
   loading,
   busy,
+  holding,
+  deletingId,
   onSelect,
   onNew,
   onDelete,
@@ -19,6 +21,8 @@ export default function ChatHistory({
   activeId: string | null;
   loading: boolean;
   busy: boolean;
+  holding: boolean;
+  deletingId: string | null;
   onSelect: (chatId: string) => void;
   onNew: () => void;
   onDelete: (chatId: string) => void;
@@ -91,7 +95,7 @@ export default function ChatHistory({
                   <button
                     type="button"
                     aria-label={`Xoá cuộc trò chuyện ${c.title}`}
-                    disabled={busy}
+                    disabled={holding || deletingId === c.chatId}
                     onClick={() => onDelete(c.chatId)}
                     className="shrink-0 rounded-inner px-8 py-8 text-badge font-semibold text-muted transition-colors hover:text-danger disabled:opacity-60"
                   >

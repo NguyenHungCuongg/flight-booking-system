@@ -92,6 +92,8 @@ def create_app(model=None, backend_url: str | None = None, transport: httpx.Base
     def read_chat(chat_id: str, request: Request):
         chat = chat_of(request, chat_id)
         with chat.lock:     # đang có lượt chạy thì chờ lượt xong
+            if chat.deleted:
+                raise HTTPException(404, "Không tìm thấy cuộc trò chuyện.")
             proposal = chat.harness.proposal
             # Bản sao: FastAPI chuyển sang JSON sau khi đã nhả lock.
             return {"entries": list(chat.shown), "proposalId": proposal.id if proposal else None}
@@ -117,10 +119,14 @@ def create_app(model=None, backend_url: str | None = None, transport: httpx.Base
         def run():
             try:
                 with chat.lock:
+                    if chat.deleted:
+                        return
                     chat.shown.append({"from": "user", "text": message.text})
                     chats.save(chat)
                     out = turn(chat, model, message.text, back, day,
                                on_step=lambda t: events.put({"type": "step", **t}), store=chats)
+                    if chat.deleted:
+                        return
                     chat.shown.append({"from": "agent", "turn": out})
                     chats.save(chat)
                 events.put({"type": "turn", "turn": out})
@@ -144,6 +150,8 @@ def create_app(model=None, backend_url: str | None = None, transport: httpx.Base
     def dismiss_proposal(chat_id: str, proposal_id: str, request: Request):
         chat = chat_of(request, chat_id)
         with chat.lock:
+            if chat.deleted:
+                raise HTTPException(404, "Không tìm thấy cuộc trò chuyện.")
             if chat.harness.proposal and chat.harness.proposal.id == proposal_id:
                 chat.harness.proposal = None
                 chats.save(chat)
@@ -152,6 +160,8 @@ def create_app(model=None, backend_url: str | None = None, transport: httpx.Base
     def approve_proposal(chat_id: str, proposal_id: str, request: Request):
         chat = chat_of(request, chat_id)
         with chat.lock:
+            if chat.deleted:
+                raise HTTPException(404, "Không tìm thấy cuộc trò chuyện.")
             try:
                 out = approve(chat, model, proposal_id, backend(request), today(), store=chats)
             except LookupError:

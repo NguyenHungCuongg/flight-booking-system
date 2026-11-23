@@ -118,12 +118,16 @@ export class AgentError extends Error {
 const DOWN = "Trợ lý đang không hoạt động. Hãy thử lại sau.";
 
 /** POST tới service agent. Gửi X-XSRF-TOKEN như apiFetch: service chỉ chuyển tiếp header này, không tự đọc cookie. */
-export async function agentPost<T>(path: string, body?: unknown): Promise<T> {
-  return agentFetch("POST", path, await postHeaders(body), body);
+export async function agentPost<T>(
+  path: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
+  return agentFetch("POST", path, await postHeaders(body), body, signal);
 }
 
-export function agentGet<T>(path: string): Promise<T> {
-  return agentFetch("GET", path, new Headers());
+export function agentGet<T>(path: string, signal?: AbortSignal): Promise<T> {
+  return agentFetch("GET", path, new Headers(), undefined, signal);
 }
 
 /** DELETE tới service agent (trả 204 No Content). Gửi X-XSRF-TOKEN như các thao tác ghi khác. */
@@ -263,8 +267,9 @@ async function agentFetch<T>(
   path: string,
   headers: Headers,
   body?: unknown,
+  signal?: AbortSignal,
 ): Promise<T> {
-  return (await agentResponse(method, path, headers, body)).json() as T;
+  return (await agentResponse(method, path, headers, body, signal)).json() as T;
 }
 
 async function agentResponse(
