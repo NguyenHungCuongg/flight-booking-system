@@ -311,6 +311,7 @@ function CardView(props: {
 export default function AssistantChat() {
   const chatId = useRef<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -332,10 +333,12 @@ export default function AssistantChat() {
     sessionStorage.removeItem(CHAT_KEY);
     chatId.current = null;
     setEntries([]);
+    setText("");
     setSteps([]);
     setClosed(new Set());
     setError(null);
     setBusy(false);
+    inputRef.current?.focus();
   }
 
   // Đọc sessionStorage sau khi hydrate. Thẻ duyệt không phải đề xuất còn hiệu lực thì dựng lại không có nút.
@@ -541,6 +544,7 @@ export default function AssistantChat() {
             Tin nhắn cho trợ lý
           </label>
           <input
+            ref={inputRef}
             id="assistant-input"
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -561,7 +565,14 @@ export default function AssistantChat() {
           ) : (
             <button
               type="submit"
-              className={pillPrimary}
+              className={
+                busy
+                  ? pillPrimary
+                  : pillPrimary.replace(
+                      "disabled:cursor-wait",
+                      "disabled:cursor-not-allowed",
+                    )
+              }
               disabled={busy || !text.trim()}
             >
               Gửi
