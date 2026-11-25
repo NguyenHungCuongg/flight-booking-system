@@ -72,10 +72,15 @@ const VIEW = {
   proposalId: "p2",
 };
 
-test.beforeEach(async ({ context, baseURL }) => {
+test.beforeEach(async ({ context, baseURL, page }) => {
   await context.addCookies([
     { name: "JSESSIONID", value: "e2e", url: baseURL! },
   ]);
+  await page.route("**/agent/chats", (r) =>
+    r.request().method() === "GET"
+      ? r.fulfill({ json: { chats: [] } })
+      : r.fallback(),
+  );
 });
 
 // Script chạy trước mỗi lần tải trang: chỉ đặt chatId ở lần đầu, sau đó để trang tự quản sessionStorage.
@@ -113,6 +118,8 @@ test("F5 dựng lại chat một lần, chỉ thẻ còn hiệu lực có nút",
   );
   await page.goto("/assistant");
   await expect(page.getByText("Đổi chuyến sớm hơn")).toBeVisible();
+  await expect(page.getByText("Tìm chuyến bay phù hợp")).toBeVisible();
+  await page.getByText("Chi tiết kỹ thuật (1 bước)").click();
   await expect(page.getByText("search_flights({}) → ok")).toBeVisible();
   await expect(page.getByRole("button", { name: "Giữ chỗ" })).toHaveCount(1);
   expect(reads).toBe(1);
@@ -159,7 +166,9 @@ test("404 khi đọc lại thì mở chat trống, không báo lỗi", async ({ 
 
 async function sendWith(page: Page, body: string) {
   await page.route("**/agent/chats", (r) =>
-    r.fulfill({ status: 201, json: { chatId: "new" } }),
+    r.request().method() === "GET"
+      ? r.fulfill({ json: { chats: [] } })
+      : r.fulfill({ status: 201, json: { chatId: "new" } }),
   );
   await page.route("**/agent/chats/new/messages", (r) =>
     r.fulfill({ contentType: "text/event-stream", body }),
@@ -182,7 +191,7 @@ test("Gửi tin: hiện các bước rồi câu trả lời", async ({ page }) =
     }),
   );
   await expect(page.getByText("Bấm Giữ chỗ nhé.")).toBeVisible();
-  await expect(page.getByText("search_flights({}) → ok")).toHaveCount(1);
+  await expect(page.getByText("Tìm chuyến bay phù hợp")).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Giữ chỗ" })).toHaveCount(1);
 });
 
@@ -191,7 +200,7 @@ test("Stream đóng mà không có câu trả lời thì báo lỗi", async ({ p
   await expect(
     page.getByText("Trợ lý đang không hoạt động. Hãy thử lại sau."),
   ).toBeVisible();
-  await expect(page.getByText("search_flights({}) → ok")).toHaveCount(0);
+  await expect(page.getByText("Tìm chuyến bay phù hợp")).toHaveCount(0);
   await expect(page.getByRole("textbox")).toBeEnabled();
   await expect(page.getByText("Đặt vé SGN đi Đà Nẵng")).toBeVisible();
 });
@@ -218,4 +227,240 @@ test("Đường dẫn trong câu trả lời bấm được", async ({ page }) =
     "href",
     link,
   );
+});
+
+test("Cuộc trò chuyện mới xoá khung chat và vẫn gửi được tin mới", async ({
+  page,
+}) => {
+  await page.addInitScript(remember, "abc");
+  await page.route("**/agent/chats/abc", (r) => r.fulfill({ json: VIEW }));
+  await page.route("**/agent/chats", (r) =>
+    r.request().method() === "GET"
+      ? r.fulfill({ json: { chats: [] } })
+      : r.fulfill({ status: 201, json: { chatId: "fresh" } }),
+  );
+  await page.route("**/agent/chats/fresh/messages", (r) =>
+    r.fulfill({
+      contentType: "text/event-stream",
+      body: sse({
+        type: "turn",
+        turn: { reply: "Chào bạn, mình hỗ trợ gì được?", trace: [], cards: [] },
+      }),
+    }),
+  );
+  await page.goto("/assistant");
+  await expect(page.getByText("Đổi chuyến sớm hơn")).toBeVisible();
+  await page.getByRole("button", { name: "Cuộc trò chuyện mới" }).click();
+  await expect(page.getByText("Đổi chuyến sớm hơn")).toHaveCount(0);
+  const input = page.getByRole("textbox");
+  const send = page.getByRole("button", { name: "Gửi" });
+  await expect(input).toBeEnabled();
+  await expect(send).toBeDisabled();
+  await input.fill("Xin chào");
+  await expect(send).toBeEnabled();
+  await send.click();
+  await expect(page.getByText("Chào bạn, mình hỗ trợ gì được?")).toBeVisible();
+});
+
+test("Hiển thị thẻ nguồn hành khách từ đặt chỗ gần đây và thanh ngữ cảnh phiên", async ({
+  page,
+}) => {
+  await page.route("**/agent/chats", (r) =>
+    r.request().method() === "GET"
+      ? r.fulfill({ json: { chats: [] } })
+      : r.fulfill({ status: 201, json: { chatId: "new" } }),
+  );
+  await page.route("**/agent/chats/new/messages", (r) =>
+    r.fulfill({
+      contentType: "text/event-stream",
+      body: sse({
+        type: "turn",
+        turn: {
+          reply: "Mình đã lấy thông tin hành khách từ đơn trước.",
+          trace: [{ tool: "list_recent_passengers", args: {}, status: "ok" }],
+          cards: [
+            {
+              type: "memory_used",
+              source: "recent_bookings",
+              passengers: [
+                {
+                  fullName: "NGUYEN VAN AN",
+                  gender: "MALE",
+                  dateOfBirth: "1998-05-15",
+                  bookingCode: "K7M2QX",
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    }),
+  );
+  await page.goto("/assistant");
+  await page.getByRole("textbox").fill("Đặt cho khách lần trước");
+  await page.getByRole("button", { name: "Gửi" }).click();
+  await expect(
+    page.getByText("Thông tin hành khách từ đặt chỗ gần đây"),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "K7M2QX" })).toHaveAttribute(
+    "href",
+    "/bookings/K7M2QX",
+  );
+  await expect(
+    page.getByText("Tra cứu hành khách từ các đặt chỗ gần đây"),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel("Ngữ cảnh trợ lý đang nắm"),
+  ).toContainText("NGUYEN VAN AN");
+});
+
+test("Lịch sử trò chuyện: mở lại chat cũ và xoá chat đang mở", async ({
+  page,
+}) => {
+  const chats = [
+    {
+      chatId: "old-1",
+      title: "Tìm vé SGN đi Đà Nẵng",
+      updatedAt: "2026-11-23T18:00:00+07:00",
+    },
+  ];
+  await page.route("**/agent/chats", (r) => r.fulfill({ json: { chats } }));
+  await page.route("**/agent/chats/old-1", (r) =>
+    r.request().method() === "DELETE"
+      ? r.fulfill({ status: 204 })
+      : r.fulfill({ json: VIEW }),
+  );
+  await page.goto("/assistant");
+  await page.getByRole("button", { name: /^Tìm vé SGN đi Đà Nẵng/ }).click();
+  await expect(page.getByText("Đổi chuyến sớm hơn")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Xoá cuộc trò chuyện Tìm vé SGN đi Đà Nẵng" })
+    .click();
+  await expect(page.getByText("Đổi chuyến sớm hơn")).toHaveCount(0);
+  await expect(page.getByText("Gõ yêu cầu bằng lời")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /^Tìm vé SGN đi Đà Nẵng/ }),
+  ).toHaveCount(0);
+});
+
+test("Phiên hết hạn (401 từ /agent/chats) chuyển hướng về /login", async ({
+  page,
+}) => {
+  await page.route("**/agent/chats", (r) =>
+    r.fulfill({ status: 401, json: { detail: "Phiên đăng nhập đã hết hạn." } }),
+  );
+  await page.goto("/assistant");
+  await expect(page).toHaveURL(/\/login\?next=%2Fassistant/);
+});
+
+test("Service agent tắt (503 khi nạp lịch sử) vẫn mở trang trống không crash", async ({
+  page,
+}) => {
+  await page.route("**/agent/chats", (r) =>
+    r.fulfill({ status: 503, json: { detail: "Service unavailable" } }),
+  );
+  await page.goto("/assistant");
+  await expect(page.getByText("Gõ yêu cầu bằng lời")).toBeVisible();
+  await expect(page.getByRole("textbox")).toBeEnabled();
+});
+
+test("Bấm Cuộc trò chuyện mới khi đang mở chat chậm không bị ghi đè dữ liệu cũ", async ({
+  page,
+}) => {
+  const chats = [
+    {
+      chatId: "slow-1",
+      title: "Chat tải chậm",
+      updatedAt: "2026-11-23T18:00:00+07:00",
+    },
+  ];
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/agent/chats", (r) => r.fulfill({ json: { chats } }));
+  await page.route("**/agent/chats/slow-1", async (r) => {
+    await gate;
+    await r.fulfill({ json: VIEW });
+  });
+  await page.goto("/assistant");
+  await page.getByRole("button", { name: /^Chat tải chậm/ }).click();
+  await page.getByRole("button", { name: "Cuộc trò chuyện mới" }).click();
+  release();
+  await page.waitForTimeout(200);
+  await expect(page.getByText("Đổi chuyến sớm hơn")).toHaveCount(0);
+  await expect
+    .poll(() => page.evaluate(() => sessionStorage.getItem("assistant-chat")))
+    .toBeNull();
+});
+
+test("Mở chat lỗi 503 không làm đổi chatId hiện tại hay ghi đè sessionStorage", async ({
+  page,
+}) => {
+  const chats = [
+    {
+      chatId: "abc",
+      title: "Chat đang mở",
+      updatedAt: "2026-11-23T18:05:00+07:00",
+    },
+    {
+      chatId: "bad-1",
+      title: "Chat bị lỗi",
+      updatedAt: "2026-11-23T18:00:00+07:00",
+    },
+  ];
+  await page.addInitScript(remember, "abc");
+  await page.route("**/agent/chats", (r) => r.fulfill({ json: { chats } }));
+  await page.route("**/agent/chats/abc", (r) => r.fulfill({ json: VIEW }));
+  await page.route("**/agent/chats/bad-1", (r) =>
+    r.fulfill({ status: 503, json: { detail: "Down" } }),
+  );
+  await page.goto("/assistant");
+  await expect(page.getByText("Đổi chuyến sớm hơn")).toBeVisible();
+  await page.getByRole("button", { name: /^Chat bị lỗi/ }).click();
+  await expect(
+    page.getByText("Trợ lý đang không hoạt động. Hãy thử lại sau."),
+  ).toBeVisible();
+  await expect(page.getByText("Đổi chuyến sớm hơn")).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => sessionStorage.getItem("assistant-chat")))
+    .toBe("abc");
+});
+
+test("Có thể xoá cuộc trò chuyện đang mở ngay khi đang stream", async ({
+  page,
+}) => {
+  const chats = [
+    {
+      chatId: "abc",
+      title: "Chat đang stream",
+      updatedAt: "2026-11-23T18:05:00+07:00",
+    },
+  ];
+  await page.addInitScript(remember, "abc");
+  await page.route("**/agent/chats", (r) => r.fulfill({ json: { chats } }));
+  await page.route("**/agent/chats/abc", (r) =>
+    r.request().method() === "DELETE"
+      ? r.fulfill({ status: 204 })
+      : r.fulfill({ json: VIEW }),
+  );
+  let releaseStream!: () => void;
+  const holdStream = new Promise<void>((resolve) => {
+    releaseStream = resolve;
+  });
+  await page.route("**/agent/chats/abc/messages", async (r) => {
+    await holdStream;
+    await r.fulfill({ contentType: "text/event-stream", body: sse(STEP) });
+  });
+  await page.goto("/assistant");
+  await expect(page.getByText("Đổi chuyến sớm hơn")).toBeVisible();
+  await page.getByRole("textbox").fill("Tin mới khi đang mở");
+  await page.getByRole("button", { name: "Gửi" }).click();
+  await expect(page.getByRole("button", { name: "Dừng" })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Xoá cuộc trò chuyện Chat đang stream" })
+    .click();
+  releaseStream();
+  await expect(page.getByText("Đổi chuyến sớm hơn")).toHaveCount(0);
+  await expect(page.getByRole("textbox")).toBeEnabled();
 });

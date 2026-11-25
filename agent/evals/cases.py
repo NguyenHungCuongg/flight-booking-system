@@ -56,7 +56,12 @@ CLAIMS_HELD = ["đã giữ chỗ chuyến", "đã giữ chỗ cho", "đã giữ 
 LOOKUP = {"bookings": [booking("K7M2QX", "PENDING_PAYMENT", hold_expires="2026-10-26T15:40:00+07:00"),
                        booking("ABC234", journeys=[journey(), journey("RETURN", 610, refundable=False)])],
           "refunds": {("ABC234", "OUTBOUND"): {"journeyValue": 1_850_000, "fee": 300_000, "refundAmount": 1_550_000},
-                      ("ABC234", "RETURN"): (409, "FARE_RULE_NOT_ALLOWED")}}
+                      ("ABC234", "RETURN"): (409, "FARE_RULE_NOT_ALLOWED")},
+          "reschedules": {("ABC234", "OUTBOUND", "2026-10-31"): [
+              {"itinerary": journey("OUTBOUND", 122),
+               "quote": {"oldFareTotal": 1_850_000, "newFareTotal": 2_000_000, "changeFeeTotal": 300_000,
+                         "amountDue": 450_000}}
+          ]}}
 
 CASES: list[Case] = [
     # ---- đường thuận
@@ -159,6 +164,12 @@ CASES: list[Case] = [
          "reply", reply_has=["K7M2QX"], calls=["list_my_bookings"], backend=LOOKUP),
     Case("tra-cua-nguoi-khac", "tra cứu", ["Kiểm tra giúp mình booking ZZZ999"],
          "reply", reply_has=["không tìm thấy"], calls=["get_booking"], backend=LOOKUP),
+    Case("tra-doi-chuyen", "tra cứu", ["Vé ABC234 chiều đi đổi sang ngày 31/10/2026 thì phải bù bao nhiêu tiền?"],
+         "reply", reply_has=["450.000"], calls=["reschedule_options"], backend=LOOKUP),
+    Case("huy-giu-cho", "tra cứu", ["Huỷ giúp mình đặt chỗ K7M2QX"],
+         "cancel_proposal", calls=["propose_cancel"], backend=LOOKUP),
+    Case("loc-hang-vn", "bộ lọc", [f"Đặt vé Vietnam Airlines SGN đi DAD ngày 30/10, bay trước 12h, cho {AN}"],
+         "proposal", R(depart_before="12:00", airline="VN"), [122], [AN_PAX]),
     # ---- hành lý và voucher: VN122 rẻ nhất trước 12h; khứ hồi VN122 + VJ611 cộng 20 kg mỗi chiều = 3.600.000;
     # WELCOME10 giảm VN122 còn 1.665.000; GIAM50 không có trong VOUCHERS của backend giả
     Case("hanh-ly-hoi-gia", "hành lý và voucher", [f"Đặt vé SGN đi DAD ngày 30/10, bay trước 12h, cho {AN}"],
@@ -191,9 +202,9 @@ CASES: list[Case] = [
          "reply", reply_has=["600.000"], calls=["airline_rules"]),
     Case("cs-gia-ky-gui", "chính sách", ["Mua thêm 20kg hành lý ký gửi của Vietjet giá bao nhiêu?"],
          "reply", reply_has=["350.000"], calls=["airline_rules"]),
-    # Trợ lý chỉ đặt gói rẻ nhất: nói rõ giới hạn và mời tự đặt trên /flights; có đề xuất thì phải là gói rẻ nhất
+    # Đặt gói hoàn được (Economy Classic của VN122)
     Case("cs-goi-khac", "chính sách", [f"Đặt vé SGN đi DAD ngày 30/10, bay trước 12h, gói hoàn được, cho {AN}"],
-         ("reply", "proposal"), flight_ids=[122], passengers=[AN_PAX], reply_has=["/flights"]),
+         "proposal", R(depart_before="12:00", refundable=True), flight_ids=[122], passengers=[AN_PAX]),
     Case("cs-khong-biet-thu-cung", "chính sách", ["Mình mang chó cưng lên máy bay được không?"],
          "reply", abstain=True),
     Case("cs-khong-biet-kich-thuoc", "chính sách", ["Hành lý xách tay được phép kích thước tối đa bao nhiêu cm?"],

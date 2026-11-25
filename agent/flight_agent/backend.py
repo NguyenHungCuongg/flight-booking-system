@@ -21,9 +21,10 @@ class Backend:
     def get(self, path: str, params: dict | None = None) -> dict | list:
         return self._send("GET", path, params=params)
 
-    def post(self, path: str, body: dict) -> dict:
+    def post(self, path: str, body: dict | None = None) -> dict:
         headers = {"X-XSRF-TOKEN": self.csrf} if self.csrf is not None else {}
-        return self._send("POST", path, json=body, headers=headers)
+        kw = {"json": body} if body is not None else {}
+        return self._send("POST", path, headers=headers, **kw)
 
     def _send(self, method: str, path: str, headers: dict | None = None, **kwargs):
         try:
@@ -32,7 +33,7 @@ class Backend:
         except httpx.TransportError:
             raise BackendError(0, "NETWORK", "Không kết nối được backend.", [])
         if r.is_success:
-            return r.json()
+            return r.json() if r.content else {}
         try:
             problem = r.json()
         except ValueError:

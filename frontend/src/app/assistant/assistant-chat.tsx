@@ -1,254 +1,58 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import SiteHeader from "@/components/site-header";
 import { Notice, pillLine, pillPrimary, textLink } from "@/components/form";
-import { clock, DIRECTION_LABEL, dmy, PASSENGER_LABEL } from "@/lib/booking";
-import { vnd } from "../flights/itineraries";
 import {
   AgentError,
+  agentDelete,
   agentGet,
   agentPost,
   agentStream,
   replyParts,
-  type Card,
+  type ChatSummary,
   type ChatView,
   type Entry,
   type Step,
   type Turn,
 } from "./agent-api";
+import { ActiveContextBar, CardView, Steps } from "./chat-cards";
+import ChatHistory from "./chat-history";
 
-/** chatId của tab này: F5 thì đọc lại chat, đóng tab thì hết. */
+/** chatId đang mở trong tab này: F5 thì đọc lại đúng cuộc trò chuyện đó. */
 const CHAT_KEY = "assistant-chat";
 
 function proposalIds(entries: Entry[]) {
   return entries.flatMap((e) =>
     e.from === "agent"
       ? e.turn.cards.flatMap((c) =>
-          c.type === "proposal" ? [c.proposalId] : [],
+          c.type === "proposal" || c.type === "cancel_proposal"
+            ? [c.proposalId]
+            : [],
         )
       : [],
   );
 }
 
-const chip =
-  "rounded-inner border border-line bg-surface px-11 py-4 text-caption";
-
-function short(args: Record<string, unknown>) {
-  const text = JSON.stringify(args);
-  return text.length > 80 ? text.slice(0, 79) + "…" : text;
-}
-
-function Steps({ steps, label }: { steps: Step[]; label: string }) {
-  return (
-    <ul
-      aria-label={label}
-      className="grid gap-2 font-mono text-badge text-muted"
-    >
-      {steps.map((t, j) => (
-        <li key={j}>{`${t.tool}(${short(t.args)}) → ${t.status}`}</li>
-      ))}
-    </ul>
-  );
-}
-
-function ConstraintsCard({
-  card,
-}: {
-  card: Extract<Card, { type: "constraints" }>;
-}) {
-  return (
-    <div className="grid gap-8 card p-16">
-      <p className="text-caption font-semibold text-muted">Ràng buộc</p>
-      <ul className="flex flex-wrap gap-8">
-        <li className={chip}>{`${card.origin} → ${card.destination}`}</li>
-        <li className={chip}>
-          {card.returnDate
-            ? `Đi ${dmy(card.date)}, về ${dmy(card.returnDate)}`
-            : dmy(card.date)}
-        </li>
-        <li className={chip}>
-          {(
-            [
-              ["ADULT", card.adults],
-              ["CHILD", card.children],
-              ["INFANT", card.infants],
-            ] as const
-          )
-            .filter(([type, n]) => n > 0 || type === "ADULT")
-            .map(([type, n]) => `${n} ${PASSENGER_LABEL[type].toLowerCase()}`)
-            .join(", ")}
-        </li>
-        <li className={chip}>
-          {card.departBefore
-            ? `${card.returnDate ? "Chiều đi cất cánh" : "Cất cánh"} trước ${card.departBefore}`
-            : "Giờ bay: không giới hạn"}
-        </li>
-        <li className={chip}>
-          {card.maxPrice !== null
-            ? `Tối đa ${vnd(card.maxPrice)}`
-            : "Giá: không giới hạn"}
-        </li>
-      </ul>
-    </div>
-  );
-}
-
-function ProposalCard({
-  card,
-  open,
-  busy,
-  onHold,
-  onEdit,
-}: {
-  card: Extract<Card, { type: "proposal" }>;
-  open: boolean;
-  busy: boolean;
-  onHold: () => void;
-  onEdit: () => void;
-}) {
-  return (
-    <div className="grid gap-12 card-hi p-16">
-      <p className="text-caption font-semibold text-muted">Duyệt giữ chỗ</p>
-      {card.journeys.map((j) => (
-        <section
-          key={j.direction}
-          aria-label={DIRECTION_LABEL[j.direction]}
-          className="grid gap-8"
-        >
-          <p className="font-bold">{DIRECTION_LABEL[j.direction]}</p>
-          <ul className="grid gap-4">
-            {j.segments.map((s) => (
-              <li key={s.flightNumber + s.depart} className="font-semibold">
-                {`${s.flightNumber}: ${s.from} ${clock(s.depart)} → ${s.to} ${clock(s.arrive)}, ${dmy(s.depart)}`}
-              </li>
-            ))}
-          </ul>
-          <dl className="grid gap-4 text-caption sm:grid-cols-[120px_minmax(0,1fr)]">
-            <dt className="text-muted">Gói giá</dt>
-            <dd>{j.fare}</dd>
-            <dt className="text-muted">Giá vé</dt>
-            <dd>
-              <ul className="grid gap-2">
-                {j.fares.map((f) => (
-                  <li key={f.type}>
-                    {`${f.count} ${PASSENGER_LABEL[f.type].toLowerCase()} × ${vnd(f.unitPrice)} = ${vnd(f.total)}`}
-                  </li>
-                ))}
-              </ul>
-            </dd>
-            {j.baggage && (
-              <>
-                <dt className="text-muted">Hành lý ký gửi</dt>
-                <dd>{`${j.baggage.count} kiện ${j.baggage.weightKg} kg = ${vnd(j.baggage.total)}`}</dd>
-              </>
-            )}
-          </dl>
-        </section>
-      ))}
-      <dl className="grid gap-4 text-caption sm:grid-cols-[120px_minmax(0,1fr)]">
-        <dt className="text-muted">Hành khách</dt>
-        <dd>
-          <ul className="grid gap-2">
-            {card.passengers.map((p, i) => (
-              <li key={i}>
-                {`${p.lastName} ${p.firstName}, ${p.gender === "MALE" ? "Nam" : "Nữ"}, ${PASSENGER_LABEL[p.type]}, sinh ${dmy(p.dateOfBirth)}`}
-              </li>
-            ))}
-          </ul>
-        </dd>
-        {card.discount && (
-          <>
-            <dt className="text-muted">Giảm giá</dt>
-            <dd>{`${card.discount.code}: −${vnd(card.discount.amount)}`}</dd>
-          </>
-        )}
-        <dt className="text-muted">Liên hệ</dt>
-        <dd>{`${card.contact.name}, ${card.contact.email}, ${card.contact.phone}`}</dd>
-      </dl>
-      <p className="text-subheading font-bold text-accent">
-        {vnd(card.totalAmount)}
-      </p>
-      {open && (
-        <div className="flex flex-wrap gap-8">
-          <button
-            type="button"
-            className={pillPrimary}
-            disabled={busy}
-            onClick={onHold}
-          >
-            Giữ chỗ
-          </button>
-          <button
-            type="button"
-            className={pillLine}
-            disabled={busy}
-            onClick={onEdit}
-          >
-            Sửa
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CardView(props: {
-  card: Card;
-  open: boolean;
-  busy: boolean;
-  onHold: () => void;
-  onEdit: () => void;
-}) {
-  const { card } = props;
-  switch (card.type) {
-    case "constraints":
-      return <ConstraintsCard card={card} />;
-    case "proposal":
-      return <ProposalCard {...props} card={card} />;
-    case "held":
-      return (
-        <div className="grid gap-12 card p-16">
-          <p className="font-semibold">
-            {`Đã giữ chỗ ${card.code}, hết hạn lúc ${clock(card.holdExpiresAt)} ${dmy(card.holdExpiresAt)}.`}
-          </p>
-          <Link
-            href={`/bookings/${card.code}`}
-            className={`${pillPrimary} justify-self-start`}
-          >
-            Thanh toán VNPay
-          </Link>
-        </div>
-      );
-    case "handoff":
-      return (
-        <div className="grid gap-8 card p-16">
-          <p className="font-semibold">{card.question}</p>
-          <details className="text-caption text-muted">
-            <summary className="cursor-pointer">Đã làm và đã thử</summary>
-            <ul className="mt-8 grid gap-4">
-              {card.doneSoFar.map((line, i) => (
-                <li key={i}>{line}</li>
-              ))}
-            </ul>
-            <ul className="mt-8 grid gap-4 font-mono">
-              {card.tried.map((line, i) => (
-                <li key={i}>{line}</li>
-              ))}
-            </ul>
-          </details>
-        </div>
-      );
-  }
-}
-
-/** Trang /assistant: chat với trợ lý. Thẻ duyệt chỉ giữ chỗ khi khách bấm "Giữ chỗ"; thanh toán vẫn ở C-09. */
+/** Trang /assistant: chat với trợ lý kèm lịch sử trò chuyện và minh bạch ngữ cảnh. Thanh toán vẫn ở C-09. */
 export default function AssistantChat() {
+  const router = useRouter();
   const chatId = useRef<string | null>(null);
+  const initStarted = useRef(false);
+  const runTokenRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [chats, setChats] = useState<ChatSummary[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [streaming, setStreaming] = useState(false);
+  const [holding, setHolding] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Các bước tool của lượt đang chạy, nhận dần qua stream.
   const [steps, setSteps] = useState<Step[]>([]);
@@ -256,53 +60,155 @@ export default function AssistantChat() {
   const [closed, setClosed] = useState<ReadonlySet<string>>(new Set());
 
   const latest = proposalIds(entries).at(-1);
+  const hasOpenProposal = Boolean(latest && !closed.has(latest));
 
-  // Đọc sessionStorage sau khi hydrate. Thẻ duyệt không phải đề xuất còn hiệu lực thì dựng lại không có nút.
-  useEffect(() => {
-    const id = sessionStorage.getItem(CHAT_KEY);
-    // StrictMode chạy effect hai lần: lần hai không đọc lại để khỏi ghi đè tin khách vừa gửi.
-    if (!id || chatId.current) return;
-    chatId.current = id;
-    void run(async () => {
-      try {
-        const view = await agentGet<ChatView>(`/chats/${id}`);
-        setEntries(view.entries);
-        setClosed(
-          new Set(
-            proposalIds(view.entries).filter((p) => p !== view.proposalId),
-          ),
-        );
-      } catch (e) {
-        // Service đã restart hoặc phiên đăng nhập đã đổi: mở chat trống, không báo lỗi.
-        if (!(e instanceof AgentError && e.status === 404)) throw e;
-        sessionStorage.removeItem(CHAT_KEY);
-        chatId.current = null;
+  const redirectIfExpired = useCallback(
+    (e: unknown) => {
+      if (e instanceof AgentError && e.status === 401) {
+        router.replace("/login?next=%2Fassistant");
+        return true;
       }
-    });
+      return false;
+    },
+    [router],
+  );
+
+  const refreshChats = useCallback(async () => {
+    try {
+      const data = await agentGet<{ chats: ChatSummary[] }>("/chats");
+      setChats(data.chats);
+    } catch (e) {
+      if (redirectIfExpired(e)) return;
+      // Service agent tắt hoặc lỗi mạng: giữ danh sách trống, không làm hỏng trang.
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, [redirectIfExpired]);
+
+  const stopStream = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setStreaming(false);
   }, []);
 
-  async function newChat() {
-    const { chatId: id } = await agentPost<{ chatId: string }>("/chats");
+  const resetChat = useCallback(() => {
+    runTokenRef.current += 1;
+    stopStream();
+    sessionStorage.removeItem(CHAT_KEY);
+    chatId.current = null;
+    setActiveId(null);
+    setEntries([]);
+    setText("");
+    setSteps([]);
+    setClosed(new Set());
+    setError(null);
+    setBusy(false);
+    inputRef.current?.focus();
+  }, [stopStream]);
+
+  const run = useCallback(
+    async (
+      work: (token: number, signal?: AbortSignal) => Promise<Turn | void>,
+      opts?: { abortable?: boolean; streaming?: boolean },
+    ) => {
+      stopStream();
+      const token = ++runTokenRef.current;
+      let controller: AbortController | undefined;
+      if (opts?.abortable) {
+        controller = new AbortController();
+        abortRef.current = controller;
+      }
+      setStreaming(Boolean(opts?.streaming));
+      setBusy(true);
+      setError(null);
+      try {
+        const turn = await work(token, controller?.signal);
+        if (token !== runTokenRef.current) return;
+        if (turn) setEntries((list) => [...list, { from: "agent", turn }]);
+      } catch (e) {
+        if (token !== runTokenRef.current) return;
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        if (redirectIfExpired(e)) return;
+        setError(
+          e instanceof AgentError
+            ? e.message
+            : "Đã có lỗi xảy ra. Hãy thử lại.",
+        );
+      } finally {
+        if (token === runTokenRef.current) {
+          abortRef.current = null;
+          setStreaming(false);
+          // Cùng nhịp với setEntries: các bước tạm không hiện cùng trace của lượt.
+          setSteps([]);
+          setBusy(false);
+        }
+      }
+    },
+    [redirectIfExpired, stopStream],
+  );
+
+  const openChat = useCallback(
+    async (id: string) => {
+      await run(
+        async (token, signal) => {
+          try {
+            const view = await agentGet<ChatView>(`/chats/${id}`, signal);
+            if (token !== runTokenRef.current) return;
+            chatId.current = id;
+            setActiveId(id);
+            sessionStorage.setItem(CHAT_KEY, id);
+            setEntries(view.entries);
+            setClosed(
+              new Set(
+                proposalIds(view.entries).filter((p) => p !== view.proposalId),
+              ),
+            );
+          } catch (e) {
+            if (token !== runTokenRef.current) return;
+            // Chat đã hết hạn hoặc thuộc tài khoản khác: mở chat trống, không báo lỗi.
+            if (!(e instanceof AgentError && e.status === 404)) throw e;
+            if (sessionStorage.getItem(CHAT_KEY) === id) {
+              sessionStorage.removeItem(CHAT_KEY);
+            }
+            if (chatId.current === id) {
+              chatId.current = null;
+              setActiveId(null);
+              setEntries([]);
+              setClosed(new Set());
+            }
+            setChats((list) => list.filter((c) => c.chatId !== id));
+          }
+        },
+        { abortable: true },
+      );
+    },
+    [run],
+  );
+
+  // Nạp danh sách lịch sử và dựng lại chat đang mở (nếu có) một lần sau khi hydrate.
+  useEffect(() => {
+    if (initStarted.current) return;
+    initStarted.current = true;
+    void refreshChats();
+    const id = sessionStorage.getItem(CHAT_KEY);
+    if (id && !chatId.current) {
+      void openChat(id);
+    }
+  }, [openChat, refreshChats]);
+
+  async function newChat(token: number, signal?: AbortSignal) {
+    const { chatId: id } = await agentPost<{ chatId: string }>(
+      "/chats",
+      undefined,
+      signal,
+    );
+    if (token !== runTokenRef.current || signal?.aborted) {
+      throw new DOMException("Aborted", "AbortError");
+    }
     chatId.current = id;
+    setActiveId(id);
     sessionStorage.setItem(CHAT_KEY, id);
     return id;
-  }
-
-  async function run(work: () => Promise<Turn | void>) {
-    setBusy(true);
-    setError(null);
-    try {
-      const turn = await work();
-      if (turn) setEntries((list) => [...list, { from: "agent", turn }]);
-    } catch (e) {
-      setError(
-        e instanceof AgentError ? e.message : "Đã có lỗi xảy ra. Hãy thử lại.",
-      );
-    } finally {
-      // Cùng nhịp với setEntries: các bước tạm không hiện cùng trace của lượt.
-      setSteps([]);
-      setBusy(false);
-    }
   }
 
   function send(event: FormEvent) {
@@ -311,26 +217,58 @@ export default function AssistantChat() {
     if (!message || busy) return;
     setText("");
     setEntries((list) => [...list, { from: "user", text: message }]);
-    const onStep = (s: Step) => setSteps((list) => [...list, s]);
-    void run(async () => {
-      const id = chatId.current ?? (await newChat());
-      try {
-        return await agentStream(
-          `/chats/${id}/messages`,
-          { text: message },
-          onStep,
-        );
-      } catch (e) {
-        // Service khởi động lại thì chat cũ mất: tạo chat mới và gửi lại một lần.
-        if (!(e instanceof AgentError && e.status === 404)) throw e;
-        const fresh = await newChat();
-        return agentStream(
-          `/chats/${fresh}/messages`,
-          { text: message },
-          onStep,
-        );
+    void run(
+      async (token, signal) => {
+        const onStep = (s: Step) => {
+          if (token === runTokenRef.current) setSteps((list) => [...list, s]);
+        };
+        const id = chatId.current ?? (await newChat(token, signal));
+        try {
+          const result = await agentStream(
+            `/chats/${id}/messages`,
+            { text: message },
+            onStep,
+            signal,
+          );
+          if (token === runTokenRef.current) void refreshChats();
+          return result;
+        } catch (e) {
+          // Service khởi động lại hoặc chat bị xoá: tạo chat mới và gửi lại một lần.
+          if (!(e instanceof AgentError && e.status === 404)) throw e;
+          const fresh = await newChat(token, signal);
+          const result = await agentStream(
+            `/chats/${fresh}/messages`,
+            { text: message },
+            onStep,
+            signal,
+          );
+          if (token === runTokenRef.current) void refreshChats();
+          return result;
+        }
+      },
+      { abortable: true, streaming: true },
+    );
+  }
+
+  async function deleteChat(id: string) {
+    if (holding || deletingId === id) return;
+    if (chatId.current === id) resetChat();
+    setDeletingId(id);
+    try {
+      await agentDelete(`/chats/${id}`);
+      setChats((list) => list.filter((c) => c.chatId !== id));
+    } catch (e) {
+      if (redirectIfExpired(e)) return;
+      if (e instanceof AgentError && e.status === 404) {
+        setChats((list) => list.filter((c) => c.chatId !== id));
+        return;
       }
-    });
+      setError(
+        e instanceof AgentError ? e.message : "Không xoá được cuộc trò chuyện.",
+      );
+    } finally {
+      setDeletingId((cur) => (cur === id ? null : cur));
+    }
   }
 
   function close(proposalId: string) {
@@ -346,12 +284,18 @@ export default function AssistantChat() {
   }
 
   function hold(proposalId: string) {
-    void run(async () => {
+    const id = chatId.current;
+    if (!id) return;
+    setHolding(true);
+    void run(async (token) => {
       try {
-        return await agentPost<Turn>(
-          `/chats/${chatId.current}/proposals/${proposalId}/approve`,
+        const out = await agentPost<Turn>(
+          `/chats/${id}/proposals/${proposalId}/approve`,
         );
+        if (token === runTokenRef.current) void refreshChats();
+        return out;
       } finally {
+        setHolding(false);
         close(proposalId);
       }
     });
@@ -360,98 +304,147 @@ export default function AssistantChat() {
   return (
     <div className="min-h-dvh">
       <SiteHeader />
-      <main className="mx-auto grid max-w-page gap-28 px-16 pt-16 pb-80 sm:px-38">
-        <h1 className="text-heading-lg font-bold">Trợ lý đặt vé</h1>
-        {entries.length === 0 && (
-          <p className="text-muted">
-            Gõ yêu cầu bằng lời, ví dụ “Đặt giúp mình 1 vé SGN đi Đà Nẵng thứ 6
-            này, bay trước 12h, dưới 2 triệu”. Trợ lý đặt được vé một chiều hoặc
-            khứ hồi, hạng phổ thông, cho nhiều hành khách, kèm hành lý ký gửi và
-            mã giảm giá, và chỉ giữ chỗ khi bạn bấm “Giữ chỗ”.
-          </p>
-        )}
-        <ol aria-label="Cuộc trò chuyện" className="grid gap-16">
-          {entries.map((entry, i) =>
-            entry.from === "user" ? (
-              <li
-                key={i}
-                className="max-w-[80%] justify-self-end rounded-inner bg-accent-soft px-14 py-10"
-              >
-                {entry.text}
-              </li>
-            ) : (
-              <li key={i} className="grid gap-12">
-                {/* Thẻ "Đã giữ chỗ" và thẻ bàn giao đã nói đúng câu trả lời, không lặp lại. */}
-                {entry.turn.reply &&
-                  !entry.turn.cards.some(
-                    (c) => c.type === "held" || c.type === "handoff",
-                  ) && (
-                    <p className="whitespace-pre-line">
-                      {replyParts(entry.turn.reply).map((part, k) =>
-                        typeof part === "string" ? (
-                          part
-                        ) : (
-                          <Link key={k} href={part.href} className={textLink}>
-                            {part.href}
-                          </Link>
-                        ),
-                      )}
-                    </p>
-                  )}
-                {entry.turn.trace.length > 0 && (
-                  <Steps steps={entry.turn.trace} label="Các bước đã chạy" />
-                )}
-                {entry.turn.cards.map((card, j) => (
-                  <CardView
-                    key={j}
-                    card={card}
-                    open={
-                      card.type === "proposal" &&
-                      card.proposalId === latest &&
-                      !closed.has(card.proposalId)
-                    }
-                    busy={busy}
-                    onHold={() =>
-                      card.type === "proposal" && hold(card.proposalId)
-                    }
-                    onEdit={() =>
-                      card.type === "proposal" && edit(card.proposalId)
-                    }
-                  />
-                ))}
-              </li>
-            ),
-          )}
-        </ol>
-        {steps.length > 0 && <Steps steps={steps} label="Các bước đang chạy" />}
-        {busy && (
-          <p role="status" className="text-caption text-muted">
-            Trợ lý đang xử lý…
-          </p>
-        )}
-        {error && <Notice>{error}</Notice>}
-        <form onSubmit={send} className="flex gap-8">
-          <label htmlFor="assistant-input" className="sr-only">
-            Tin nhắn cho trợ lý
-          </label>
-          <input
-            id="assistant-input"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            disabled={busy}
-            maxLength={1000}
-            autoComplete="off"
-            placeholder="Nhắn cho trợ lý…"
-            className="min-h-40 min-w-0 flex-1 rounded-inner border border-line-strong bg-surface px-14 py-8 transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_var(--color-accent-soft)] focus:outline-none"
+      <main className="mx-auto grid max-w-page gap-24 px-16 pt-16 pb-80 sm:px-38 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
+        <ChatHistory
+          chats={chats}
+          activeId={activeId}
+          loading={loadingHistory}
+          busy={busy}
+          holding={holding}
+          deletingId={deletingId}
+          onSelect={(id) => void openChat(id)}
+          onNew={resetChat}
+          onDelete={(id) => void deleteChat(id)}
+        />
+        <section className="grid min-w-0 gap-20">
+          <h1 className="text-heading-lg font-bold">Trợ lý đặt vé</h1>
+          <ActiveContextBar
+            entries={entries}
+            hasOpenProposal={hasOpenProposal}
           />
-          <button
-            type="submit"
-            className={pillPrimary}
-            disabled={busy || !text.trim()}
-          >
-            Gửi
-          </button>
-        </form>
+          {entries.length === 0 && (
+            <p className="text-muted">
+              Gõ yêu cầu bằng lời, ví dụ “Đặt giúp mình 1 vé SGN đi Đà Nẵng thứ
+              6 này, bay trước 12h, dưới 2 triệu”. Trợ lý đặt được vé một chiều
+              hoặc khứ hồi, chọn hạng ghế, cho nhiều hành khách, kèm hành lý ký
+              gửi và mã giảm giá, và chỉ giữ chỗ khi bạn bấm “Giữ chỗ”.
+            </p>
+          )}
+          <ol aria-label="Cuộc trò chuyện" className="grid gap-16">
+            {entries.map((entry, i) =>
+              entry.from === "user" ? (
+                <li
+                  key={i}
+                  className="max-w-[80%] justify-self-end rounded-inner bg-accent-soft px-14 py-10"
+                >
+                  {entry.text}
+                </li>
+              ) : (
+                <li key={i} className="grid gap-12">
+                  {/* Thẻ "Đã giữ chỗ" và thẻ bàn giao đã nói đúng câu trả lời, không lặp lại. */}
+                  {entry.turn.reply &&
+                    !entry.turn.cards.some(
+                      (c) =>
+                        c.type === "held" ||
+                        c.type === "cancelled" ||
+                        c.type === "handoff",
+                    ) && (
+                      <p className="whitespace-pre-line">
+                        {replyParts(entry.turn.reply).map((part, k) =>
+                          typeof part === "string" ? (
+                            part
+                          ) : (
+                            <Link
+                              key={k}
+                              href={part.href}
+                              className={textLink}
+                            >
+                              {part.href}
+                            </Link>
+                          ),
+                        )}
+                      </p>
+                    )}
+                  {entry.turn.trace.length > 0 && (
+                    <Steps steps={entry.turn.trace} label="Các bước đã chạy" />
+                  )}
+                  {entry.turn.cards.map((card, j) => (
+                    <CardView
+                      key={j}
+                      card={card}
+                      open={
+                        (card.type === "proposal" ||
+                          card.type === "cancel_proposal") &&
+                        card.proposalId === latest &&
+                        !closed.has(card.proposalId)
+                      }
+                      busy={busy}
+                      onHold={() =>
+                        (card.type === "proposal" ||
+                          card.type === "cancel_proposal") &&
+                        hold(card.proposalId)
+                      }
+                      onEdit={() =>
+                        (card.type === "proposal" ||
+                          card.type === "cancel_proposal") &&
+                        edit(card.proposalId)
+                      }
+                    />
+                  ))}
+                </li>
+              ),
+            )}
+          </ol>
+          {steps.length > 0 && (
+            <Steps steps={steps} label="Các bước đang chạy" live />
+          )}
+          {busy && (
+            <p role="status" className="text-caption text-muted">
+              Trợ lý đang xử lý…
+            </p>
+          )}
+          {error && <Notice>{error}</Notice>}
+          <form onSubmit={send} className="flex gap-8">
+            <label htmlFor="assistant-input" className="sr-only">
+              Tin nhắn cho trợ lý
+            </label>
+            <input
+              ref={inputRef}
+              id="assistant-input"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              disabled={busy}
+              maxLength={1000}
+              autoComplete="off"
+              placeholder="Nhắn cho trợ lý…"
+              className="min-h-40 min-w-0 flex-1 rounded-inner border border-line-strong bg-surface px-14 py-8 transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_var(--color-accent-soft)] focus:outline-none"
+            />
+            {busy && streaming ? (
+              <button
+                type="button"
+                className={pillLine}
+                onClick={stopStream}
+              >
+                Dừng
+              </button>
+            ) : (
+              <button
+                type="submit"
+                className={
+                  busy
+                    ? pillPrimary
+                    : pillPrimary.replace(
+                        "disabled:cursor-wait",
+                        "disabled:cursor-not-allowed",
+                      )
+                }
+                disabled={busy || !text.trim()}
+              >
+                Gửi
+              </button>
+            )}
+          </form>
+        </section>
       </main>
     </div>
   );

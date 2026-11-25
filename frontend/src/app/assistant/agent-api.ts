@@ -12,6 +12,19 @@ export type Segment = {
 
 export type PassengerType = "ADULT" | "CHILD" | "INFANT";
 
+export type MemoryPassenger = {
+  fullName: string;
+  gender: "MALE" | "FEMALE";
+  dateOfBirth: string;
+  bookingCode: string;
+};
+
+export type ChatSummary = {
+  chatId: string;
+  title: string;
+  updatedAt: string;
+};
+
 export type Card =
   | {
       type: "constraints";
@@ -20,10 +33,21 @@ export type Card =
       date: string;
       returnDate: string | null;
       departBefore: string | null;
+      departAfter?: string | null;
       maxPrice: number | null;
+      cabin?: string;
+      airline?: string | null;
+      nonstop?: boolean;
+      refundable?: boolean;
+      changeable?: boolean;
       adults: number;
       children: number;
       infants: number;
+    }
+  | {
+      type: "memory_used";
+      source: "recent_bookings";
+      passengers: MemoryPassenger[];
     }
   | {
       type: "proposal";
@@ -52,6 +76,14 @@ export type Card =
       totalAmount: number;
     }
   | { type: "held"; code: string; holdExpiresAt: string; totalAmount: number }
+  | {
+      type: "cancel_proposal";
+      proposalId: string;
+      code: string;
+      routes: string[];
+      totalAmount: number;
+    }
+  | { type: "cancelled"; code: string }
   | { type: "handoff"; doneSoFar: string[]; tried: string[]; question: string };
 
 export type Turn = {
@@ -86,12 +118,81 @@ export class AgentError extends Error {
 const DOWN = "Trợ lý đang không hoạt động. Hãy thử lại sau.";
 
 /** POST tới service agent. Gửi X-XSRF-TOKEN như apiFetch: service chỉ chuyển tiếp header này, không tự đọc cookie. */
-export async function agentPost<T>(path: string, body?: unknown): Promise<T> {
-  return agentFetch("POST", path, await postHeaders(body), body);
+export async function agentPost<T>(
+  path: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
+  return agentFetch("POST", path, await postHeaders(body), body, signal);
 }
 
-export function agentGet<T>(path: string): Promise<T> {
-  return agentFetch("GET", path, new Headers());
+export function agentGet<T>(path: string, signal?: AbortSignal): Promise<T> {
+  return agentFetch("GET", path, new Headers(), undefined, signal);
+}
+
+/** DELETE tới service agent (trả 204 No Content). Gửi X-XSRF-TOKEN như các thao tác ghi khác. */
+export async function agentDelete(path: string): Promise<void> {
+  await agentResponse("DELETE", path, await postHeaders(undefined));
+}
+
+/** Chuyển tên tool kỹ thuật sang mô tả tiếng Việt ngắn gọn cho người dùng cuối. */
+export function describeStep(step: Step): string {
+  const code =
+    typeof step.args.code === "string" && step.args.code.trim()
+      ? step.args.code.trim().toUpperCase()
+      : null;
+  const airline =
+    typeof step.args.airline === "string" && step.args.airline.trim()
+      ? step.args.airline.trim().toUpperCase()
+      : null;
+  let label: string;
+  switch (step.tool) {
+    case "set_constraints":
+      label = "Cập nhật yêu cầu tìm chuyến";
+      break;
+    case "search_flights":
+      label = "Tìm chuyến bay phù hợp";
+      break;
+    case "list_recent_passengers":
+      label = "Tra cứu hành khách từ các đặt chỗ gần đây";
+      break;
+    case "propose_hold":
+      label = "Tính giá và tạo thẻ duyệt giữ chỗ";
+      break;
+    case "list_my_bookings":
+      label = "Xem danh sách đặt chỗ của bạn";
+      break;
+    case "get_booking":
+      label = code ? `Xem chi tiết đặt chỗ ${code}` : "Xem chi tiết đặt chỗ";
+      break;
+    case "refund_quote":
+      label = code ? `Tính số tiền hoàn vé cho đơn ${code}` : "Tính số tiền hoàn vé";
+      break;
+    case "reschedule_options":
+      label = code
+        ? `Tìm chuyến thay thế để đổi vé cho đơn ${code}`
+        : "Tìm chuyến thay thế để đổi vé";
+      break;
+    case "propose_cancel":
+      label = code
+        ? `Tạo thẻ duyệt huỷ giữ chỗ ${code}`
+        : "Tạo thẻ duyệt huỷ giữ chỗ";
+      break;
+    case "read_policy":
+      label = "Đọc quy định chính sách SkyLine";
+      break;
+    case "airline_rules":
+      label = airline
+        ? `Tra cứu quy định hãng ${airline}`
+        : "Tra cứu quy định hãng bay";
+      break;
+    default:
+      label = step.tool;
+  }
+  if (step.status === "invalid_param") return `${label} (điều chỉnh tham số)`;
+  if (step.status === "denied") return `${label} (không thoả điều kiện)`;
+  if (step.status === "backend_error") return `${label} (hệ thống báo lỗi)`;
+  return label;
 }
 
 /** POST rồi đọc stream: gọi onStep cho mỗi bước tool, trả kết quả lượt. Stream đóng mà chưa có kết quả thì là lỗi. */
@@ -99,14 +200,22 @@ export async function agentStream(
   path: string,
   body: unknown,
   onStep: (step: Step) => void,
+  signal?: AbortSignal,
 ): Promise<Turn> {
-  const res = await agentResponse("POST", path, await postHeaders(body), body);
+  const res = await agentResponse(
+    "POST",
+    path,
+    await postHeaders(body),
+    body,
+    signal,
+  );
   try {
     for await (const event of sseEvents(res.body!)) {
       if (event.type === "turn") return event.turn;
       onStep({ tool: event.tool, args: event.args, status: event.status });
     }
-  } catch {
+  } catch (e) {
+    if (signal?.aborted) throw e;
     // mất kết nối giữa chừng: báo như stream đóng sớm
   }
   throw new AgentError(0, DOWN);
@@ -135,7 +244,7 @@ export async function* sseEvents(
 
 // Đường dẫn nội bộ trong câu trả lời (nguồn trích dẫn, trang tự thao tác); dấu câu cuối câu không thuộc link.
 const INTERNAL_LINK =
-  /(\/(?:chinh-sach|flights|bookings)\b(?:[/#][A-Za-z0-9-]+)*)/;
+  /(\/(?:chinh-sach|flights|bookings)\b(?:\/[A-Za-z0-9_-]+)*(?:\?[A-Za-z0-9_=&-]+)?(?:#[A-Za-z0-9_-]+)?)/;
 
 /** Câu trả lời là văn bản thuần: tách các đường dẫn nội bộ ra để hiện thành link. */
 export function replyParts(text: string): (string | { href: string })[] {
@@ -158,8 +267,9 @@ async function agentFetch<T>(
   path: string,
   headers: Headers,
   body?: unknown,
+  signal?: AbortSignal,
 ): Promise<T> {
-  return (await agentResponse(method, path, headers, body)).json() as T;
+  return (await agentResponse(method, path, headers, body, signal)).json() as T;
 }
 
 async function agentResponse(
@@ -167,6 +277,7 @@ async function agentResponse(
   path: string,
   headers: Headers,
   body?: unknown,
+  signal?: AbortSignal,
 ): Promise<Response> {
   let res: Response;
   try {
@@ -175,8 +286,10 @@ async function agentResponse(
       headers,
       credentials: "same-origin",
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal,
     });
-  } catch {
+  } catch (e) {
+    if (signal?.aborted) throw e;
     throw new AgentError(0, DOWN);
   }
   if (res.ok) return res;

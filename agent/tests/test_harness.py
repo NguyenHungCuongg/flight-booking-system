@@ -563,3 +563,139 @@ def test_search_shows_the_fare_conditions_of_each_journey():
     h.execute("set_constraints", ROUTE)
     r = h.execute("search_flights", {})
     assert r["matching"][0]["conditions"] == "xách tay 7 kg, không có ký gửi, không hoàn vé, đổi vé phí 300.000 đ mỗi khách"
+
+
+def test_set_constraints_merges_partial_updates_and_clears_with_none_keyword():
+    h, _ = ready()
+    assert h.execute("set_constraints", {"airline": "VN"})["status"] == "invalid_param"
+    h.execute("set_constraints", {**ROUTE, "adults": 2})
+    r = h.execute("set_constraints", {"airline": "vn", "nonstop": True, "depart_after": "7:30", "max_price": "NONE"})
+    assert r["status"] == "ok"
+    assert (h.constraints.origin, h.constraints.destination, h.constraints.date) == ("SGN", "DAD", "2026-10-30")
+    assert h.constraints.depart_before == "12:00" and h.constraints.depart_after == "07:30"
+    assert h.constraints.max_price is None and h.constraints.adults == 2
+    assert h.constraints.airline == "VN" and h.constraints.nonstop is True
+    # Repeating origin/destination while changing date preserves existing passenger count and filters
+    h.execute("set_constraints", {"origin": "SGN", "destination": "DAD", "date": "2026-10-31"})
+    assert h.constraints.date == "2026-10-31" and h.constraints.adults == 2 and h.constraints.airline == "VN"
+
+
+def test_search_and_hold_support_refundable_fare_family_and_cabin():
+    h, _ = ready()
+    h.execute("set_constraints", {"origin": "SGN", "destination": "DAD", "date": "2026-10-30",
+                                  "refundable": True, "max_price": 2_500_000})
+    r = h.execute("search_flights", {})
+    assert r["status"] == "ok" and r["matching"][0]["flights"] == "VN122"
+    assert r["matching"][0]["fare"] == "Economy Classic" and r["matching"][0]["fare_family_id"] == 2
+    hold = h.execute("propose_hold", dict(flight_ids=[122], fare_family_id=2, passengers=[PAX]))
+    assert hold["status"] == "pending_approval" and h.proposal.total == 2_150_000
+
+    # Cabin filter (BUSINESS)
+    h_biz, _ = ready()
+    h_biz.execute("set_constraints", {"origin": "SGN", "destination": "DAD", "date": "2026-10-30", "cabin": "BUSINESS"})
+    r_biz = h_biz.execute("search_flights", {})
+    assert [m["flights"] for m in r_biz["matching"]] == ["VN122"]
+    assert r_biz["matching"][0]["fare"] == "Business Classic"
+
+
+
+def test_filtering_happens_before_matching_top_five_cutoff():
+    from tests.fakes import FLIGHTS, itinerary
+    cheap_vj = [itinerary(700 + i, f"VJ70{i}", f"0{i + 1}:00", 900_000 + i * 10_000) for i in range(6)]
+    h, _ = ready(FakeBackend(flights=cheap_vj + FLIGHTS))
+    h.execute("set_constraints", {**ROUTE, "airline": "VN"})
+    r = h.execute("search_flights", {})
+    assert [m["flights"] for m in r["matching"]] == ["VN122"]
+
+
+def test_round_trip_supports_different_baggage_per_direction():
+    h, _ = round_trip()
+    r = h.execute("propose_hold", {**ROUND, "passengers": [PAX], "baggage_kg": 0, "return_baggage_kg": 20})
+    assert (r["status"], r["total"]) == ("pending_approval", 2_900_000 + 350_000)
+    assert h.proposal.body["baggage"] == [{"passengerIndex": 0, "direction": "RETURN", "baggageOptionId": 12}]
+    assert [j["baggage"] for j in h.cards[-1]["journeys"]] == [
+        None,
+        {"weightKg": 20, "count": 1, "total": 350_000},
+    ]
+
+
+def test_handoff_links_to_prefilled_flights_url():
+    h, _ = ready()
+    h.execute("set_constraints", {**ROUTE, "adults": 2})
+    h.stop("budget")
+    q = h.handoff()["question"]
+    assert "/flights?from=SGN&to=DAD&date=2026-10-30&adults=2&children=0&infants=0&cabin=ECONOMY" in q
+
+
+def test_four_consecutive_failed_tool_calls_stop_as_stall():
+    h, _ = ready()
+    for bad_date in ("2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04"):
+        h.execute("set_constraints", {**ROUTE, "date": bad_date})
+    assert h.stop_reason == "stall"
+    assert "4 bước" in h.handoff()["question"]
+
+
+def test_turn_stops_on_wall_clock_timeout_or_token_budget():
+    import pytest
+    from flight_agent.core import StopRun
+    h, _ = ready()
+    h.started_at -= 100.0
+    with pytest.raises(StopRun):
+        h.before_model()
+    assert h.stop_reason == "timeout"
+
+    h2, _ = ready()
+    h2.tokens_used = 40_000
+    with pytest.raises(StopRun):
+        h2.before_model()
+    assert h2.stop_reason == "budget"
+
+
+def test_reschedule_options_formats_flights_and_amount_due():
+    from tests.fakes import FLIGHTS
+    h, _ = ready(FakeBackend(**LOOKUP, reschedules={
+        ("ABC234", "OUTBOUND", "2026-10-31"): [
+            {"itinerary": FLIGHTS[1], "quote": {"oldFareTotal": 1_850_000, "newFareTotal": 2_000_000,
+                                                "changeFeeTotal": 300_000, "amountDue": 450_000}}
+        ]
+    }))
+    r = h.execute("reschedule_options", {"code": "ABC234", "direction": "OUTBOUND", "date": "2026-10-31"})
+    assert r["status"] == "ok" and r["options"][0]["amount_due"] == "450.000 đ"
+    assert r["page"] == "/bookings/ABC234/reschedule/outbound"
+
+
+def test_propose_cancel_only_allows_pending_payment_bookings():
+    h, _ = ready(FakeBackend(**LOOKUP))
+    assert h.execute("propose_cancel", {"code": "ABC234"})["status"] == "denied"
+    r = h.execute("propose_cancel", {"code": "K7M2QX"})
+    assert r["status"] == "pending_approval" and h.proposal.action == "cancel"
+    assert h.cards[-1]["type"] == "cancel_proposal"
+
+
+def test_recent_passengers_emits_memory_used_card_with_source_booking_code():
+    h, _ = ready(FakeBackend(past=PAST))
+    r = h.execute("list_recent_passengers", {})
+    assert r["status"] == "ok" and len(r["passengers"]) == 4
+    card = h.cards[-1]
+    assert card == {
+        "type": "memory_used",
+        "source": "recent_bookings",
+        "passengers": [
+            {"fullName": "NGUYEN HUNG CUONG", "gender": "MALE", "dateOfBirth": "2004-03-12", "bookingCode": "AAA111"},
+            {"fullName": "TRAN THI MAI", "gender": "FEMALE", "dateOfBirth": "2005-01-02", "bookingCode": "AAA111"},
+            {"fullName": "NGUYEN BE NA", "gender": "MALE", "dateOfBirth": "2020-05-05", "bookingCode": "BBB222"},
+            {"fullName": "LE VAN AN", "gender": "MALE", "dateOfBirth": "1990-09-09", "bookingCode": "CCC333"},
+        ],
+    }
+    assert "B1234567" not in json.dumps(card)
+
+
+def test_empty_recent_passengers_does_not_emit_memory_used_card():
+    h, _ = ready()
+    h.execute("list_recent_passengers", {})
+    assert h.cards == []
+
+
+
+
+
